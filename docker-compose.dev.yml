@@ -1,0 +1,19 @@
+version: '3.8'
+
+# Development overrides and additional profiles (frontend, assessment, etc.)
+# All containers must connect to the external 'shared-net'.
+
+services:
+  gateway:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/gateway:/app
+      - /app/node_modules
+
+  auth:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/auth:/app
+      - /app/node_modules

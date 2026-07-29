@@ -1,0 +1,57 @@
+version: '3.8'
+
+# Core Services (Profile-less) & Profiles Placeholders
+# This is a base configuration placeholder for seek.mn platform.
+# All containers must connect to the external 'shared-net'.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: seek-postgres
+    networks:
+      - shared-net
+    # Placeholder for postgres
+
+  redis:
+    image: redis:7-alpine
+    container_name: seek-redis
+    networks:
+      - shared-net
+    # Placeholder for redis
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: seek-rabbitmq
+    networks:
+      - shared-net
+    # Placeholder for rabbitmq
+
+  minio:
+    image: minio/minio
+    container_name: seek-minio
+    networks:
+      - shared-net
+    # Placeholder for minio
+
+  auth:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    container_name: seek-auth
+    networks:
+      - shared-net
+    # Placeholder for auth service
+
+  gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    container_name: seek-gateway
+    networks:
+      - shared-net
+    # Placeholder for gateway service
+
+networks:
+  shared-net:
+    external: true
+    name: shared-net
