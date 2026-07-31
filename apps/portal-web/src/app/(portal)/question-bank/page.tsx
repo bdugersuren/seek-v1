@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -15,6 +15,14 @@ import {
   useDialog,
   useToast,
 } from "@seek/ui";
+import {
+  DataViewToggle,
+  ExplorerTopicTree,
+  MetricCard,
+  WorkspaceFilterSection,
+  buildTopicDescendantMap,
+  type ExplorerTopicNode,
+} from "@/components/workspace";
 import {
   bloomLabels,
   difficultyLabels,
@@ -36,45 +44,64 @@ import type {
 
 type ChecklistSectionId = "topics" | "types" | "difficulties" | "statuses";
 
-interface TopicNode {
-  id: string;
-  label: string;
-  count: number;
-  children?: TopicNode[];
-}
-
-const nestedTopics: TopicNode[] = [
+const nestedTopics: ExplorerTopicNode[] = [
   {
-    id: "math",
-    label: "Математик",
-    count: 7,
+    id: "quiz",
+    label: "quiz",
+    count: 9,
     children: [
       {
-        id: "fractions",
-        label: "Энгийн бутархай",
-        count: 4,
+        id: "general-knowledge",
+        label: "Ерөнхий мэдлэг",
+        count: 5,
         children: [
-          { id: "fraction-operations", label: "Бутархайн үйлдэл", count: 2 },
-          { id: "fraction-equivalence", label: "Тэнцүү бутархай", count: 2 },
+          { id: "governance", label: "Засаглалын бүтэц", count: 0 },
+          { id: "constitution", label: "Монгол Улсын Үндсэн хууль", count: 0 },
+          { id: "socio-economic", label: "Нийгэм-эдийн засаг, дэлхийн шинжилгээ", count: 0 },
+          { id: "international-relations", label: "Олон улсын харилцаа", count: 0 },
+          { id: "civil-service-law", label: "Төрийн албаны тухай хууль", count: 0 },
         ],
       },
-      { id: "algebra", label: "Шугаман алгебр", count: 3 },
+      {
+        id: "digital-foundation",
+        label: "Мэдээллийн технологийн үндсэн чадвар",
+        count: 1,
+        children: [
+          { id: "computer-use", label: "Компьютерийн хэрэглээ", count: 0 },
+          { id: "cyber", label: "Мэдээллийн аюулгүй байдал, цахим орчны соёл", count: 1 },
+          { id: "office", label: "Оффис программ", count: 0 },
+        ],
+      },
+      {
+        id: "cognitive",
+        label: "Танин мэдэхүй",
+        count: 7,
+        children: [
+          { id: "analytics", label: "Аналитик сэтгэлгээ", count: 0 },
+          { id: "logic", label: "Логик сэтгэлгээ", count: 0 },
+          {
+            id: "math",
+            label: "Математик үндэс",
+            count: 7,
+            children: [
+              { id: "fractions", label: "Энгийн бутархай", count: 4 },
+              { id: "algebra", label: "Шугаман алгебр", count: 3 },
+            ],
+          },
+          { id: "calculation", label: "Тооцоо, дүгнэлт", count: 0 },
+        ],
+      },
+      {
+        id: "personal-behaviour",
+        label: "Хувь хүний зан төлөв",
+        count: 3,
+        children: [
+          { id: "ethics", label: "Ёс зүй", count: 0 },
+          { id: "communication", label: "Харилцааны ур чадвар", count: 2 },
+          { id: "leadership", label: "Манлайлал", count: 1 },
+        ],
+      },
     ],
-  },
-  {
-    id: "soft-skills",
-    label: "Зөөлөн ур чадвар",
-    count: 3,
-    children: [
-      { id: "communication", label: "Харилцааны ур чадвар", count: 2 },
-      { id: "leadership", label: "Манлайлал", count: 1 },
-    ],
-  },
-  {
-    id: "digital",
-    label: "Дижитал чадвар",
-    count: 1,
-    children: [{ id: "cyber", label: "Кибер аюулгүй байдал", count: 1 }],
   },
 ];
 
@@ -112,10 +139,12 @@ export default function QuestionBankPage() {
     statuses: true,
   });
   const [openTopicIds, setOpenTopicIds] = useState<string[]>([
+    "quiz",
+    "general-knowledge",
+    "digital-foundation",
+    "cognitive",
     "math",
-    "fractions",
-    "soft-skills",
-    "digital",
+    "personal-behaviour",
   ]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
@@ -251,13 +280,14 @@ export default function QuestionBankPage() {
           </button>
         </div>
 
-        <ChecklistSection
+        <WorkspaceFilterSection
           title="Сэдвийн сан"
+          subtitle="Folder tree-ээс leaf сэдэв сонгоно."
           selectedCount={selectedTopicIds.length}
           open={openSections.topics}
           onToggle={() => toggleSection("topics")}
         >
-          <TopicTree
+          <ExplorerTopicTree
             nodes={nestedTopics}
             selectedIds={selectedTopicIds}
             openIds={openTopicIds}
@@ -266,9 +296,9 @@ export default function QuestionBankPage() {
             }
             onToggleOpen={toggleTopicOpen}
           />
-        </ChecklistSection>
+        </WorkspaceFilterSection>
 
-        <ChecklistSection
+        <WorkspaceFilterSection
           title="Асуултын төрөл"
           selectedCount={selectedQuestionTypes.length}
           open={openSections.types}
@@ -289,9 +319,9 @@ export default function QuestionBankPage() {
               )
             }
           />
-        </ChecklistSection>
+        </WorkspaceFilterSection>
 
-        <ChecklistSection
+        <WorkspaceFilterSection
           title="Хүндрэлийн түвшин"
           selectedCount={selectedDifficulties.length}
           open={openSections.difficulties}
@@ -312,9 +342,9 @@ export default function QuestionBankPage() {
               )
             }
           />
-        </ChecklistSection>
+        </WorkspaceFilterSection>
 
-        <ChecklistSection
+        <WorkspaceFilterSection
           title="Даалгаврын төлөв"
           selectedCount={selectedStatuses.length}
           open={openSections.statuses}
@@ -335,7 +365,7 @@ export default function QuestionBankPage() {
               )
             }
           />
-        </ChecklistSection>
+        </WorkspaceFilterSection>
       </aside>
 
       <main className="space-y-seek-4">
@@ -350,10 +380,10 @@ export default function QuestionBankPage() {
         </div>
 
         <div className="grid gap-seek-3 md:grid-cols-4">
-          <StatCard label="Нийт даалгавар" value={stats.total} accent="bg-primary" />
-          <StatCard label="Батлагдсан/нийтлэгдсэн" value={stats.active} accent="bg-success" />
-          <StatCard label="Ноорог/засвар" value={stats.inactive} accent="bg-warning" />
-          <StatCard label="Сэдвийн сан" value={stats.selectedTopics} accent="bg-info" />
+          <MetricCard label="Нийт даалгавар" value={stats.total} accent="bg-primary" />
+          <MetricCard label="Батлагдсан/нийтлэгдсэн" value={stats.active} accent="bg-success" />
+          <MetricCard label="Ноорог/засвар" value={stats.inactive} accent="bg-warning" />
+          <MetricCard label="Сэдвийн сан" value={stats.selectedTopics} accent="bg-info" />
         </div>
 
         <Card className="p-seek-4">
@@ -370,14 +400,14 @@ export default function QuestionBankPage() {
                 }}
               />
             </div>
-            <div className="flex rounded-seek-md border border-border bg-muted-background p-1">
-              <ViewButton active={view === "cards"} onClick={() => setView("cards")}>
-                Карт
-              </ViewButton>
-              <ViewButton active={view === "table"} onClick={() => setView("table")}>
-                Жагсаалт
-              </ViewButton>
-            </div>
+            <DataViewToggle
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "cards", label: "Карт" },
+                { value: "table", label: "Жагсаалт" },
+              ]}
+            />
           </div>
         </Card>
 
@@ -509,107 +539,6 @@ export default function QuestionBankPage() {
   );
 }
 
-function ChecklistSection({
-  title,
-  selectedCount,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  selectedCount: number;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <section className="border-t border-border py-seek-3 first:border-t-0 first:pt-0">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-2 text-left"
-        onClick={onToggle}
-      >
-        <span className="text-xs font-bold uppercase text-muted-foreground">
-          {title}
-        </span>
-        <span className="flex items-center gap-2">
-          {selectedCount > 0 && <Badge variant="secondary">{selectedCount}</Badge>}
-          <Icons.ChevronRight
-            className={`h-4 w-4 text-muted-foreground transition-transform ${
-              open ? "rotate-90" : ""
-            }`}
-          />
-        </span>
-      </button>
-      {open && <div className="mt-seek-3 space-y-2">{children}</div>}
-    </section>
-  );
-}
-
-function TopicTree({
-  nodes,
-  selectedIds,
-  openIds,
-  onToggle,
-  onToggleOpen,
-  depth = 0,
-}: {
-  nodes: TopicNode[];
-  selectedIds: string[];
-  openIds: string[];
-  onToggle: (id: string) => void;
-  onToggleOpen: (id: string) => void;
-  depth?: number;
-}) {
-  return (
-    <div className="space-y-2">
-      {nodes.map((node) => (
-        <div key={node.id}>
-          <div
-            className="flex items-center justify-between gap-2 text-sm text-foreground"
-            style={{ paddingLeft: depth * 14 }}
-          >
-            <label className="flex min-w-0 items-center gap-2">
-              <Checkbox
-                checked={selectedIds.includes(node.id)}
-                onChange={() => onToggle(node.id)}
-              />
-              <span className="truncate">{node.label}</span>
-            </label>
-            <span className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{node.count}</span>
-              {node.children && (
-                <button
-                  type="button"
-                  className="grid h-5 w-5 place-items-center rounded-seek-sm text-muted-foreground hover:bg-surface-hover"
-                  onClick={() => onToggleOpen(node.id)}
-                  aria-label={`${node.label} ${openIds.includes(node.id) ? "хураах" : "нээх"}`}
-                >
-                  <Icons.ChevronRight
-                    className={`h-3.5 w-3.5 transition-transform ${
-                      openIds.includes(node.id) ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
-              )}
-            </span>
-          </div>
-          {node.children && openIds.includes(node.id) && (
-            <TopicTree
-              nodes={node.children}
-              selectedIds={selectedIds}
-              openIds={openIds}
-              onToggle={onToggle}
-              onToggleOpen={onToggleOpen}
-              depth={depth + 1}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Checklist<T extends string>({
   items,
   selected,
@@ -637,50 +566,6 @@ function Checklist<T extends string>({
         </label>
       ))}
     </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number;
-  accent: string;
-}) {
-  return (
-    <Card className="flex items-center justify-between p-seek-4">
-      <div>
-        <Text variant="muted" className="text-sm">
-          {label}
-        </Text>
-        <Text className="mt-1 text-3xl font-bold">{value}</Text>
-      </div>
-      <span className={`h-10 w-2 rounded-seek-full ${accent}`} />
-    </Card>
-  );
-}
-
-function ViewButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={`rounded-seek-sm px-seek-3 py-seek-1.5 text-sm font-semibold ${
-        active ? "bg-surface text-primary shadow-seek-sm" : "text-muted-foreground"
-      }`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -868,19 +753,6 @@ function toggleArrayValue<T>(
       ? values.filter((item) => item !== value)
       : [...values, value],
   );
-}
-
-function buildTopicDescendantMap(nodes: TopicNode[]) {
-  const map: Record<string, string[]> = {};
-
-  const visit = (node: TopicNode): string[] => {
-    const descendants = node.children?.flatMap((child) => [child.id, ...visit(child)]) ?? [];
-    map[node.id] = descendants;
-    return descendants;
-  };
-
-  nodes.forEach(visit);
-  return map;
 }
 
 function countBy<T extends string>(

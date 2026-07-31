@@ -93,7 +93,44 @@ export function validateQuizOverrides(
         `${section.name}: заавал оруулах асуулт (${mandatoryCount}) нь сонгох тоо (${section.randomPickCount})-оос их байна.`,
       );
     }
+
+    const excludedCount = section.selectedQuestionIds.filter((questionId) =>
+      overrides.some(
+        (override) =>
+          override.questionId === questionId && override.mode === "excluded",
+      ),
+    ).length;
+    const availableCount = section.selectedQuestionIds.length - excludedCount;
+
+    if (availableCount < section.randomPickCount) {
+      errors.push(
+        `${section.name}: хассан асуултын дараа pool (${availableCount}) нь сонгох тоо (${section.randomPickCount})-д хүрэлцэхгүй байна.`,
+      );
+    }
   });
+
+  return errors;
+}
+
+export function validateQuiz(blueprint: Blueprint, quiz: Quiz) {
+  const errors = validateQuizOverrides(blueprint, quiz.questionOverrides);
+
+  if (quiz.priceMnt < 0) errors.push("Төлбөр 0 эсвэл түүнээс их байх ёстой.");
+  if (!quiz.title.trim()) errors.push("Quiz нэр заавал байна.");
+  if (!quiz.startAt || !quiz.endAt || quiz.startAt >= quiz.endAt) {
+    errors.push("Идэвхтэй хугацааны интервал зөв байх ёстой.");
+  }
+  if (quiz.durationMinutes <= 0) errors.push("Шалгалтын хугацаа 0-оос их байна.");
+  if (quiz.maxAttempts < 1) errors.push("Оролдлогын тоо дор хаяж 1 байна.");
+  if (quiz.accessMode === "private_code" && !quiz.accessCode?.trim()) {
+    errors.push("Захиалгат/private code тестэд нэвтрэх код заавал байна.");
+  }
+  if (
+    quiz.accessMode === "assigned_users" &&
+    (quiz.assignedUserIds?.length ?? 0) === 0
+  ) {
+    errors.push("Зөвхөн тодорхой хэрэглэгчдэд харагдах үед дор хаяж нэг хэрэглэгч сонгоно.");
+  }
 
   return errors;
 }

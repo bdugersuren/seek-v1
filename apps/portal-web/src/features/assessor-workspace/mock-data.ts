@@ -9,6 +9,13 @@ import type {
   Quiz,
 } from "./types";
 
+export const mockAssignableUsers = [
+  { id: "user-battuya", name: "Баттуя М.", email: "battuya@example.mn" },
+  { id: "user-enkhbayar", name: "Энхбаяр Н.", email: "enkhbayar@example.mn" },
+  { id: "user-baterdene", name: "Бат-Эрдэнэ Б.", email: "baterdene@example.mn" },
+  { id: "user-sarantuya", name: "Сарантуя Д.", email: "sarantuya@example.mn" },
+];
+
 export const questionTypeLabels: Record<QuestionType, string> = {
   single_choice: "Нэг сонголт",
   multiple_choice: "Олон сонголт",
@@ -539,9 +546,23 @@ export const mockQuizzes: Quiz[] = [
     id: "quiz-fractions-july",
     title: "Бутархайн суурь чадвар - 7 сарын тест",
     blueprintId: "bp-fractions-core",
+    priceMnt: 0,
+    accessMode: "private_code",
+    accessCode: "FRAC-2026",
+    assignedUserIds: [],
     startAt: "2026-07-31 09:00",
     endAt: "2026-08-07 18:00",
     durationMinutes: 24,
+    maxAttempts: 1,
+    shuffleSections: false,
+    shuffleAnswers: true,
+    hideSolutions: true,
+    showLeaderboard: false,
+    showScore: true,
+    showCorrectness: false,
+    showCorrectAnswers: false,
+    showExplanations: false,
+    resultReleaseMode: "after_close",
     status: "scheduled",
     questionOverrides: [
       { questionId: "qb-001", mode: "mandatory" },

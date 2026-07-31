@@ -66,6 +66,15 @@ export interface QuestionMedia {
   url: string;
 }
 
+export interface QuestionTopicMapping {
+  topicId: string;
+  topicName: string;
+  bloomLevel: BloomLevel;
+  competencyType: CompetencyType;
+  difficulty: DifficultyLevel;
+  weight: number;
+}
+
 export interface QuestionBankItem {
   id: string;
   code: string;
@@ -82,6 +91,7 @@ export interface QuestionBankItem {
   competencyType: CompetencyType;
   topicId: string;
   topicName: string;
+  topicMappings?: QuestionTopicMapping[];
   difficulty: DifficultyLevel;
   tags: string[];
   options: QuestionOption[];
@@ -113,20 +123,33 @@ export interface BlueprintSection {
   strategy: BlueprintSelectionStrategy;
 }
 
+export interface BlueprintTopicMapping {
+  topicId: string;
+  topicName: string;
+  weight: number;
+  difficultyFocus: DifficultyLevel;
+  competencyFocus: CompetencyType;
+}
+
 export interface Blueprint {
   id: string;
   title: string;
   description: string;
   topicId: string;
   topicName: string;
+  topicMappings?: BlueprintTopicMapping[];
   passScore: number;
   totalDurationMinutes: number;
   sections: BlueprintSection[];
   status: "draft" | "ready" | "published" | "archived";
+  workflowHistory?: WorkflowComment[];
+  reviewComment?: string;
   updatedAt: string;
 }
 
 export type QuizOverrideMode = "mandatory" | "excluded" | "none";
+export type QuizAccessMode = "public" | "private_code" | "assigned_users";
+export type QuizResultReleaseMode = "immediate" | "after_close" | "manual";
 
 export interface QuizQuestionOverride {
   questionId: string;
@@ -137,9 +160,23 @@ export interface Quiz {
   id: string;
   title: string;
   blueprintId: string;
+  priceMnt: number;
+  accessMode: QuizAccessMode;
+  accessCode?: string;
+  assignedUserIds?: string[];
   startAt: string;
   endAt: string;
   durationMinutes: number;
+  maxAttempts: number;
+  shuffleSections: boolean;
+  shuffleAnswers: boolean;
+  hideSolutions: boolean;
+  showLeaderboard: boolean;
+  showScore: boolean;
+  showCorrectness: boolean;
+  showCorrectAnswers: boolean;
+  showExplanations: boolean;
+  resultReleaseMode: QuizResultReleaseMode;
   status: "draft" | "scheduled" | "active" | "closed";
   questionOverrides: QuizQuestionOverride[];
 }

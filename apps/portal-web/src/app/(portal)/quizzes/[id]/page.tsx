@@ -1,8 +1,12 @@
 "use client";
 
-import { mockBlueprints } from "@/features/assessor-workspace/mock-data";
+import { mockBlueprints, mockQuizzes } from "@/features/assessor-workspace/mock-data";
 import { QuizEditor } from "@/features/assessor-workspace/QuizEditor";
 
-export default function EditQuizPage() {
-  return <QuizEditor blueprint={mockBlueprints[0]} mode="edit" />;
+export default function EditQuizPage({ params }: { params: { id: string } }) {
+  const quiz = mockQuizzes.find((item) => item.id === params.id) ?? mockQuizzes[0];
+  const blueprint =
+    mockBlueprints.find((item) => item.id === quiz.blueprintId) ?? mockBlueprints[0];
+
+  return <QuizEditor blueprint={blueprint} mode="edit" />;
 }
