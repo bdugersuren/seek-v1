@@ -1,16 +1,23 @@
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 WORKDIR /app
+RUN apt-get update -y && apt-get install -y openssl
 RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm build
-
-FROM node:18-alpine
+RUN pnpm install --frozen-lockfile
+WORKDIR /app/services/auth
+RUN npx prisma generate --schema=prisma/schema.prisma
 WORKDIR /app
+RUN pnpm --filter @seek/auth build
+
+FROM node:18-slim
+WORKDIR /app
+RUN apt-get update -y && apt-get install -y openssl
 RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --prod --frozen-lockfile
-COPY --from=builder /app/dist ./dist
-EXPOSE 3010
-CMD ["node", "dist/main.js"]
+COPY . .
+RUN pnpm install --frozen-lockfile
+WORKDIR /app/services/auth
+RUN npx prisma generate --schema=prisma/schema.prisma
+COPY --from=builder /app/services/auth/dist /app/services/auth/dist
+EXPOSE 8080
+WORKDIR /app/services/auth
+CMD ["node", "dist/src/main.js"]

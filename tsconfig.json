@@ -1,15 +1,15 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
-    "lib": ["es2022", "dom"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "declaration": true
-  },
-  "exclude": ["node_modules", "dist"]
+  "files": [],
+  "references": [
+    { "path": "./packages/config" },
+    { "path": "./packages/contracts" },
+    { "path": "./packages/observability" },
+    { "path": "./packages/testing" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/auth-client" },
+    { "path": "./apps/portal-web" },
+    { "path": "./apps/assessment-web" },
+    { "path": "./services/auth" },
+    { "path": "./services/gateway" }
+  ]
 }

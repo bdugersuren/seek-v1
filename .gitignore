@@ -25,6 +25,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Package-manager and build caches
+.pnpm-store/
+.turbo/
+**/.turbo/
+*.tsbuildinfo
+apps/portal-web/package-lock.json
+test-results/
+
 # IDEs and editors
 .idea/
 .vscode/

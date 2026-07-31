@@ -1,11 +1,12 @@
-import React from 'react';
-import type { Metadata } from 'next';
-import './globals.css';
-import { StoreProvider } from '@/store/Provider';
+import React from "react";
+import type { Metadata } from "next";
+import "katex/dist/katex.min.css";
+import "./globals.css";
+import { AppProviders } from "@/components/app-providers";
 
 export const metadata: Metadata = {
-  title: 'seek.mn Portal',
-  description: 'Competency Assessment Platform Portal',
+  title: "seek.mn Portal",
+  description: "Competency Assessment Platform Portal",
 };
 
 export default function RootLayout({
@@ -16,9 +17,7 @@ export default function RootLayout({
   return (
     <html lang="mn">
       <body>
-        <StoreProvider>
-          {children}
-        </StoreProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

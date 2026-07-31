@@ -6,7 +6,12 @@
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "start:prod": "node dist/main"
+    "start:prod": "node dist/main",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

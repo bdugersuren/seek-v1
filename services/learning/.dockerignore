@@ -1,0 +1,6 @@
+node_modules
+dist
+.turbo
+Dockerfile
+docker-compose*
+npm-debug.log

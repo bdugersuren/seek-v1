@@ -5,10 +5,42 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
+  "packageManager": "pnpm@9.5.0",
   "scripts": {
-    "build": "pnpm --recursive build"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "turbo run clean",
+    "test:smoke:auth": "node scripts/smoke-auth.mjs",
+    "test:integration:auth": "jest tests/integration/auth.spec.ts",
+    "test:postman:auth": "newman run tools/postman/SEEK-Local.postman_collection.json -e tools/postman/SEEK-Local.postman_environment.json",
+    "test:e2e:auth": "playwright test tests/e2e/auth-login.spec.ts",
+    "test:local:auth": "pnpm test:smoke:auth && pnpm test:integration:auth && pnpm test:postman:auth && pnpm test:e2e:auth",
+    "dev:auth-test": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test up --build",
+    "dev:auth-test:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down",
+    "dev:auth-test:down-v": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down -v"
   },
   "devDependencies": {
+    "@nestjs/testing": "^10.0.0",
+    "@next/eslint-plugin-next": "^14.0.0",
+    "@playwright/test": "^1.62.0",
+    "@types/jest": "^29.5.11",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "newman": "^6.2.2",
+    "prettier": "^3.1.0",
+    "ts-jest": "^29.1.1",
+    "turbo": "^1.11.0",
     "typescript": "^5.0.0"
   }
 }

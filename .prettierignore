@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+.next
+**/.next
+dist
+**/dist
+coverage
+test-results
+.turbo
+**/.turbo
+**/tsconfig.tsbuildinfo
+infra
+pnpm-lock.yaml
+apps/portal-web/package-lock.json

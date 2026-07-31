@@ -12,5 +12,5 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --prod --frozen-lockfile
 COPY --from=builder /app/dist ./dist
-EXPOSE 3080
+EXPOSE 8080
 CMD ["node", "dist/main.js"]

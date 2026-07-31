@@ -1,0 +1,66 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model UserAccount {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  status         String          @default("ACTIVE")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  credentials    Credential[]
+  sessions       Session[]
+  securityEvents SecurityEvent[]
+}
+
+model Credential {
+  id            String      @id @default(uuid())
+  userAccountId String
+  type          String      @default("PASSWORD")
+  value         String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id                    String         @id @default(uuid())
+  userAccountId         String
+  refreshTokenFamilyId  String
+  userAgentSummary      String?
+  ipAddressSummary      String?
+  expiresAt             DateTime
+  revokedAt             DateTime?
+  revocationReason      String?
+  createdAt             DateTime       @default(now())
+  lastUsedAt            DateTime       @default(now())
+  userAccount           UserAccount    @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  refreshTokens         RefreshToken[]
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  sessionId  String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  rotatedAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model SecurityEvent {
+  id            String      @id @default(uuid())
+  userAccountId String?
+  eventType     String
+  ipAddress     String?
+  userAgent     String?
+  payload       String?
+  createdAt     DateTime    @default(now())
+  userAccount   UserAccount? @relation(fields: [userAccountId], references: [id], onDelete: SetNull)
+}

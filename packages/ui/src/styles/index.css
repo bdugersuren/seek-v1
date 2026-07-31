@@ -1,0 +1,41 @@
+@import "./tokens.css";
+
+/* Base design system helper classes */
+.seek-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--seek-space-4);
+  padding-right: var(--seek-space-4);
+}
+
+@media (min-width: 640px) {
+  .seek-container {
+    max-width: 640px;
+  }
+}
+@media (min-width: 768px) {
+  .seek-container {
+    max-width: 768px;
+  }
+}
+@media (min-width: 1024px) {
+  .seek-container {
+    max-width: 1024px;
+  }
+}
+@media (min-width: 1280px) {
+  .seek-container {
+    max-width: 1280px;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

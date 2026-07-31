@@ -1,57 +1,470 @@
-version: '3.8'
-
-# Core Services (Profile-less) & Profiles Placeholders
-# This is a base configuration placeholder for seek.mn platform.
+# seek.mn Platform Core and Service Orchestration
 # All containers must connect to the external 'shared-net'.
 
 services:
+  # =========================================================================
+  # Core Infrastructure Services (Profile-less)
+  # =========================================================================
   postgres:
     image: postgres:15-alpine
     container_name: seek-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-seek_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-seek_postgres_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-seek_core_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
     networks:
-      - shared-net
-    # Placeholder for postgres
+      shared-net:
+        aliases:
+          - auth-postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
 
   redis:
     image: redis:7-alpine
     container_name: seek-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-seek_redis_pass}
+    volumes:
+      - redis_data:/data
     networks:
       - shared-net
-    # Placeholder for redis
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: seek-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-seek_mq_user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-seek_rabbitmq_pass}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - shared-net
-    # Placeholder for rabbitmq
 
   minio:
     image: minio/minio
     container_name: seek-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-seek_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-seek_minio_pass}
+    volumes:
+      - minio_data:/data
     networks:
       - shared-net
-    # Placeholder for minio
+
+  # =========================================================================
+  # Core Business Services (Profile-less)
+  # =========================================================================
+  auth-migrate:
+    profiles:
+      - auth-test
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    container_name: seek-auth-migrate
+    working_dir: /app/services/auth
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
+    entrypoint: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shared-net
+
+  auth-seed:
+    profiles:
+      - auth-test
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    container_name: seek-auth-seed
+    working_dir: /app/services/auth
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
+      NODE_ENV: development
+    entrypoint: ["npx", "ts-node", "prisma/seed.ts"]
+    depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
+    networks:
+      - shared-net
 
   auth:
+    profiles:
+      - auth-test
     build:
-      context: ./services/auth
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/auth/Dockerfile
     container_name: seek-auth
+    expose:
+      - "8080"
+    ports:
+      - "127.0.0.1:3010:8080"
+    environment:
+      PORT: 8080
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
+      AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
+      AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
     networks:
       - shared-net
-    # Placeholder for auth service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e ''require("http").get("http://localhost:8080/health", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   gateway:
+    profiles:
+      - auth-test
     build:
-      context: ./services/gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/gateway/Dockerfile
     container_name: seek-gateway
+    expose:
+      - "8080"
+    ports:
+      - "127.0.0.1:3000:8080"
+    environment:
+      PORT: 8080
+      NODE_ENV: development
+      AUTH_SERVICE_URL: http://auth:8080
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
+      AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
+      AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
     networks:
       - shared-net
-    # Placeholder for gateway service
+    depends_on:
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e ''require("http").get("http://localhost:8080/health", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # =========================================================================
+  # Frontend Application Services (frontend profile)
+  # =========================================================================
+  portal-web:
+    profiles:
+      - frontend
+      - auth-test
+    image: node:18-alpine
+    container_name: seek-portal-web
+    working_dir: /app/apps/portal-web
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/portal-web/node_modules
+      - /app/apps/portal-web/.next
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - NODE_ENV=development
+      - INTERNAL_API_URL=http://gateway:8080/api
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    command: sh -c "npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run dev"
+    networks:
+      - shared-net
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e ''require("http").get("http://localhost:3000", (r) => process.exit(r.statusCode === 200 || r.statusCode === 307 ? 0 : 1))''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  assessment-web:
+    profiles:
+      - frontend
+      - assessment
+    image: node:18-alpine
+    container_name: seek-assessment-web
+    working_dir: /app/apps/assessment-web
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/assessment-web/node_modules
+      - /app/apps/assessment-web/.next
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+      - NEXT_PUBLIC_EXECUTION_URL=http://localhost:3000/execution
+      - NEXT_PUBLIC_MOCK_MODE=true
+    command: sh -c "npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run dev"
+    depends_on:
+      - execution
+    networks:
+      - shared-net
+
+  # =========================================================================
+  # Assessment & Evaluation Services (assessment profile)
+  # =========================================================================
+  profile:
+    profiles:
+      - assessment
+    build:
+      context: ./services/profile
+      dockerfile: Dockerfile
+    container_name: seek-profile
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  organisation:
+    profiles:
+      - assessment
+    build:
+      context: ./services/organisation
+      dockerfile: Dockerfile
+    container_name: seek-organisation
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  verification:
+    profiles:
+      - assessment
+    build:
+      context: ./services/verification
+      dockerfile: Dockerfile
+    container_name: seek-verification
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  competency:
+    profiles:
+      - assessment
+    build:
+      context: ./services/competency
+      dockerfile: Dockerfile
+    container_name: seek-competency
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  assessment:
+    profiles:
+      - assessment
+    build:
+      context: ./services/assessment
+      dockerfile: Dockerfile
+    container_name: seek-assessment
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  commerce:
+    profiles:
+      - assessment
+    build:
+      context: ./services/commerce
+      dockerfile: Dockerfile
+    container_name: seek-commerce
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  execution:
+    profiles:
+      - assessment
+    build:
+      context: ./services/execution
+      dockerfile: Dockerfile
+    container_name: seek-execution
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  evaluation-worker:
+    profiles:
+      - assessment
+    build:
+      context: ./services/evaluation
+      dockerfile: Dockerfile
+    container_name: seek-evaluation-worker
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  learning:
+    profiles:
+      - assessment
+    build:
+      context: ./services/learning
+      dockerfile: Dockerfile
+    container_name: seek-learning
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  reporting:
+    profiles:
+      - assessment
+    build:
+      context: ./services/reporting
+      dockerfile: Dockerfile
+    container_name: seek-reporting
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  file:
+    profiles:
+      - assessment
+    build:
+      context: ./services/file
+      dockerfile: Dockerfile
+    container_name: seek-file
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  platform:
+    profiles:
+      - assessment
+    build:
+      context: ./services/platform
+      dockerfile: Dockerfile
+    container_name: seek-platform
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  # =========================================================================
+  # AI Orchestration Services (ai profile)
+  # =========================================================================
+  ollama:
+    profiles:
+      - ai
+    image: ollama/ollama:latest
+    container_name: seek-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - shared-net
+
+  qdrant:
+    profiles:
+      - ai
+    image: qdrant/qdrant:latest
+    container_name: seek-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - shared-net
+
+  ai:
+    profiles:
+      - ai
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    container_name: seek-ai
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+  # =========================================================================
+  # Integration Services (integration profile)
+  # =========================================================================
+  integration:
+    profiles:
+      - integration
+    build:
+      context: ./services/integration
+      dockerfile: Dockerfile
+    container_name: seek-integration
+    expose:
+      - "8080"
+    environment:
+      PORT: 8080
+    networks:
+      - shared-net
+
+# =========================================================================
+# Shared Network Configuration
+# =========================================================================
 networks:
   shared-net:
     external: true
     name: shared-net
+
+# =========================================================================
+# Volume Definitions
+# =========================================================================
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  minio_data:
+  ollama_data:
+  qdrant_data:

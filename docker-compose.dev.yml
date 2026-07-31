@@ -1,19 +1,219 @@
-version: '3.8'
-
-# Development overrides and additional profiles (frontend, assessment, etc.)
-# All containers must connect to the external 'shared-net'.
+# Development Overrides and Local Port Mappings
+# Host ports are bound strictly to 127.0.0.1 for security.
 
 services:
-  gateway:
-    environment:
-      - NODE_ENV=development
-    volumes:
-      - ./services/gateway:/app
-      - /app/node_modules
+  # =========================================================================
+  # Infrastructure Services Local Port Mappings
+  # =========================================================================
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
 
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  rabbitmq:
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+
+  minio:
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
+  # =========================================================================
+  # Core Business Services
+  # =========================================================================
   auth:
     environment:
       - NODE_ENV=development
     volumes:
-      - ./services/auth:/app
+      - ./services/auth:/app/services/auth
+      - /app/services/auth/node_modules
+    ports:
+      - "127.0.0.1:3010:8080"
+    command: pnpm run start:dev
+
+  gateway:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/gateway:/app/services/gateway
+      - /app/services/gateway/node_modules
+    ports:
+      - "127.0.0.1:3000:8080"
+    command: pnpm run start:dev
+
+  # =========================================================================
+  # Frontend Applications (Mock & Backend-free for assessment-web)
+  # =========================================================================
+  portal-web:
+    environment:
+      - NODE_ENV=development
+      - INTERNAL_API_URL=http://gateway:8080/api
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    volumes:
+      - .:/app
       - /app/node_modules
+      - /app/apps/portal-web/node_modules
+      - /app/apps/portal-web/.next
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  assessment-web:
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+      - NEXT_PUBLIC_EXECUTION_URL=http://localhost:3000/execution
+      - NEXT_PUBLIC_MOCK_MODE=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/assessment-web/node_modules
+      - /app/apps/assessment-web/.next
+    ports:
+      - "127.0.0.1:3002:3000"
+    depends_on: [] # Removes backend execution dependency in dev/mock environment
+
+  # =========================================================================
+  # Assessment & Evaluation Services Local Mappings
+  # =========================================================================
+  profile:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/profile:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3020:8080"
+
+  organisation:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/organisation:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3030:8080"
+
+  verification:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/verification:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3040:8080"
+
+  competency:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/competency:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3050:8080"
+
+  assessment:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/assessment:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3060:8080"
+
+  commerce:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/commerce:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3070:8080"
+
+  execution:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/execution:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3080:8080"
+
+  evaluation-worker:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/evaluation:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3090:8080"
+
+  learning:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/learning:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3100:8080"
+
+  reporting:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/reporting:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3140:8080"
+
+  file:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/file:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3130:8080"
+
+  platform:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/platform:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3150:8080"
+
+  # =========================================================================
+  # AI & Integration Services
+  # =========================================================================
+  ollama:
+    ports:
+      - "127.0.0.1:11434:11434"
+
+  qdrant:
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+
+  ai:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/ai:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3110:8080"
+
+  integration:
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./services/integration:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:3120:8080"
