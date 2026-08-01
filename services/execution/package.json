@@ -17,6 +17,9 @@
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@seek/contracts": "workspace:*",
+    "ioredis": "^5.4.1",
+    "amqplib": "^0.10.4",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
@@ -24,6 +27,7 @@
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@types/node": "^20.0.0",
+    "@types/amqplib": "^0.10.5",
     "typescript": "^5.0.0"
   }
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   Badge,
+  Button,
   Card,
   Heading,
   Icons,
@@ -67,12 +68,9 @@ export default function AssessmentsPage() {
           title="Assessor workspace"
           subtitle="Даалгаврын сан, blueprint, quiz workflow-ийг нэг дороос удирдах hub."
         />
-        <Link
-          href="/assessments/new"
-          className="inline-flex items-center justify-center rounded-seek-md bg-primary px-seek-4 py-seek-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary"
-        >
+        <Button as={Link} href="/assessments/new">
           Шинэ assessment
-        </Link>
+        </Button>
       </div>
 
       <section className="grid grid-cols-1 gap-seek-4 lg:grid-cols-3">
@@ -169,12 +167,14 @@ export default function AssessmentsPage() {
                     </Text>
                   </div>
                 </div>
-                <Link
+                <Button
+                  as={Link}
                   href={`/assessments/${assessment.id}`}
-                  className="inline-flex items-center justify-center rounded-seek-md border border-border bg-surface px-seek-3 py-seek-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary"
+                  variant="secondary"
+                  size="sm"
                 >
                   Дэлгэрэнгүй
-                </Link>
+                </Button>
               </Stack>
             </Card>
           );
@@ -205,12 +205,9 @@ function WorkspaceCard({
         <Text variant="muted" className="text-sm leading-6">
           {body}
         </Text>
-        <Link
-          href={href}
-          className="inline-flex items-center justify-center rounded-seek-md border border-border bg-surface px-seek-3 py-seek-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary"
-        >
+        <Button as={Link} href={href} variant="secondary" size="sm">
           Нээх
-        </Link>
+        </Button>
       </Stack>
     </Card>
   );

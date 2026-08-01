@@ -12,6 +12,9 @@ import {
   useToast,
 } from "@seek/ui";
 
+const assessmentRuntimeBaseUrl =
+  process.env.NEXT_PUBLIC_ASSESSMENT_WEB_URL ?? "http://localhost:8082";
+
 export default function JoinAssessmentPage() {
   const [code, setCode] = useState("");
   const { showToast } = useToast();
@@ -60,14 +63,21 @@ export default function JoinAssessmentPage() {
                 <Button
                   type="button"
                   className="mt-seek-5 w-full"
-                  onClick={() =>
+                  onClick={() => {
+                    const normalizedCode = code.trim();
                     showToast(
-                      code
+                      normalizedCode
                         ? "Зорилтот үнэлгээнд нэгдэх demo хүсэлт илгээгдлээ."
                         : "Эхлээд код оруулна уу.",
-                      code ? "success" : "warning",
-                    )
-                  }
+                      normalizedCode ? "success" : "warning",
+                    );
+
+                    if (normalizedCode) {
+                      window.location.href = `${assessmentRuntimeBaseUrl}/join/${encodeURIComponent(
+                        normalizedCode,
+                      )}`;
+                    }
+                  }}
                 >
                   Үнэлгээнд нэгдэх
                 </Button>

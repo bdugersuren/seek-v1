@@ -6,16 +6,18 @@ import clsx from "clsx";
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline" | "danger";
   size?: "sm" | "md" | "lg";
+  as?: React.ElementType;
+  href?: string;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { variant = "primary", size = "md", className, children, ...props },
+    { variant = "primary", size = "md", as: Component = "button", className, children, ...props },
     ref,
   ) => {
     return (
-      <button
-        ref={ref}
+      <Component
+        ref={ref as any}
         className={clsx(
           "font-sans font-medium inline-flex items-center justify-center transition-colors duration-seek-fast ease-seek-default rounded-seek-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none",
           {
@@ -36,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {children}
-      </button>
+      </Component>
     );
   },
 );

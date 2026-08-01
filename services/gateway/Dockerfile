@@ -13,6 +13,6 @@ RUN npm install -g pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/services/gateway/dist /app/services/gateway/dist
-EXPOSE 8080
+EXPOSE 3010
 WORKDIR /app/services/gateway
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

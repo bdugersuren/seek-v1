@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Badge, Button, Card, PageContainer, Text } from "@seek/ui";
 import { candidateAssessments } from "@/features/candidate-portal/mock-data";
 
+const assessmentRuntimeBaseUrl =
+  process.env.NEXT_PUBLIC_ASSESSMENT_WEB_URL ?? "http://localhost:8082";
+
 export default function MyAssessmentsPage() {
   return (
     <PageContainer className="max-w-none bg-muted-background">
@@ -33,7 +36,7 @@ export default function MyAssessmentsPage() {
             <Text variant="muted" className="mt-seek-3 text-sm">
               {assessment.dates} · {assessment.duration}
             </Text>
-            <Link href="/take/mock-attempt-001">
+            <Link href={`${assessmentRuntimeBaseUrl}/waiting/mock-attempt-001`}>
               <Button type="button" className="mt-seek-5 w-full">
                 {assessment.action}
               </Button>

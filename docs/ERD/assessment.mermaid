@@ -1,0 +1,630 @@
+erDiagram
+    %% =========================================================
+    %% ENUMS / LOOKUP TYPES
+    %% =========================================================
+
+    SectionSelectionStrategy {
+        String code PK
+        String name
+    }
+
+    QuestionLifecycleStatus {
+        String code PK
+        String name
+    }
+
+    QuestionVersionStatus {
+        String code PK
+        String name
+    }
+
+    QuizLifecycleStatus {
+        String code PK
+        String name
+    }
+
+    VersionSelectionMode {
+        String code PK
+        String name
+    }
+
+    SectionMode {
+        String code PK
+        String name
+    }
+
+    QuizAccessMode {
+        String code PK
+        String name
+    }
+
+    QuizEndTimePolicy {
+        String code PK
+        String name
+    }
+
+    AttemptStatus {
+        String code PK
+        String name
+    }
+
+    SubmissionSource {
+        String code PK
+        String name
+    }
+
+    ViolationSeverity {
+        String code PK
+        String name
+    }
+
+    ClassificationStatus {
+        String code PK
+        String name
+    }
+
+    PaymentMode {
+        String code PK
+        String name
+    }
+
+    %% =========================================================
+    %% ASSESSMENT DB - QUESTION BANK / CLASSIFICATION
+    %% =========================================================
+
+    Question ||--|{ QuestionVersion : "has versions"
+    QuestionVersion ||--o{ QuestionOptionVersion : "has options"
+    QuestionType ||--o{ QuestionVersion : "type"
+
+    Question {
+        String id PK
+        String code UK
+        String publishedVersionId FK
+        String lifecycleStatusCode FK
+        String ownerOrganizationId
+        String createdBy
+        DateTime createdAt
+        DateTime updatedAt
+        DateTime archivedAt
+    }
+
+    QuestionVersion {
+        String id PK
+        String questionId FK
+        Int versionNumber
+        String versionStatusCode FK
+        String typeId FK
+        String title
+        Text body
+        Int defaultTimeSeconds
+        Decimal defaultMaxScore
+        Decimal defaultMinScore
+        String_Array tags
+        Text feedbackCorrectly
+        Text feedbackIncorrectly
+        Text explanation
+        Jsonb payload
+        Jsonb answerConfig
+        Jsonb presentationConfig
+        String changeSummary
+        String createdBy
+        DateTime createdAt
+        String reviewedBy
+        DateTime reviewedAt
+        String publishedBy
+        DateTime publishedAt
+        DateTime retiredAt
+    }
+
+    QuestionOptionVersion {
+        String id PK
+        String questionVersionId FK
+        String optionKey
+        String value
+        Int orderIndex
+        Jsonb matchRules
+        Jsonb metadata
+    }
+
+    QuestionType {
+        String id PK
+        String code UK
+        String name
+        String description
+        Boolean isGrid
+        String icon
+    }
+
+    %% =========================================================
+    %% ASSESSMENT DB - AUDIENCE / CONTEXT / FRAMEWORKS
+    %% =========================================================
+
+    AudienceType ||--o{ AudienceLevel : "has levels"
+    AudienceType ||--o{ AssessmentContext : "used by"
+    AudienceLevel ||--o{ AssessmentContext : "targets"
+
+    AudienceType {
+        String id PK
+        String code UK
+        String name
+        String description
+        Boolean isActive
+    }
+
+    AudienceLevel {
+        String id PK
+        String audienceTypeId FK
+        String parentId FK
+        String code
+        String name
+        Int orderIndex
+        Boolean isActive
+    }
+
+    DifficultyScale ||--o{ DifficultyLevel : "has levels"
+    DifficultyScale ||--o{ AssessmentContext : "used by"
+    DifficultyLevel ||--o{ TopicQuestionClassification : "difficulty"
+
+    DifficultyScale {
+        String id PK
+        String code UK
+        String name
+        String description
+        Boolean isActive
+    }
+
+    DifficultyLevel {
+        String id PK
+        String difficultyScaleId FK
+        String code
+        String name
+        Int rank
+        String description
+        Boolean isActive
+    }
+
+    CognitiveFramework ||--o{ CognitiveLevel : "has levels"
+    CognitiveFramework ||--o{ AssessmentContext : "used by"
+    CognitiveLevel ||--o{ TopicQuestionClassification : "cognitive demand"
+
+    CognitiveFramework {
+        String id PK
+        String code UK
+        String name
+        String description
+        Boolean isActive
+    }
+
+    CognitiveLevel {
+        String id PK
+        String cognitiveFrameworkId FK
+        String code
+        String name
+        Int rank
+        String description
+        Boolean isActive
+    }
+
+    CompetenceFramework ||--o{ CompetenceType : "has competences"
+    CompetenceFramework ||--o{ AssessmentContext : "used by"
+    CompetenceType ||--o{ TopicQuestionCompetence : "measured by"
+
+    CompetenceFramework {
+        String id PK
+        String code UK
+        String name
+        String version
+        String description
+        DateTime validFrom
+        DateTime validTo
+        Boolean isActive
+    }
+
+    CompetenceType {
+        String id PK
+        String competenceFrameworkId FK
+        String parentId FK
+        String code
+        String name
+        String description
+        Int orderIndex
+        Boolean isActive
+    }
+
+    AssessmentContext {
+        String id PK
+        String code UK
+        String name
+        String audienceTypeId FK
+        String audienceLevelId FK
+        String curriculumId
+        String subjectId
+        String occupationId
+        String organizationTypeId
+        String difficultyScaleId FK
+        String cognitiveFrameworkId FK
+        String competenceFrameworkId FK
+        DateTime validFrom
+        DateTime validTo
+        Boolean isActive
+    }
+
+    %% =========================================================
+    %% ASSESSMENT DB - TOPIC / CONTEXTUAL CLASSIFICATION
+    %% =========================================================
+
+    Topic ||--o{ Topic : "parent / children"
+    Topic ||--o{ TopicQuestionClassification : "classifies questions"
+    Question ||--o{ TopicQuestionClassification : "classified"
+    AssessmentContext ||--o{ TopicQuestionClassification : "classification context"
+    QuestionVersion ||--o{ TopicQuestionClassification : "validated against"
+    TopicQuestionClassification ||--o{ TopicQuestionCompetence : "competences"
+
+    Topic {
+        String id PK
+        String parentId FK
+        String code UK
+        String title
+        String description
+        Boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    TopicQuestionClassification {
+        String id PK
+        String topicId FK
+        String questionId FK
+        String assessmentContextId FK
+        String difficultyLevelId FK
+        String cognitiveLevelId FK
+        String validatedQuestionVersionId FK
+        String classificationStatusCode FK
+        Boolean isPrimary
+        Decimal weight
+        DateTime validFrom
+        DateTime validTo
+        String createdBy
+        DateTime createdAt
+        String reviewedBy
+        DateTime reviewedAt
+    }
+
+    TopicQuestionCompetence {
+        String id PK
+        String classificationId FK
+        String competenceId FK
+        Decimal weight
+        Boolean isPrimary
+        DateTime createdAt
+    }
+
+    %% =========================================================
+    %% ASSESSMENT DB - QUIZ TEMPLATE
+    %% =========================================================
+
+    AssessmentContext ||--o{ QuizTemplate : "target context"
+    QuizTemplate ||--o{ QuizSection : "has sections"
+    QuizSection ||--o{ SectionQuestion : "fixed questions"
+    Question ||--o{ SectionQuestion : "logical question"
+    QuestionVersion ||--o{ SectionQuestion : "optional pinned version"
+    Topic ||--o{ QuizSection : "topic rule"
+    DifficultyLevel ||--o{ QuizSection : "difficulty override"
+
+    QuizTemplate {
+        String id PK
+        String assessmentContextId FK
+        String code UK
+        String name
+        String description
+        Int defaultDurationMinutes
+        Decimal defaultPassingScore
+        Boolean defaultShuffleQuestions
+        Boolean defaultShuffleOptions
+        String lifecycleStatusCode FK
+        String createdBy
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    QuizSection {
+        String id PK
+        String templateId FK
+        String title
+        String description
+        String sectionModeCode FK
+        Int orderIndex
+        Int questionCount
+        String topicId FK
+        Decimal maxScorePerQuestion
+        Decimal minScorePerQuestion
+        String selectionStrategyCode FK
+        Int timeLimitPerQuestionSeconds
+        String difficultyOverrideId FK
+        Jsonb difficultyWeights
+        Boolean allowSeenQuestions
+        Boolean shuffleOptions
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    SectionQuestion {
+        String id PK
+        String sectionId FK
+        String questionId FK
+        String pinnedQuestionVersionId FK
+        String versionSelectionModeCode FK
+        Int orderIndex
+        Decimal maxScoreOverride
+        Decimal minScoreOverride
+        Boolean isRequired
+        DateTime createdAt
+    }
+
+    %% =========================================================
+    %% ASSESSMENT DB - QUIZ INSTANCE / ASSIGNMENT / PAYMENT
+    %% =========================================================
+
+    QuizTemplate ||--o{ Quiz : "instantiated as"
+    AssessmentContext ||--o{ Quiz : "effective context"
+    Quiz ||--o{ QuizAudienceRule : "audience rules"
+    Quiz ||--o{ QuizUserAssignment : "user assignments"
+    QuizAudienceRule ||--o{ QuizUserAssignment : "materializes"
+    Quiz ||--o| QuizPaymentPolicy : "payment"
+    Quiz ||--o{ QuizPublishedSection : "published sections"
+    QuizPublishedSection ||--o{ QuizPublishedQuestion : "fixed questions"
+    Question ||--o{ QuizPublishedQuestion : "logical question"
+    QuestionVersion ||--o{ QuizPublishedQuestion : "frozen version"
+
+    Quiz {
+        String id PK
+        String templateId FK
+        String assessmentContextId FK
+        String code UK
+        String title
+        String description
+        String lifecycleStatusCode FK
+        DateTime registrationStartAt
+        DateTime registrationEndAt
+        DateTime availableFrom
+        DateTime availableUntil
+        Int durationMinutes
+        String endTimePolicyCode FK
+        Decimal passingScore
+        Int maxAttempts
+        Boolean shuffleQuestions
+        Boolean shuffleOptions
+        Boolean resumeAllowed
+        String accessModeCode FK
+        Int capacity
+        Jsonb proctoringPolicy
+        Jsonb resultVisibilityPolicy
+        Jsonb runtimePolicy
+        String createdBy
+        DateTime createdAt
+        DateTime updatedAt
+        String publishedBy
+        DateTime publishedAt
+        String cancelledBy
+        DateTime cancelledAt
+    }
+
+    QuizAudienceRule {
+        String id PK
+        String quizId FK
+        String audienceTypeId FK
+        String audienceLevelId FK
+        String assessmentContextId FK
+        String organizationId
+        String organizationUnitId
+        String regionId
+        String groupId
+        Jsonb additionalCriteria
+        Boolean includeFutureMembers
+        DateTime createdAt
+    }
+
+    QuizUserAssignment {
+        String id PK
+        String quizId FK
+        String userId
+        String sourceRuleId FK
+        String assignmentStatus
+        DateTime assignedAt
+        DateTime revokedAt
+        DateTime availableFromOverride
+        DateTime availableUntilOverride
+        Int maxAttemptsOverride
+        Boolean paymentRequiredOverride
+        Decimal priceOverride
+    }
+
+    QuizPaymentPolicy {
+        String id PK
+        String quizId FK
+        Boolean paymentRequired
+        String paymentModeCode FK
+        Decimal defaultAmount
+        String currencyCode
+        Boolean refundAllowed
+        Jsonb paymentRules
+    }
+
+    QuizPublishedSection {
+        String id PK
+        String quizId FK
+        String sourceSectionId FK
+        String title
+        String sectionModeCode FK
+        Int orderIndex
+        Int questionCount
+        Decimal maxScorePerQuestion
+        Decimal minScorePerQuestion
+        Int timeLimitPerQuestionSeconds
+        String selectionStrategyCode FK
+        Jsonb selectionRuleSnapshot
+        Boolean shuffleOptions
+        DateTime publishedAt
+    }
+
+    QuizPublishedQuestion {
+        String id PK
+        String publishedSectionId FK
+        String questionId FK
+        String questionVersionId FK
+        String topicQuestionClassificationId
+        Int orderIndex
+        Decimal maxScore
+        Decimal minScore
+    }
+
+    %% =========================================================
+    %% EXECUTION DB - ATTEMPT RUNTIME
+    %% Logical references to assessment_db are marked in comments.
+    %% =========================================================
+
+    QuizAttempt ||--o{ AttemptQuestion : "delivers"
+    QuizAttempt ||--o{ QuestionResponse : "current responses"
+    QuizAttempt ||--o{ QuestionResponseEvent : "response events"
+    QuizAttempt ||--o{ QuizViolation : "violations"
+    QuizAttempt ||--o| AttemptStateSnapshot : "current recovery state"
+    QuizAttempt ||--o{ AttemptSubmission : "submission attempts"
+    AttemptQuestion ||--o| QuestionResponse : "current response"
+    AttemptQuestion ||--o{ QuestionResponseEvent : "answer history"
+
+    QuizAttempt {
+        String id PK
+        String quizId "logical ref assessment_db.Quiz"
+        String assignmentId "logical ref assessment_db.QuizUserAssignment"
+        String candidateId "logical ref profile person"
+        Int attemptNumber
+        String statusCode FK
+        String statusReason
+        Int durationLimitSeconds
+        Int warningsCount
+        DateTime startedAt
+        DateTime expiresAt
+        DateTime submittedAt
+        DateTime lockedAt
+        String lockReason
+        DateTime lastHeartbeatAt
+        String clientInstanceId
+        String clientIp
+        String userAgent
+        String runtimeVersion
+        String submissionChecksum
+        String submittedSourceCode FK
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    AttemptQuestion {
+        String id PK
+        String attemptId FK
+        String questionId "logical ref assessment_db.Question"
+        String questionVersionId "logical ref assessment_db.QuestionVersion"
+        String publishedSectionId "logical ref assessment_db.QuizPublishedSection"
+        String topicQuestionClassificationId "logical ref assessment_db.TopicQuestionClassification"
+        Int orderIndex
+        Decimal maxScoreSnapshot
+        Decimal minScoreSnapshot
+        Int timeLimitSecondsSnapshot
+        Jsonb optionsOrder
+        Jsonb selectionReason
+        DateTime deliveredAt
+        DateTime createdAt
+    }
+
+    QuestionResponse {
+        String id PK
+        String attemptId FK
+        String attemptQuestionId FK
+        Jsonb answerValue
+        Int serverVersion
+        Int lastClientSequence
+        Int clientTimeSpentMs
+        DateTime firstAnsweredAt
+        DateTime lastAnsweredAt
+        DateTime savedAt
+        String lastSourceEventId
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    QuestionResponseEvent {
+        String id PK
+        String attemptId FK
+        String attemptQuestionId FK
+        String clientInstanceId
+        Int clientSequence
+        Int baseServerVersion
+        String idempotencyKey
+        Jsonb answerValue
+        DateTime clientOccurredAt
+        DateTime serverReceivedAt
+        String sourceEventId
+    }
+
+    QuizViolation {
+        String id PK
+        String attemptId FK
+        String violationType
+        String severityCode FK
+        String clientInstanceId
+        Int clientSequence
+        DateTime clientOccurredAt
+        DateTime serverReceivedAt
+        String actionTaken
+        String messageCode
+        Jsonb metadata
+    }
+
+    AttemptStateSnapshot {
+        String attemptId PK
+        Int snapshotVersion
+        Jsonb answers
+        Jsonb markedForReview
+        String currentAttemptQuestionId
+        Int lastClientSequence
+        Int lastResponseServerVersion
+        Jsonb navigationState
+        String checksum
+        DateTime capturedAt
+        DateTime updatedAt
+    }
+
+    AttemptSubmission {
+        String id PK
+        String attemptId FK
+        Int submissionVersion
+        String idempotencyKey
+        String sourceCode FK
+        Int finalSnapshotVersion
+        String submissionChecksum
+        DateTime requestedAt
+        DateTime acceptedAt
+        String resultStatus
+        String rejectionReason
+    }
+
+    %% =========================================================
+    %% ENUM / LOOKUP RELATIONSHIPS
+    %% =========================================================
+
+    QuestionLifecycleStatus ||--o{ Question : "lifecycle"
+    QuestionVersionStatus ||--o{ QuestionVersion : "version status"
+    ClassificationStatus ||--o{ TopicQuestionClassification : "classification status"
+    QuizLifecycleStatus ||--o{ QuizTemplate : "template lifecycle"
+    QuizLifecycleStatus ||--o{ Quiz : "quiz lifecycle"
+    VersionSelectionMode ||--o{ SectionQuestion : "version mode"
+    SectionMode ||--o{ QuizSection : "section mode"
+    SectionMode ||--o{ QuizPublishedSection : "published mode"
+    SectionSelectionStrategy ||--o{ QuizSection : "selection strategy"
+    SectionSelectionStrategy ||--o{ QuizPublishedSection : "published strategy"
+    QuizAccessMode ||--o{ Quiz : "access mode"
+    QuizEndTimePolicy ||--o{ Quiz : "end time policy"
+    PaymentMode ||--o{ QuizPaymentPolicy : "payment mode"
+    AttemptStatus ||--o{ QuizAttempt : "attempt status"
+    SubmissionSource ||--o{ QuizAttempt : "submitted source"
+    SubmissionSource ||--o{ AttemptSubmission : "submission source"
+    ViolationSeverity ||--o{ QuizViolation : "severity"

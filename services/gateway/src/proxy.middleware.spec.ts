@@ -112,7 +112,7 @@ describe("ProxyMiddleware Unit Tests", () => {
   describe("CSRF Origin Validation", () => {
     it("should allow mutating request with allowed origin", () => {
       mockRequest.method = "POST";
-      mockRequest.headers = { origin: "http://localhost:3000" };
+      mockRequest.headers = { origin: "http://localhost:8081" };
       mockResponse.status = jest.fn().mockReturnThis();
       mockResponse.json = jest.fn();
 

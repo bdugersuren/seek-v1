@@ -8,7 +8,9 @@ export class ProxyMiddleware implements NestMiddleware {
   private readonly jwtSecret =
     process.env.AUTH_JWT_SECRET || "seek_jwt_secret_key_placeholder";
   private readonly authServiceUrl =
-    process.env.AUTH_SERVICE_URL || "http://localhost:3010";
+    process.env.AUTH_SERVICE_URL || "http://localhost:3020";
+  private readonly executionServiceUrl =
+    process.env.EXECUTION_SERVICE_URL || "http://localhost:3090";
 
   private getRequestUrl(req: Request): string {
     return req.originalUrl || req.url || req.path || "/";
@@ -22,6 +24,14 @@ export class ProxyMiddleware implements NestMiddleware {
     return this.getRequestUrl(req).replace(/^\/api\/v1\/auth/, "/auth");
   }
 
+  private isExecutionProxyRequest(req: Request): boolean {
+    return this.getRequestUrl(req).startsWith("/api/v1/execution");
+  }
+
+  private resolveExecutionProxyPath(req: Request): string {
+    return this.getRequestUrl(req).replace(/^\/api\/v1\/execution/, "/execution");
+  }
+
   use(req: Request, res: Response, next: NextFunction) {
     console.log(
       `Gateway received request: ${req.method} ${this.getRequestUrl(req)} path: ${req.path}`,
@@ -29,7 +39,7 @@ export class ProxyMiddleware implements NestMiddleware {
     // CSRF Origin validation for state-changing requests
     const allowedOrigins = (
       process.env.AUTH_ALLOWED_ORIGINS ||
-      "http://localhost:3000,http://localhost:3001,http://localhost:3002"
+      "http://localhost:8081,http://localhost:8082,http://127.0.0.1:8081,http://127.0.0.1:8082,http://portal.seek.mn,http://quiz.seek.mn,http://quiz-api.seek.mn"
     ).split(",");
     const origin = req.headers["origin"] as string;
     const referer = req.headers["referer"] as string;
@@ -95,6 +105,20 @@ export class ProxyMiddleware implements NestMiddleware {
         proxyReqPathResolver: (proxyReq) => {
           // Ирж буй /api/v1/auth/... хүсэлтийг auth үйлчилгээний /auth/... рүү чиглүүлнэ
           return this.resolveAuthProxyPath(proxyReq);
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 4. /api/v1/execution чиглэлийн хүсэлтийг execution үйлчилгээ рүү proxy хийх
+    if (this.isExecutionProxyRequest(req)) {
+      const proxyMiddleware = proxy(this.executionServiceUrl, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveExecutionProxyPath(proxyReq);
+        },
+        userResHeaderDecorator: (headers) => {
+          headers["x-accel-buffering"] = "no";
+          return headers;
         },
       });
       return proxyMiddleware(req, res, next);

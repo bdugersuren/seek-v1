@@ -168,6 +168,11 @@ export default function TakeAssessmentPage() {
   return (
     <PageContainer className="max-w-none bg-muted-background px-seek-2 py-seek-2 sm:px-seek-4">
       <div className="space-y-seek-4">
+        <section className="rounded-seek-lg border border-warning bg-warning-background px-seek-4 py-seek-3 text-sm text-warning">
+          Энэ `/take` route нь зөвхөн portal prototype fallback/demo юм. Production
+          шалгалтын runtime нь `assessment-web` дээр ажиллана.
+        </section>
+
         <section className="flex min-h-28 items-center justify-between gap-seek-4 rounded-seek-lg border border-border bg-surface px-seek-5 py-seek-4 shadow-seek-sm">
           <div>
             <h1 className="font-sans text-xl font-bold text-foreground">

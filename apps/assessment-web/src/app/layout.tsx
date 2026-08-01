@@ -1,8 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import "./globals.css";
-import { StoreProvider } from "@/store/Provider";
-import { UiProvider } from "@seek/ui";
+import { AppProviders } from "@/components/app-providers";
 
 export const metadata: Metadata = {
   title: "seek.mn Assessment",
@@ -17,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="mn">
       <body>
-        <StoreProvider>
-          <UiProvider>{children}</UiProvider>
-        </StoreProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

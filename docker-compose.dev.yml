@@ -29,21 +29,23 @@ services:
   auth:
     environment:
       - NODE_ENV=development
+      - PORT=3020
     volumes:
       - ./services/auth:/app/services/auth
       - /app/services/auth/node_modules
-    ports:
-      - "127.0.0.1:3010:8080"
+    ports: !override
+      - "127.0.0.1:3020:3020"
     command: pnpm run start:dev
 
   gateway:
     environment:
       - NODE_ENV=development
+      - PORT=3010
     volumes:
       - ./services/gateway:/app/services/gateway
       - /app/services/gateway/node_modules
-    ports:
-      - "127.0.0.1:3000:8080"
+    ports: !override
+      - "127.0.0.1:3010:3010"
     command: pnpm run start:dev
 
   # =========================================================================
@@ -52,30 +54,32 @@ services:
   portal-web:
     environment:
       - NODE_ENV=development
-      - INTERNAL_API_URL=http://gateway:8080/api
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+      - INTERNAL_API_URL=http://gateway:3010/api
+      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+      - NEXT_PUBLIC_ASSESSMENT_WEB_URL=http://localhost:8082
     volumes:
       - .:/app
       - /app/node_modules
       - /app/apps/portal-web/node_modules
       - /app/apps/portal-web/.next
-    ports:
-      - "127.0.0.1:3001:3000"
+    ports: !override
+      - "127.0.0.1:8081:8081"
+    depends_on: !reset []
 
   assessment-web:
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
-      - NEXT_PUBLIC_EXECUTION_URL=http://localhost:3000/execution
-      - NEXT_PUBLIC_MOCK_MODE=true
+      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+      - NEXT_PUBLIC_EXECUTION_URL=http://quiz-api.seek.mn/api/v1/execution
+      - NEXT_PUBLIC_MOCK_MODE=false
     volumes:
       - .:/app
       - /app/node_modules
       - /app/apps/assessment-web/node_modules
       - /app/apps/assessment-web/.next
-    ports:
-      - "127.0.0.1:3002:3000"
-    depends_on: [] # Removes backend execution dependency in dev/mock environment
+    ports: !override
+      - "127.0.0.1:8082:8082"
+    depends_on: !reset [] # Removes backend execution dependency in dev/mock environment
 
   # =========================================================================
   # Assessment & Evaluation Services Local Mappings
@@ -83,110 +87,138 @@ services:
   profile:
     environment:
       - NODE_ENV=development
+      - PORT=3030
     volumes:
-      - ./services/profile:/app
-      - /app/node_modules
+      - ./services/profile:/app/services/profile
+      - /app/services/profile/node_modules
     ports:
-      - "127.0.0.1:3020:8080"
+      - "127.0.0.1:3030:3030"
+    command: pnpm run start:dev
 
   organisation:
     environment:
       - NODE_ENV=development
+      - PORT=3040
     volumes:
-      - ./services/organisation:/app
-      - /app/node_modules
+      - ./services/organisation:/app/services/organisation
+      - /app/services/organisation/node_modules
     ports:
-      - "127.0.0.1:3030:8080"
+      - "127.0.0.1:3040:3040"
+    command: pnpm run start:dev
 
   verification:
     environment:
       - NODE_ENV=development
+      - PORT=3050
     volumes:
-      - ./services/verification:/app
-      - /app/node_modules
+      - ./services/verification:/app/services/verification
+      - /app/services/verification/node_modules
     ports:
-      - "127.0.0.1:3040:8080"
+      - "127.0.0.1:3050:3050"
+    command: pnpm run start:dev
 
   competency:
     environment:
       - NODE_ENV=development
+      - PORT=3060
     volumes:
-      - ./services/competency:/app
-      - /app/node_modules
+      - ./services/competency:/app/services/competency
+      - /app/services/competency/node_modules
     ports:
-      - "127.0.0.1:3050:8080"
+      - "127.0.0.1:3060:3060"
+    command: pnpm run start:dev
 
   assessment:
     environment:
       - NODE_ENV=development
+      - PORT=3070
     volumes:
-      - ./services/assessment:/app
-      - /app/node_modules
+      - ./services/assessment:/app/services/assessment
+      - /app/services/assessment/node_modules
     ports:
-      - "127.0.0.1:3060:8080"
+      - "127.0.0.1:3070:3070"
+    command: pnpm run start:dev
 
   commerce:
     environment:
       - NODE_ENV=development
+      - PORT=3080
     volumes:
-      - ./services/commerce:/app
-      - /app/node_modules
+      - ./services/commerce:/app/services/commerce
+      - /app/services/commerce/node_modules
     ports:
-      - "127.0.0.1:3070:8080"
+      - "127.0.0.1:3080:3080"
+    command: pnpm run start:dev
 
   execution:
     environment:
       - NODE_ENV=development
+      - PORT=3090
+      - USE_REDIS=true
+      - USE_RABBITMQ=true
+      - REDIS_URL=redis://:seek_redis_pass@redis:6379
+      - RABBITMQ_URL=amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
     volumes:
-      - ./services/execution:/app
-      - /app/node_modules
+      - ./services/execution:/app/services/execution
+      - /app/services/execution/node_modules
     ports:
-      - "127.0.0.1:3080:8080"
+      - "127.0.0.1:3090:3090"
+    command: pnpm run start:dev
 
   evaluation-worker:
     environment:
       - NODE_ENV=development
+      - PORT=3100
     volumes:
-      - ./services/evaluation:/app
-      - /app/node_modules
+      - ./services/evaluation:/app/services/evaluation
+      - /app/services/evaluation/node_modules
     ports:
-      - "127.0.0.1:3090:8080"
+      - "127.0.0.1:3100:3100"
+    command: pnpm run start:dev
 
   learning:
     environment:
       - NODE_ENV=development
+      - PORT=3110
     volumes:
-      - ./services/learning:/app
-      - /app/node_modules
+      - ./services/learning:/app/services/learning
+      - /app/services/learning/node_modules
     ports:
-      - "127.0.0.1:3100:8080"
+      - "127.0.0.1:3110:3110"
+    command: pnpm run start:dev
 
   reporting:
     environment:
       - NODE_ENV=development
+      - PORT=3150
     volumes:
-      - ./services/reporting:/app
-      - /app/node_modules
+      - ./services/reporting:/app/services/reporting
+      - /app/services/reporting/node_modules
     ports:
-      - "127.0.0.1:3140:8080"
+      - "127.0.0.1:3150:3150"
+    command: pnpm run start:dev
 
   file:
     environment:
       - NODE_ENV=development
+      - PORT=3140
     volumes:
-      - ./services/file:/app
-      - /app/node_modules
+      - ./services/file:/app/services/file
+      - /app/services/file/node_modules
     ports:
-      - "127.0.0.1:3130:8080"
+      - "127.0.0.1:3140:3140"
+    command: pnpm run start:dev
 
   platform:
     environment:
       - NODE_ENV=development
+      - PORT=3160
     volumes:
-      - ./services/platform:/app
-      - /app/node_modules
+      - ./services/platform:/app/services/platform
+      - /app/services/platform/node_modules
     ports:
-      - "127.0.0.1:3150:8080"
+      - "127.0.0.1:3160:3160"
+    command: pnpm run start:dev
 
   # =========================================================================
   # AI & Integration Services
@@ -203,17 +235,21 @@ services:
   ai:
     environment:
       - NODE_ENV=development
+      - PORT=3120
     volumes:
-      - ./services/ai:/app
-      - /app/node_modules
+      - ./services/ai:/app/services/ai
+      - /app/services/ai/node_modules
     ports:
-      - "127.0.0.1:3110:8080"
+      - "127.0.0.1:3120:3120"
+    command: pnpm run start:dev
 
   integration:
     environment:
       - NODE_ENV=development
+      - PORT=3130
     volumes:
-      - ./services/integration:/app
-      - /app/node_modules
+      - ./services/integration:/app/services/integration
+      - /app/services/integration/node_modules
     ports:
-      - "127.0.0.1:3120:8080"
+      - "127.0.0.1:3130:3130"
+    command: pnpm run start:dev

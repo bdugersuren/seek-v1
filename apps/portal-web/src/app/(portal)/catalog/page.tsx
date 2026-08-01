@@ -23,6 +23,11 @@ import type { CatalogAssessment } from "@/features/catalog/types";
 
 type ViewMode = "card" | "list";
 
+const assessmentRuntimeBaseUrl =
+  process.env.NEXT_PUBLIC_ASSESSMENT_WEB_URL ?? "http://localhost:8082";
+
+const mockRuntimeStartHref = `${assessmentRuntimeBaseUrl}/waiting/mock-attempt-001`;
+
 const sidebarItems = [
   "Бүгд",
   "Төрлөөр",
@@ -313,6 +318,7 @@ export default function CatalogPage() {
                         (item) => item.id === assessment.id,
                       )}
                       onAddToCart={addToCart}
+                      runtimeStartHref={mockRuntimeStartHref}
                     />
                   ))}
                 </div>
@@ -326,6 +332,7 @@ export default function CatalogPage() {
                         (item) => item.id === assessment.id,
                       )}
                       onAddToCart={addToCart}
+                      runtimeStartHref={mockRuntimeStartHref}
                     />
                   ))}
                 </div>
@@ -416,10 +423,12 @@ function AssessmentCard({
   assessment,
   inCart,
   onAddToCart,
+  runtimeStartHref,
 }: {
   assessment: CatalogAssessment;
   inCart: boolean;
   onAddToCart: (assessment: CatalogAssessment) => void;
+  runtimeStartHref: string;
 }) {
   return (
     <article className="overflow-hidden rounded-seek-lg border border-border bg-surface shadow-seek-sm">
@@ -481,7 +490,7 @@ function AssessmentCard({
             </button>
           ) : (
             <Link
-              href="/take/mock-attempt-001"
+              href={runtimeStartHref}
               className="inline-flex items-center justify-center rounded-seek-md bg-primary px-seek-3 py-seek-2 text-sm font-semibold text-primary-foreground"
             >
               Эхлүүлэх
@@ -497,10 +506,12 @@ function AssessmentListItem({
   assessment,
   inCart,
   onAddToCart,
+  runtimeStartHref,
 }: {
   assessment: CatalogAssessment;
   inCart: boolean;
   onAddToCart: (assessment: CatalogAssessment) => void;
+  runtimeStartHref: string;
 }) {
   return (
     <article className="grid grid-cols-1 gap-seek-4 rounded-seek-lg border border-border bg-surface p-seek-4 shadow-seek-sm md:grid-cols-[9rem_minmax(0,1fr)_10rem] md:items-center">
@@ -543,7 +554,7 @@ function AssessmentListItem({
           </Button>
         ) : (
           <Link
-            href="/take/mock-attempt-001"
+            href={runtimeStartHref}
             className="inline-flex rounded-seek-md bg-primary px-seek-4 py-seek-2 text-sm font-semibold text-primary-foreground"
           >
             Эхлүүлэх

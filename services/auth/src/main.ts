@@ -14,7 +14,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
-  const port = process.env.PORT || 3010;
+  const port = process.env.PORT || 3020;
   await app.listen(port);
   console.log(`auth service is running on: http://localhost:${port}`);
 }

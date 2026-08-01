@@ -18,6 +18,6 @@ RUN pnpm install --frozen-lockfile
 WORKDIR /app/services/auth
 RUN npx prisma generate --schema=prisma/schema.prisma
 COPY --from=builder /app/services/auth/dist /app/services/auth/dist
-EXPOSE 8080
+EXPOSE 3020
 WORKDIR /app/services/auth
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

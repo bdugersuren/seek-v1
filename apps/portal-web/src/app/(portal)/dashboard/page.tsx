@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   Badge,
+  Button,
   Card,
   Heading,
   PageContainer,
@@ -117,12 +118,14 @@ export default function DashboardPage() {
                   <Text variant="muted" className="text-sm">
                     {action.description}
                   </Text>
-                  <Link
+                  <Button
+                    as={Link}
                     href={action.href}
-                    className="inline-flex items-center justify-center rounded-seek-md border border-border bg-surface px-seek-3 py-seek-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary"
+                    variant="secondary"
+                    size="sm"
                   >
                     Нээх
-                  </Link>
+                  </Button>
                 </Stack>
               </div>
             ))}

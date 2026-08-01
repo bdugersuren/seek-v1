@@ -1,21 +1,21 @@
 #!/bin/bash
 SERVICES=(
-  "gateway 3000"
-  "auth 3010"
-  "profile 3020"
-  "organisation 3030"
-  "verification 3040"
-  "competency 3050"
-  "assessment 3060"
-  "commerce 3070"
-  "execution 3080"
-  "evaluation 3090"
-  "learning 3100"
-  "ai 3110"
-  "integration 3120"
-  "file 3130"
-  "reporting 3140"
-  "platform 3150"
+  "gateway 3010"
+  "auth 3020"
+  "profile 3030"
+  "organisation 3040"
+  "verification 3050"
+  "competency 3060"
+  "assessment 3070"
+  "commerce 3080"
+  "execution 3090"
+  "evaluation 3100"
+  "learning 3110"
+  "ai 3120"
+  "integration 3130"
+  "file 3140"
+  "reporting 3150"
+  "platform 3160"
 )
 
 for service_info in "${SERVICES[@]}"; do
@@ -85,18 +85,19 @@ EOT
 FROM node:18-alpine AS builder
 WORKDIR /app
 RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm build
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @seek/$name build
 
 FROM node:18-alpine
 WORKDIR /app
 RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --prod --frozen-lockfile
-COPY --from=builder /app/dist ./dist
-EXPOSE $port
+COPY . .
+RUN pnpm install --frozen-lockfile
+COPY --from=builder /app/packages/contracts/dist /app/packages/contracts/dist
+COPY --from=builder /app/services/$name/dist /app/services/$name/dist
+EXPOSE 8080
+WORKDIR /app/services/$name
 CMD ["node", "dist/main.js"]
 EOT
 

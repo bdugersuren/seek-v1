@@ -6,7 +6,10 @@ services:
   # Core Infrastructure Services (Profile-less)
   # =========================================================================
   postgres:
-    image: postgres:15-alpine
+    image: seek-postgres:latest
+    build:
+      context: .
+      dockerfile: services/postgres/Dockerfile
     container_name: seek-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-seek_admin}
@@ -26,7 +29,10 @@ services:
       retries: 15
 
   redis:
-    image: redis:7-alpine
+    image: seek-redis:latest
+    build:
+      context: .
+      dockerfile: services/redis/Dockerfile
     container_name: seek-redis
     command: redis-server --requirepass ${REDIS_PASSWORD:-seek_redis_pass}
     volumes:
@@ -35,7 +41,10 @@ services:
       - shared-net
 
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    image: seek-rabbitmq:latest
+    build:
+      context: .
+      dockerfile: services/rabbitmq/Dockerfile
     container_name: seek-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-seek_mq_user}
@@ -46,7 +55,10 @@ services:
       - shared-net
 
   minio:
-    image: minio/minio
+    image: seek-minio:latest
+    build:
+      context: .
+      dockerfile: services/minio/Dockerfile
     container_name: seek-minio
     command: server /data --console-address ":9001"
     environment:
@@ -98,16 +110,17 @@ services:
   auth:
     profiles:
       - auth-test
+    image: seek-auth:latest
     build:
       context: .
       dockerfile: services/auth/Dockerfile
     container_name: seek-auth
     expose:
-      - "8080"
+      - "3020"
     ports:
-      - "127.0.0.1:3010:8080"
+      - "127.0.0.1:3020:3020"
     environment:
-      PORT: 8080
+      PORT: 3020
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
@@ -124,7 +137,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'node -e ''require("http").get("http://localhost:8080/health", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
+          'node -e ''require("http").get("http://localhost:3020/health", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
         ]
       interval: 10s
       timeout: 5s
@@ -133,18 +146,21 @@ services:
   gateway:
     profiles:
       - auth-test
+    image: seek-gateway:latest
     build:
       context: .
       dockerfile: services/gateway/Dockerfile
     container_name: seek-gateway
     expose:
-      - "8080"
+      - "3010"
     ports:
-      - "127.0.0.1:3000:8080"
+      - "127.0.0.1:3010:3010"
     environment:
-      PORT: 8080
+      PORT: 3010
       NODE_ENV: development
-      AUTH_SERVICE_URL: http://auth:8080
+      AUTH_SERVICE_URL: http://auth:3020
+      EXECUTION_SERVICE_URL: http://execution:3090
+      AUTH_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:8082,http://127.0.0.1:8081,http://127.0.0.1:8082,http://portal.seek.mn,http://quiz.seek.mn,http://quiz-api.seek.mn
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
       AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
       AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
@@ -157,7 +173,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'node -e ''require("http").get("http://localhost:8080/health", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
+          'node -e ''require("http").get("http://localhost:3010/health", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
         ]
       interval: 10s
       timeout: 5s
@@ -170,7 +186,10 @@ services:
     profiles:
       - frontend
       - auth-test
-    image: node:18-alpine
+    image: seek-portal-web:latest
+    build:
+      context: .
+      dockerfile: apps/portal-web/Dockerfile
     container_name: seek-portal-web
     working_dir: /app/apps/portal-web
     volumes:
@@ -179,12 +198,12 @@ services:
       - /app/apps/portal-web/node_modules
       - /app/apps/portal-web/.next
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:8081:8081"
     environment:
       - NODE_ENV=development
-      - INTERNAL_API_URL=http://gateway:8080/api
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
-    command: sh -c "npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run dev"
+      - INTERNAL_API_URL=http://gateway:3010/api
+      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+    command: sh -c "npm install -g pnpm && cd /app && CI=true pnpm install --frozen-lockfile && pnpm --filter @seek/portal-web dev"
     networks:
       - shared-net
     depends_on:
@@ -194,7 +213,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'node -e ''require("http").get("http://localhost:3000", (r) => process.exit(r.statusCode === 200 || r.statusCode === 307 ? 0 : 1))''',
+          'node -e ''require("http").get("http://localhost:8081", (r) => process.exit(r.statusCode === 200 || r.statusCode === 307 ? 0 : 1))''',
         ]
       interval: 10s
       timeout: 5s
@@ -204,7 +223,10 @@ services:
     profiles:
       - frontend
       - assessment
-    image: node:18-alpine
+    image: seek-assessment-web:latest
+    build:
+      context: .
+      dockerfile: apps/assessment-web/Dockerfile
     container_name: seek-assessment-web
     working_dir: /app/apps/assessment-web
     volumes:
@@ -213,13 +235,13 @@ services:
       - /app/apps/assessment-web/node_modules
       - /app/apps/assessment-web/.next
     ports:
-      - "127.0.0.1:3002:3000"
+      - "127.0.0.1:8082:8082"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
-      - NEXT_PUBLIC_EXECUTION_URL=http://localhost:3000/execution
-      - NEXT_PUBLIC_MOCK_MODE=true
-    command: sh -c "npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run dev"
+      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+      - NEXT_PUBLIC_EXECUTION_URL=http://quiz-api.seek.mn/api/v1/execution
+      - NEXT_PUBLIC_MOCK_MODE=false
+    command: sh -c "npm install -g pnpm && cd /app && CI=true pnpm install --frozen-lockfile && pnpm --filter @seek/assessment-web dev"
     depends_on:
       - execution
     networks:
@@ -231,168 +253,184 @@ services:
   profile:
     profiles:
       - assessment
+    image: seek-profile:latest
     build:
-      context: ./services/profile
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/profile/Dockerfile
     container_name: seek-profile
     expose:
-      - "8080"
+      - "3030"
     environment:
-      PORT: 8080
+      PORT: 3030
     networks:
       - shared-net
 
   organisation:
     profiles:
       - assessment
+    image: seek-organisation:latest
     build:
-      context: ./services/organisation
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/organisation/Dockerfile
     container_name: seek-organisation
     expose:
-      - "8080"
+      - "3040"
     environment:
-      PORT: 8080
+      PORT: 3040
     networks:
       - shared-net
 
   verification:
     profiles:
       - assessment
+    image: seek-verification:latest
     build:
-      context: ./services/verification
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/verification/Dockerfile
     container_name: seek-verification
     expose:
-      - "8080"
+      - "3050"
     environment:
-      PORT: 8080
+      PORT: 3050
     networks:
       - shared-net
 
   competency:
     profiles:
       - assessment
+    image: seek-competency:latest
     build:
-      context: ./services/competency
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/competency/Dockerfile
     container_name: seek-competency
     expose:
-      - "8080"
+      - "3060"
     environment:
-      PORT: 8080
+      PORT: 3060
     networks:
       - shared-net
 
   assessment:
     profiles:
       - assessment
+    image: seek-assessment:latest
     build:
-      context: ./services/assessment
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/assessment/Dockerfile
     container_name: seek-assessment
     expose:
-      - "8080"
+      - "3070"
     environment:
-      PORT: 8080
+      PORT: 3070
     networks:
       - shared-net
 
   commerce:
     profiles:
       - assessment
+    image: seek-commerce:latest
     build:
-      context: ./services/commerce
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/commerce/Dockerfile
     container_name: seek-commerce
     expose:
-      - "8080"
+      - "3080"
     environment:
-      PORT: 8080
+      PORT: 3080
     networks:
       - shared-net
 
   execution:
     profiles:
       - assessment
+    image: seek-execution:latest
     build:
-      context: ./services/execution
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/execution/Dockerfile
     container_name: seek-execution
     expose:
-      - "8080"
+      - "3090"
     environment:
-      PORT: 8080
+      PORT: 3090
+      USE_REDIS: "true"
+      USE_RABBITMQ: "true"
+      REDIS_URL: redis://:seek_redis_pass@redis:6379
+      RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
     networks:
       - shared-net
 
   evaluation-worker:
     profiles:
       - assessment
+    image: seek-evaluation-worker:latest
     build:
-      context: ./services/evaluation
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/evaluation/Dockerfile
     container_name: seek-evaluation-worker
     expose:
-      - "8080"
+      - "3100"
     environment:
-      PORT: 8080
+      PORT: 3100
     networks:
       - shared-net
 
   learning:
     profiles:
       - assessment
+    image: seek-learning:latest
     build:
-      context: ./services/learning
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/learning/Dockerfile
     container_name: seek-learning
     expose:
-      - "8080"
+      - "3110"
     environment:
-      PORT: 8080
+      PORT: 3110
     networks:
       - shared-net
 
   reporting:
     profiles:
       - assessment
+    image: seek-reporting:latest
     build:
-      context: ./services/reporting
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/reporting/Dockerfile
     container_name: seek-reporting
     expose:
-      - "8080"
+      - "3150"
     environment:
-      PORT: 8080
+      PORT: 3150
     networks:
       - shared-net
 
   file:
     profiles:
       - assessment
+    image: seek-file:latest
     build:
-      context: ./services/file
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/file/Dockerfile
     container_name: seek-file
     expose:
-      - "8080"
+      - "3140"
     environment:
-      PORT: 8080
+      PORT: 3140
     networks:
       - shared-net
 
   platform:
     profiles:
       - assessment
+    image: seek-platform:latest
     build:
-      context: ./services/platform
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/platform/Dockerfile
     container_name: seek-platform
     expose:
-      - "8080"
+      - "3160"
     environment:
-      PORT: 8080
+      PORT: 3160
     networks:
       - shared-net
 
@@ -422,14 +460,15 @@ services:
   ai:
     profiles:
       - ai
+    image: seek-ai:latest
     build:
-      context: ./services/ai
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/ai/Dockerfile
     container_name: seek-ai
     expose:
-      - "8080"
+      - "3120"
     environment:
-      PORT: 8080
+      PORT: 3120
     networks:
       - shared-net
 
@@ -439,14 +478,32 @@ services:
   integration:
     profiles:
       - integration
+    image: seek-integration:latest
     build:
-      context: ./services/integration
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/integration/Dockerfile
     container_name: seek-integration
     expose:
-      - "8080"
+      - "3130"
     environment:
-      PORT: 8080
+      PORT: 3130
+    networks:
+      - shared-net
+
+  nginx-proxy:
+    image: seek-npm:latest
+    build:
+      context: .
+      dockerfile: services/npm/Dockerfile
+    container_name: seek-npm
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./docker/nginx-proxy/data:/data
+      - ./docker/nginx-proxy/letsencrypt:/etc/letsencrypt
     networks:
       - shared-net
 
