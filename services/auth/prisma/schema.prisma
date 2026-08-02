@@ -8,14 +8,17 @@ generator client {
 }
 
 model UserAccount {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  status         String          @default("ACTIVE")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  credentials    Credential[]
-  sessions       Session[]
-  securityEvents SecurityEvent[]
+  id              String          @id @default(uuid())
+  email           String          @unique
+  phoneNumber     String?         @unique
+  isPhoneVerified Boolean         @default(false)
+  status          String          @default("ACTIVE")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  credentials     Credential[]
+  sessions        Session[]
+  securityEvents  SecurityEvent[]
+  roles           UserRole[]
 }
 
 model Credential {
@@ -63,4 +66,21 @@ model SecurityEvent {
   payload       String?
   createdAt     DateTime    @default(now())
   userAccount   UserAccount? @relation(fields: [userAccountId], references: [id], onDelete: SetNull)
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  users       UserRole[]
+}
+
+model UserRole {
+  userAccountId String
+  roleId        String
+  assignedAt    DateTime    @default(now())
+  userAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  role          Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userAccountId, roleId])
 }

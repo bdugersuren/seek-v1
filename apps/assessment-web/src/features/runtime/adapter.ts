@@ -8,6 +8,7 @@ import type {
   AssessmentRuntimeViolation,
   AssessmentSubmitRequest,
   AssessmentSubmitResponse,
+  StartAssessmentAttemptResponse,
 } from "@seek/contracts";
 import { mockRuntimeAttempt } from "./mock-data";
 import type { RuntimeAttempt } from "./types";
@@ -19,6 +20,7 @@ function getRemainingSeconds(endsAt: string) {
 export interface RuntimeAdapter {
   getSession(attemptId: string): Promise<RuntimeAttempt | null>;
   preloadPayload(attemptId: string): Promise<{ preloaded: boolean }>;
+  startAttempt(attemptId: string): Promise<StartAssessmentAttemptResponse>;
   heartbeat(request: AssessmentHeartbeatRequest): Promise<AssessmentHeartbeatResponse>;
   autosave(request: AssessmentAutosaveRequest): Promise<AssessmentAutosaveResponse>;
   submit(request: AssessmentSubmitRequest): Promise<AssessmentSubmitResponse>;
@@ -32,6 +34,15 @@ export const mockRuntimeAdapter: RuntimeAdapter = {
   },
   async preloadPayload(attemptId) {
     return { preloaded: attemptId === mockRuntimeAttempt.session.attemptId };
+  },
+  async startAttempt(attemptId) {
+    return {
+      attemptId,
+      quizId: mockRuntimeAttempt.session.quizId,
+      status: "active",
+      unlockKey: "mock-unlock-key-123",
+      serverNow: new Date().toISOString(),
+    };
   },
   async heartbeat(request) {
     const remainingSeconds = getRemainingSeconds(mockRuntimeAttempt.session.endsAt);
@@ -85,6 +96,13 @@ export const httpRuntimeAdapter: RuntimeAdapter = {
       method: "POST",
     });
     if (!res.ok) throw new Error("Failed to preload payload");
+    return res.json();
+  },
+  async startAttempt(attemptId) {
+    const res = await fetch(`${executionUrl}/start/${attemptId}`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("Failed to start attempt");
     return res.json();
   },
   async heartbeat(request) {

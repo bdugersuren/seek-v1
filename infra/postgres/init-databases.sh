@@ -22,6 +22,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
   CREATE DATABASE ai_db;
   CREATE DATABASE integration_db;
   CREATE DATABASE file_db;
+  CREATE DATABASE notification_db;
   CREATE DATABASE reporting_db;
   CREATE DATABASE platform_db;
 EOSQL

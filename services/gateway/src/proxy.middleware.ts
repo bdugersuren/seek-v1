@@ -11,6 +11,17 @@ export class ProxyMiddleware implements NestMiddleware {
     process.env.AUTH_SERVICE_URL || "http://localhost:3020";
   private readonly executionServiceUrl =
     process.env.EXECUTION_SERVICE_URL || "http://localhost:3090";
+  private readonly healthProxyTargets: Record<string, string> = {
+    profile: process.env.PROFILE_SERVICE_URL || "http://localhost:3030",
+    organisation:
+      process.env.ORGANISATION_SERVICE_URL || "http://localhost:3040",
+    assessment: process.env.ASSESSMENT_SERVICE_URL || "http://localhost:3070",
+    commerce: process.env.COMMERCE_SERVICE_URL || "http://localhost:3080",
+    file: process.env.FILE_SERVICE_URL || "http://localhost:3140",
+    notification:
+      process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3170",
+    reporting: process.env.REPORTING_SERVICE_URL || "http://localhost:3150",
+  };
 
   private getRequestUrl(req: Request): string {
     return req.originalUrl || req.url || req.path || "/";
@@ -30,6 +41,24 @@ export class ProxyMiddleware implements NestMiddleware {
 
   private resolveExecutionProxyPath(req: Request): string {
     return this.getRequestUrl(req).replace(/^\/api\/v1\/execution/, "/execution");
+  }
+
+  private getHealthProxyTarget(req: Request): { url: string; service: string } | null {
+    const match = this.getRequestUrl(req).match(
+      /^\/api\/v1\/(profile|organisation|assessment|commerce|file|notification|reporting)\/health(?:\/(live|ready))?$/,
+    );
+    if (!match) return null;
+
+    const service = match[1];
+    const url = this.healthProxyTargets[service];
+    return url ? { url, service } : null;
+  }
+
+  private resolveHealthProxyPath(req: Request, service: string): string {
+    return this.getRequestUrl(req).replace(
+      new RegExp(`^/api/v1/${service}/health`),
+      "/health",
+    );
   }
 
   use(req: Request, res: Response, next: NextFunction) {
@@ -119,6 +148,17 @@ export class ProxyMiddleware implements NestMiddleware {
         userResHeaderDecorator: (headers) => {
           headers["x-accel-buffering"] = "no";
           return headers;
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 5. Initial phase: expose only health proxy routes for bounded-context services.
+    const healthProxyTarget = this.getHealthProxyTarget(req);
+    if (healthProxyTarget) {
+      const proxyMiddleware = proxy(healthProxyTarget.url, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveHealthProxyPath(proxyReq, healthProxyTarget.service);
         },
       });
       return proxyMiddleware(req, res, next);

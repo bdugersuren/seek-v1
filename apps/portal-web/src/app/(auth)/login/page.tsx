@@ -35,6 +35,7 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { locale, setLocale, t } = useI18n();
+  const enableMock = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH !== "false";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -63,18 +64,21 @@ export default function LoginPage() {
     setErrorMsg(null);
 
     try {
-      const mockUser = findMockUser(email, password);
 
-      if (mockUser) {
-        setAccessToken(null);
-        saveMockSession(mockUser);
-        dispatch(loginSuccess(mockUser));
-        router.push(mockUser.homePath);
-        return;
-      }
+      if (enableMock) {
+        const mockUser = findMockUser(email, password);
 
-      if (mockUserEmails.includes(email.trim().toLowerCase())) {
-        throw new Error(t("login.mockPasswordWrong"));
+        if (mockUser) {
+          setAccessToken(null);
+          saveMockSession(mockUser);
+          dispatch(loginSuccess(mockUser));
+          router.push(mockUser.homePath);
+          return;
+        }
+
+        if (mockUserEmails.includes(email.trim().toLowerCase())) {
+          throw new Error(t("login.mockPasswordWrong"));
+        }
       }
 
       // Gateway-ийн /api/v1/auth/login руу илгээнэ. Local-д proxy-гээр дамжина.
@@ -93,7 +97,25 @@ export default function LoginPage() {
       const portalUser = enrichUserWithMockRole(data.user);
       setAccessToken(data.accessToken);
       dispatch(loginSuccess(portalUser));
-      router.push(portalUser.homePath);
+
+      if (enableMock) {
+        router.push(portalUser.homePath);
+      } else {
+        const userRoles = data.user.roles || [];
+        if (userRoles.includes("SUPER_ADMIN")) {
+          router.push("/admin");
+        } else if (userRoles.includes("ORGANIZATION_ADMIN")) {
+          router.push("/organisations");
+        } else if (userRoles.includes("ASSESSOR")) {
+          router.push("/assessments");
+        } else if (userRoles.includes("CANDIDATE")) {
+          router.push("/catalog");
+        } else if (userRoles.includes("VIEWER")) {
+          router.push("/results");
+        } else {
+          router.push("/catalog");
+        }
+      }
     } catch (err: any) {
       setErrorMsg(err.message || t("login.failed"));
       dispatch(loginFailure(err.message || "Error"));
@@ -115,7 +137,7 @@ export default function LoginPage() {
           }))}
         />
       </div>
-      <div className="grid w-full max-w-5xl grid-cols-1 gap-seek-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className={`grid w-full gap-seek-4 ${enableMock ? "max-w-5xl grid-cols-1 lg:grid-cols-[minmax(0,1fr)_24rem]" : "max-w-md grid-cols-1"}`}>
         <Card className="w-full shadow-seek-lg">
           <form onSubmit={handleLogin}>
             <Stack gap={6}>
@@ -138,7 +160,7 @@ export default function LoginPage() {
               )}
 
               {errorMsg && (
-                <Alert type="danger" title={t("login.errorTitle")}>
+                <Alert type="danger" title="Алдаа">
                   {errorMsg}
                 </Alert>
               )}
@@ -200,70 +222,72 @@ export default function LoginPage() {
           </form>
         </Card>
 
-        <Card className="w-full shadow-seek-md">
-          <Stack gap={4}>
-            <Stack gap={1}>
-              <Heading level={2} className="text-xl">
-                {t("login.rolePanelTitle")}
-              </Heading>
-              <Text variant="muted" className="text-sm">
-                {t("login.rolePanelSubtitle")}
-              </Text>
-            </Stack>
-            <Divider />
-            <Stack gap={3}>
-              {mockCredentials.map((credential) => (
+        {enableMock && (
+          <Card className="w-full shadow-seek-md">
+            <Stack gap={4}>
+              <Stack gap={1}>
+                <Heading level={2} className="text-xl">
+                  {t("login.rolePanelTitle")}
+                </Heading>
+                <Text variant="muted" className="text-sm">
+                  {t("login.rolePanelSubtitle")}
+                </Text>
+              </Stack>
+              <Divider />
+              <Stack gap={3}>
+                {mockCredentials.map((credential) => (
+                  <button
+                    key={credential.user.email}
+                    type="button"
+                    className="rounded-seek-md border border-border bg-surface px-seek-3 py-seek-3 text-left transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary"
+                    onClick={() =>
+                      fillCredentials(
+                        credential.user.email,
+                        credential.password,
+                        credential.user.roleLabel,
+                      )
+                    }
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <Text className="font-medium">
+                          {credential.user.roleLabel}
+                        </Text>
+                        <Text variant="muted" className="text-xs">
+                          {credential.user.email}
+                        </Text>
+                      </div>
+                      <Badge>{credential.user.homePath}</Badge>
+                    </div>
+                  </button>
+                ))}
                 <button
-                  key={credential.user.email}
                   type="button"
                   className="rounded-seek-md border border-border bg-surface px-seek-3 py-seek-3 text-left transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   onClick={() =>
                     fillCredentials(
-                      credential.user.email,
-                      credential.password,
-                      credential.user.roleLabel,
+                      backendDemoAccount.email,
+                      backendDemoAccount.password,
+                      backendDemoAccount.roleLabel,
                     )
                   }
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <Text className="font-medium">
-                        {credential.user.roleLabel}
+                        {t("login.backendAccount")}
                       </Text>
                       <Text variant="muted" className="text-xs">
-                        {credential.user.email}
+                        {backendDemoAccount.email}
                       </Text>
                     </div>
-                    <Badge>{credential.user.homePath}</Badge>
+                    <Badge>{backendDemoAccount.homePath}</Badge>
                   </div>
                 </button>
-              ))}
-              <button
-                type="button"
-                className="rounded-seek-md border border-border bg-surface px-seek-3 py-seek-3 text-left transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary"
-                onClick={() =>
-                  fillCredentials(
-                    backendDemoAccount.email,
-                    backendDemoAccount.password,
-                    backendDemoAccount.roleLabel,
-                  )
-                }
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Text className="font-medium">
-                      {t("login.backendAccount")}
-                    </Text>
-                    <Text variant="muted" className="text-xs">
-                      {backendDemoAccount.email}
-                    </Text>
-                  </div>
-                  <Badge>{backendDemoAccount.homePath}</Badge>
-                </div>
-              </button>
+              </Stack>
             </Stack>
-          </Stack>
-        </Card>
+          </Card>
+        )}
       </div>
     </div>
   );

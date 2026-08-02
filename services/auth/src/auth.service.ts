@@ -52,6 +52,21 @@ export class AuthService {
       dto.password || "default_secure_pass",
     );
 
+    // CANDIDATE дүрийг олох
+    let candidateRole = await this.prisma.role.findUnique({
+      where: { name: "CANDIDATE" },
+    });
+
+    // Хэрэв CANDIDATE байхгүй бол үүсгэнэ (safety backup)
+    if (!candidateRole) {
+      candidateRole = await this.prisma.role.create({
+        data: {
+          name: "CANDIDATE",
+          description: "Үнэлүүлэгч",
+        },
+      });
+    }
+
     const user = await this.prisma.userAccount.create({
       data: {
         email: canonicalEmail,
@@ -61,7 +76,17 @@ export class AuthService {
             value: hashedPassword,
           },
         },
+        roles: {
+          create: {
+            roleId: candidateRole.id,
+          },
+        },
       },
+      include: {
+        roles: {
+          include: { role: true }
+        }
+      }
     });
 
     await this.logEvent(
@@ -72,11 +97,14 @@ export class AuthService {
       `Email: ${canonicalEmail}`,
     );
 
+    const roleNames = user.roles.map((r: any) => r.role.name);
+
     return {
       id: user.id,
       email: user.email,
       status: user.status,
-    };
+      roles: roleNames,
+    } as any;
   }
 
   // Нэвтрэх (Login)
@@ -88,7 +116,12 @@ export class AuthService {
     const canonicalEmail = dto.email.toLowerCase().trim();
     const user = await this.prisma.userAccount.findUnique({
       where: { email: canonicalEmail },
-      include: { credentials: true },
+      include: { 
+        credentials: true,
+        roles: {
+          include: { role: true }
+        }
+      },
     });
 
     const genericError = new UnauthorizedException(
@@ -154,9 +187,12 @@ export class AuthService {
       },
     });
 
+    const roleNames = user.roles.map((r: any) => r.role.name);
+
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       session_id: session.id,
+      roles: roleNames,
       jti: crypto.randomUUID(),
     });
 
@@ -175,7 +211,8 @@ export class AuthService {
           id: user.id,
           email: user.email,
           status: user.status,
-        },
+          roles: roleNames,
+        } as any,
       },
       refreshToken: rawRefreshToken,
     };
@@ -195,7 +232,19 @@ export class AuthService {
     return this.prisma.$transaction(async (tx) => {
       const storedToken = await tx.refreshToken.findUnique({
         where: { tokenHash: incomingHash },
-        include: { session: { include: { userAccount: true } } },
+        include: { 
+          session: { 
+            include: { 
+              userAccount: {
+                include: {
+                  roles: {
+                    include: { role: true }
+                  }
+                }
+              } 
+            } 
+          } 
+        },
       });
 
       if (!storedToken) {
@@ -268,9 +317,12 @@ export class AuthService {
         data: { lastUsedAt: new Date() },
       });
 
+      const roleNames = session.userAccount.roles.map((r: any) => r.role.name);
+
       const accessToken = await this.jwtService.signAsync({
         sub: session.userAccountId,
         session_id: session.id,
+        roles: roleNames,
         jti: crypto.randomUUID(),
       });
 
@@ -334,15 +386,22 @@ export class AuthService {
   async getCurrentUser(userId: string): Promise<CurrentUserResponse> {
     const user = await this.prisma.userAccount.findUnique({
       where: { id: userId },
+      include: {
+        roles: {
+          include: { role: true }
+        }
+      }
     });
     if (!user) {
       throw new UnauthorizedException("Хэрэглэгч олдсонгүй.");
     }
+    const roleNames = user.roles.map((r: any) => r.role.name);
     return {
       id: user.id,
       email: user.email,
       status: user.status,
-    };
+      roles: roleNames,
+    } as any;
   }
 
   private async logEvent(

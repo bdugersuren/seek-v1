@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Checkbox, Radio, Text, Textarea } from "@seek/ui";
 import { RuntimeNotice, RuntimeShell } from "@/features/runtime/RuntimeShell";
 import { useAssessmentRuntime } from "@/features/runtime/useAssessmentRuntime";
@@ -9,6 +9,7 @@ import type { RuntimeQuestion } from "@/features/runtime/types";
 
 export default function TakeRuntimePage() {
   const params = useParams<{ attemptId: string }>();
+  const router = useRouter();
   const runtime = useAssessmentRuntime(params.attemptId);
   const attempt = runtime.attempt;
   const question = runtime.currentQuestion;
@@ -29,6 +30,27 @@ export default function TakeRuntimePage() {
         <Link href={`/submitted/${attempt.session.attemptId}`}>
           <Button type="button">Receipt харах</Button>
         </Link>
+      </RuntimeShell>
+    );
+  }
+
+  if (!runtime.recovering && attempt.session.status !== "active") {
+    return (
+      <RuntimeShell
+        title="Шалгалт хараахан эхлээгүй"
+        subtitle="Waiting room unlock event ирсний дараа runtime нээгдэнэ."
+      >
+        <RuntimeNotice title="Waiting room шаардлагатай">
+          Энэ attempt одоогоор {attempt.session.status} төлөвтэй байна.
+        </RuntimeNotice>
+        <div className="mt-seek-4">
+          <Button
+            type="button"
+            onClick={() => router.replace(`/waiting/${attempt.session.attemptId}`)}
+          >
+            Waiting room рүү буцах
+          </Button>
+        </div>
       </RuntimeShell>
     );
   }
@@ -57,7 +79,7 @@ export default function TakeRuntimePage() {
   return (
     <RuntimeShell
       title={attempt.session.assessmentTitle}
-      subtitle="Timer server authoritative, answer local buffer + autosave contract."
+      subtitle="Server timer, saved answers, guarded navigation."
     >
       <div className="space-y-seek-4">
         <Card className="flex flex-col gap-seek-3 p-seek-4 md:flex-row md:items-center md:justify-between">
@@ -74,8 +96,8 @@ export default function TakeRuntimePage() {
               value={runtime.lastHeartbeat ? "OK" : "WAIT"}
             />
             <StatusPill
-              label="Autosave"
-              value={runtime.lastSavedAt ? "SAVED" : "LOCAL"}
+              label="Save"
+              value={saveStatusLabel(runtime.currentSaveStatus)}
             />
             <StatusPill label="Network" value={runtime.online ? "ON" : "OFF"} />
             <StatusPill
@@ -84,6 +106,18 @@ export default function TakeRuntimePage() {
             />
           </div>
         </Card>
+
+        {(runtime.saveError || runtime.hasUnsavedAnswers || runtime.submitting) && (
+          <RuntimeNotice
+            tone={runtime.saveError ? "danger" : runtime.submitting ? "warning" : "info"}
+            title={runtime.saveError ? "Хадгалалт амжилтгүй" : "Question policy"}
+          >
+            {runtime.saveError ||
+              (runtime.submitting
+                ? "Submit хийгдэж байна. Хугацаа болон хариултын snapshot server дээр түгжигдэнэ."
+                : "Дараагийн асуулт руу шилжихээс өмнө одоогийн хариулт server дээр хадгалагдана.")}
+          </RuntimeNotice>
+        )}
 
         {runtime.violations.length > 0 && (
           <RuntimeNotice
@@ -120,11 +154,22 @@ export default function TakeRuntimePage() {
                 <Text variant="muted" className="text-sm">
                   {question.code} · {question.type}
                 </Text>
-                <Text className="mt-1 font-bold">{question.points} оноо</Text>
+                <Text className="mt-1 font-bold">
+                  {question.points} оноо · {saveStatusText(runtime.currentSaveStatus)}
+                </Text>
               </div>
-              <Button type="button" variant="secondary" onClick={runtime.requestFullscreen}>
-                Fullscreen
-              </Button>
+              <div className="flex flex-wrap gap-seek-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runtime.toggleMarkedForReview(question.id)}
+                >
+                  {runtime.markedForReview[question.id] ? "Flag авсан" : "Flag"}
+                </Button>
+                <Button type="button" variant="secondary" onClick={runtime.requestFullscreen}>
+                  Fullscreen
+                </Button>
+              </div>
             </div>
 
             <div className="py-seek-6">
@@ -140,26 +185,51 @@ export default function TakeRuntimePage() {
             </div>
 
             <div className="flex flex-col gap-seek-2 border-t border-border pt-seek-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-seek-2">
+              <div className="flex flex-wrap gap-seek-2">
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={runtime.currentIndex === 0}
-                  onClick={() => runtime.setCurrentIndex(runtime.currentIndex - 1)}
+                  disabled={runtime.currentIndex === 0 || Boolean(runtime.savingQuestionId)}
+                  onClick={() => void runtime.goToQuestion(runtime.currentIndex - 1)}
                 >
                   Өмнөх
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
-                  disabled={runtime.currentIndex === attempt.questions.length - 1}
-                  onClick={() => runtime.setCurrentIndex(runtime.currentIndex + 1)}
+                  disabled={Boolean(runtime.savingQuestionId)}
+                  onClick={() => void runtime.saveQuestion(question.id)}
                 >
-                  Дараах
+                  Хадгалах
+                </Button>
+                <Button
+                  type="button"
+                  disabled={
+                    runtime.currentIndex === attempt.questions.length - 1 ||
+                    Boolean(runtime.savingQuestionId)
+                  }
+                  onClick={() => void runtime.saveAndNext()}
+                >
+                  Хадгалах ба Дараах
                 </Button>
               </div>
-              <Button type="button" onClick={() => runtime.submitAttempt("user_submit")}>
-                Тест дуусгах
+              <Button
+                type="button"
+                variant={runtime.hasUnsavedAnswers || runtime.hasSaveErrors ? "secondary" : "primary"}
+                disabled={Boolean(runtime.savingQuestionId) || runtime.submitting}
+                onClick={() => {
+                  if (runtime.hasUnsavedAnswers || runtime.hasSaveErrors) {
+                    void runtime.saveQuestion(question.id);
+                    return;
+                  }
+                  void runtime.submitAttempt("user_submit");
+                }}
+              >
+                {runtime.hasUnsavedAnswers || runtime.hasSaveErrors
+                  ? "Эхлээд хадгалах"
+                  : runtime.submitting
+                    ? "Илгээж байна"
+                    : "Тест дуусгах"}
               </Button>
             </div>
           </Card>
@@ -167,27 +237,27 @@ export default function TakeRuntimePage() {
           <Card className="p-seek-4">
             <Text className="font-bold">Асуултын навигац</Text>
             <div className="mt-seek-4 grid grid-cols-5 gap-seek-2">
-              {attempt.questions.map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`h-10 rounded-seek-md border text-sm font-bold ${
-                    index === runtime.currentIndex
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : runtime.answers[item.id]
-                        ? "border-success bg-success-background text-success"
-                        : "border-border bg-surface text-foreground"
-                  }`}
-                  onClick={() => runtime.setCurrentIndex(index)}
-                >
-                  {index + 1}
-                </button>
-              ))}
+              {attempt.questions.map((item, index) => {
+                const state = runtime.getQuestionState(item.id, index);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-label={`Асуулт ${index + 1}: ${questionStateLabel(state)}`}
+                    title={questionStateLabel(state)}
+                    className={`h-10 rounded-seek-md border text-sm font-bold ${questionStateClass(state)}`}
+                    disabled={Boolean(runtime.savingQuestionId) || runtime.submitting}
+                    onClick={() => void runtime.goToQuestion(index)}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
             </div>
             <div className="mt-seek-5 space-y-seek-2 text-sm text-muted-foreground">
-              <p>Autosave interval: {attempt.session.autosaveIntervalSeconds}s</p>
-              <p>Heartbeat interval: {attempt.session.heartbeatIntervalSeconds}s</p>
-              <p>Result release: {attempt.session.resultVisibilityPolicy.resultReleaseMode}</p>
+              <p>Хадгалаагүй: {runtime.hasUnsavedAnswers ? "байна" : "байхгүй"}</p>
+              <p>Алдаа: {runtime.hasSaveErrors ? "шалгах шаардлагатай" : "байхгүй"}</p>
+              <p>Autosubmit: хугацаа дуусахад server submit хийнэ</p>
             </div>
           </Card>
         </div>
@@ -270,4 +340,50 @@ function StatusPill({ label, value }: { label: string; value: string }) {
       <Text className="font-mono text-sm font-bold">{value}</Text>
     </div>
   );
+}
+
+function saveStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    idle: "READY",
+    unsaved: "UNSAVED",
+    saving: "SAVING",
+    saved: "SAVED",
+    error: "ERROR",
+  };
+  return labels[status] || status.toUpperCase();
+}
+
+function saveStatusText(status: string) {
+  const labels: Record<string, string> = {
+    idle: "хадгалахад бэлэн",
+    unsaved: "хадгалаагүй",
+    saving: "хадгалж байна",
+    saved: "server дээр хадгалсан",
+    error: "дахин хадгална уу",
+  };
+  return labels[status] || status;
+}
+
+function questionStateLabel(state: string) {
+  const labels: Record<string, string> = {
+    not_visited: "ороогүй",
+    current: "одоогийн",
+    unsaved: "хадгалаагүй",
+    saved: "хадгалсан",
+    flagged: "flag хийсэн",
+    error: "хадгалалтын алдаа",
+  };
+  return labels[state] || state;
+}
+
+function questionStateClass(state: string) {
+  const classes: Record<string, string> = {
+    current: "border-primary bg-primary text-primary-foreground",
+    unsaved: "border-warning bg-warning-background text-foreground",
+    saved: "border-success bg-success-background text-success",
+    flagged: "border-primary bg-primary/10 text-primary",
+    error: "border-danger bg-danger-background text-danger",
+    not_visited: "border-border bg-surface text-foreground",
+  };
+  return classes[state] || classes.not_visited;
 }

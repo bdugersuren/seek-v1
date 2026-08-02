@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PaymentOrder {
+  id             String    @id @default(uuid())
+  userId         String
+  scheduleId     String?
+  assignmentId   String?
+  amount         Decimal   @db.Decimal(14, 2)
+  currencyCode   String    @db.VarChar(3)
+  status         String    @default("PENDING")
+  provider       String?
+  providerRef    String?
+  idempotencyKey String?
+  paidAt         DateTime?
+  refundedAt     DateTime?
+  metadata       Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  transactions PaymentTransaction[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([scheduleId, status])
+  @@map("payment_order")
+}
+
+model PaymentTransaction {
+  id          String   @id @default(uuid())
+  orderId     String
+  provider    String
+  providerRef String?
+  type        String
+  status      String
+  amount      Decimal  @db.Decimal(14, 2)
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([provider, providerRef])
+  @@map("payment_transaction")
+}

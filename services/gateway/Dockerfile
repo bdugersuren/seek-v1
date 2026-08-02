@@ -15,4 +15,4 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/services/gateway/dist /app/services/gateway/dist
 EXPOSE 3010
 WORKDIR /app/services/gateway
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

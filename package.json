@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "clean": "turbo run clean",
     "test:smoke:auth": "node scripts/smoke-auth.mjs",
+    "test:smoke:production": "node scripts/smoke-production.mjs",
     "test:integration:auth": "jest tests/integration/auth.spec.ts",
     "test:postman:auth": "newman run tools/postman/SEEK-Local.postman_collection.json -e tools/postman/SEEK-Local.postman_environment.json",
     "test:e2e:auth": "playwright test tests/e2e/auth-login.spec.ts",

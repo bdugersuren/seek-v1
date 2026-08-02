@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ReportingAttemptFact {
+  id                  String    @id @default(uuid())
+  attemptId           String    @unique
+  resultId            String?
+  tenantId            String?
+  scheduleId          String
+  quizId              String
+  quizRevisionId      String
+  candidateId         String
+  organizationId      String?
+  regionId            String?
+  districtId          String?
+  schoolId            String?
+  classId             String?
+  teacherId           String?
+  assessmentContextId String?
+  startedAt           DateTime?
+  submittedAt         DateTime?
+  durationSeconds     Int?
+  finalScore          Decimal?  @db.Decimal(14, 4)
+  maxPossibleScore    Decimal?  @db.Decimal(14, 4)
+  percentage          Decimal?  @db.Decimal(7, 4)
+  passStatus          String?
+  status              String
+  createdAt           DateTime  @default(now())
+
+  @@index([scheduleId, status])
+  @@index([regionId, districtId, schoolId])
+  @@index([quizId, submittedAt])
+  @@map("reporting_attempt_fact")
+}

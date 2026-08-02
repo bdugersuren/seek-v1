@@ -11,9 +11,7 @@ import {
   Text,
   useToast,
 } from "@seek/ui";
-
-const assessmentRuntimeBaseUrl =
-  process.env.NEXT_PUBLIC_ASSESSMENT_WEB_URL ?? "http://localhost:8082";
+import { createAssessmentRuntimeUrl } from "@/features/assessment-runtime/url";
 
 export default function JoinAssessmentPage() {
   const [code, setCode] = useState("");
@@ -73,9 +71,9 @@ export default function JoinAssessmentPage() {
                     );
 
                     if (normalizedCode) {
-                      window.location.href = `${assessmentRuntimeBaseUrl}/join/${encodeURIComponent(
-                        normalizedCode,
-                      )}`;
+                      window.location.href = createAssessmentRuntimeUrl(
+                        `/join/${encodeURIComponent(normalizedCode)}`,
+                      );
                     }
                   }}
                 >

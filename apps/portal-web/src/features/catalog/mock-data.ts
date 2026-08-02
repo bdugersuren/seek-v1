@@ -1,5 +1,9 @@
 import type { CatalogAssessment, CatalogFilterOption } from "./types";
 
+const now = Date.now();
+const minutes = (value: number) => value * 60 * 1000;
+const isoFromNow = (value: number) => new Date(now + minutes(value)).toISOString();
+
 export const catalogAssessments: CatalogAssessment[] = [
   {
     id: "data-analysis-basic",
@@ -19,6 +23,12 @@ export const catalogAssessments: CatalogAssessment[] = [
     competencyTags: ["Мэдлэг", "Дижитал ур чадвар"],
     certificateAvailable: true,
     favorite: true,
+    scheduledStartsAt: isoFromNow(20),
+    scheduledEndsAt: isoFromNow(65),
+    waitingRoomOpensAt: isoFromNow(5),
+    requiredEarlyJoinMinutes: 15,
+    totalPoints: 100,
+    passingPercent: 70,
   },
   {
     id: "communication-skill",
@@ -72,6 +82,12 @@ export const catalogAssessments: CatalogAssessment[] = [
     imageTone: "from-pink-50 to-violet-100",
     competencyTags: ["Ур чадвар", "Хандлага"],
     certificateAvailable: false,
+    scheduledStartsAt: isoFromNow(90),
+    scheduledEndsAt: isoFromNow(125),
+    waitingRoomOpensAt: isoFromNow(75),
+    requiredEarlyJoinMinutes: 15,
+    totalPoints: 80,
+    passingPercent: 65,
   },
   {
     id: "teacher-standard",
@@ -125,6 +141,12 @@ export const catalogAssessments: CatalogAssessment[] = [
     imageTone: "from-emerald-50 to-teal-100",
     competencyTags: ["Мэдлэг", "Хэл"],
     certificateAvailable: false,
+    scheduledStartsAt: isoFromNow(-10),
+    scheduledEndsAt: isoFromNow(30),
+    waitingRoomOpensAt: isoFromNow(-25),
+    requiredEarlyJoinMinutes: 15,
+    totalPoints: 100,
+    passingPercent: 60,
   },
   {
     id: "project-management",

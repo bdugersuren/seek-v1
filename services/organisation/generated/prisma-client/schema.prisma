@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organisation {
+  id         String   @id @default(uuid())
+  parentId   String?
+  code       String   @unique
+  name       String
+  type       String
+  regionId   String?
+  districtId String?
+  isActive   Boolean  @default(true)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  parent   Organisation?      @relation("OrganisationTree", fields: [parentId], references: [id])
+  children Organisation[]     @relation("OrganisationTree")
+  units    OrganisationUnit[]
+
+  @@index([parentId])
+  @@index([regionId, districtId])
+  @@map("organisation")
+}
+
+model OrganisationUnit {
+  id             String   @id @default(uuid())
+  organisationId String
+  parentId       String?
+  code           String
+  name           String
+  type           String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  parent       OrganisationUnit?  @relation("OrganisationUnitTree", fields: [parentId], references: [id])
+  children     OrganisationUnit[] @relation("OrganisationUnitTree")
+
+  @@unique([organisationId, code])
+  @@index([parentId])
+  @@map("organisation_unit")
+}

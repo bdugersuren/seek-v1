@@ -1,0 +1,633 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("EXECUTION_DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum AttemptStatus {
+  CREATED
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+  LOCKED
+  CANCELLED
+  INVALIDATED
+}
+
+enum SubmissionSource {
+  USER
+  AUTO_EXPIRE
+  ADMIN
+  SYSTEM_RECOVERY
+}
+
+enum ViolationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum SubmissionResultStatus {
+  ACCEPTED
+  REJECTED
+  DUPLICATE
+}
+
+enum EligibilityStatus {
+  PREPARED
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum ResponseApplyStatus {
+  APPLIED
+  REJECTED
+  CONFLICT
+  DUPLICATE
+}
+
+enum AnswerStatus {
+  EMPTY
+  DRAFT
+  SAVED
+  REJECTED
+  CONFLICT
+}
+
+// ============================================================
+// PRE-MATERIALIZED ELIGIBILITY / SCHEDULE SNAPSHOT
+// ============================================================
+
+model AttemptEligibilitySnapshot {
+  id String @id @default(cuid())
+
+  // Logical references to assessment_db/profile services
+  tenantId       String?
+  organizationId String?
+  regionId       String?
+  districtId     String?
+  schoolId       String?
+  classId        String?
+  scheduleId     String
+  assignmentId   String
+  candidateId    String
+  quizId         String
+  quizRevisionId String
+
+  status               EligibilityStatus @default(PREPARED)
+  availableFrom        DateTime
+  availableUntil       DateTime
+  durationLimitSeconds Int
+  maxAttempts          Int
+  endTimePolicy        String
+  accessMode           String
+  timezone             String            @default("Asia/Ulaanbaatar")
+
+  scheduleSnapshot             Json
+  runtimePolicySnapshot        Json      @default("{}")
+  proctoringPolicySnapshot     Json      @default("{}")
+  resultPolicySnapshot         Json      @default("{}")
+  accessPolicySnapshot         Json      @default("{}")
+  candidateDisplayNameSnapshot String?
+  candidateExternalIdHash      String?
+  attemptsUsedSnapshot         Int       @default(0)
+  paymentEntitlementSnapshot   Json      @default("{}")
+  termsRequired                Boolean   @default(false)
+  waitingRoomOpensAt           DateTime?
+  requiredEarlyJoinMinutes     Int       @default(0)
+  admissionStatus              String?
+  admissionTokenHash           String?
+  queuePosition                Int?
+  eligibilityChecksum          String
+  snapshotHash                 String?
+  signedAt                     DateTime?
+  signingKeyId                 String?
+  sourceVersion                Int       @default(1)
+
+  preparedAt   DateTime  @default(now())
+  activatedAt  DateTime?
+  revokedAt    DateTime?
+  revokeReason String?
+  expiresAt    DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  attempts QuizAttempt[]
+
+  @@unique([scheduleId, candidateId])
+  @@unique([assignmentId])
+  @@index([tenantId, organizationId, status])
+  @@index([regionId, districtId, schoolId])
+  @@index([candidateId, status, availableFrom])
+  @@index([scheduleId, status])
+  @@map("attempt_eligibility_snapshot")
+}
+
+// ============================================================
+// RUNTIME ATTEMPT
+// ============================================================
+
+model QuizAttempt {
+  id String @id @default(cuid())
+
+  eligibilitySnapshotId String?
+
+  // Logical references to assessment_db/profile_db
+  tenantId       String?
+  partitionKey   String?
+  regionId       String?
+  scheduleId     String
+  quizId         String
+  quizRevisionId String
+  assignmentId   String
+  candidateId    String
+
+  attemptNumber        Int
+  createdFromRequestId String?
+  idempotencyKey       String?
+  status               AttemptStatus @default(CREATED)
+  statusReason         String?
+  durationLimitSeconds Int
+  warningsCount        Int           @default(0)
+  rowVersion           Int           @default(1)
+
+  serverStartedAt    DateTime?
+  startedByClientAt  DateTime?
+  startedAt          DateTime?
+  expiresAt          DateTime?
+  submittedAt        DateTime?
+  lockedAt           DateTime?
+  lockReason         String?
+  lastHeartbeatAt    DateTime?
+  resumeCount        Int       @default(0)
+  lastResumeAt       DateTime?
+  pauseCount         Int       @default(0)
+  pausedAt           DateTime?
+  pauseReason        String?
+  heartbeatMissCount Int       @default(0)
+  networkLatencyMs   Int?
+  lastRoundTripMs    Int?
+  clientClockSkewMs  Int?
+
+  clientInstanceId      String?
+  clientIp              String?
+  userAgent             String?
+  runtimeVersion        String?
+  clientPlatform        String?
+  browserName           String?
+  browserVersion        String?
+  osName                String?
+  deviceModel           String?
+  deviceFingerprintHash String?
+  lockPolicyDecisionId  String?
+  invalidatedBy         String?
+  invalidatedReason     String?
+
+  submissionChecksum String?
+  submittedSource    SubmissionSource?
+
+  scheduleSnapshot         Json @default("{}")
+  runtimePolicySnapshot    Json @default("{}")
+  proctoringPolicySnapshot Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eligibilitySnapshot AttemptEligibilitySnapshot?         @relation(fields: [eligibilitySnapshotId], references: [id], onDelete: SetNull)
+  questions           AttemptQuestion[]
+  responses           QuestionResponse[]
+  responseEvents      QuestionResponseEvent[]
+  violations          QuizViolation[]
+  snapshot            AttemptStateSnapshot?
+  submissions         AttemptSubmission[]
+  lifecycleEvents     AttemptLifecycleEvent[]
+  heartbeatEvents     AttemptHeartbeatEvent[]
+  acknowledgements    AttemptInstructionAcknowledgement[]
+  navigationEvents    AttemptNavigationEvent[]
+  lockDecisions       AttemptLockDecision[]
+  payloadReceipts     AttemptPayloadReceipt[]
+  deliveryEvents      RuntimeDeliveryEvent[]
+
+  @@unique([assignmentId, attemptNumber])
+  @@unique([candidateId, idempotencyKey])
+  @@index([candidateId, quizId])
+  @@index([scheduleId, status])
+  @@index([scheduleId, candidateId, status])
+  @@index([status, expiresAt])
+  @@index([partitionKey, status, expiresAt])
+  @@index([eligibilitySnapshotId])
+  @@map("quiz_attempt")
+}
+
+model AttemptQuestion {
+  id        String @id @default(cuid())
+  attemptId String
+
+  // Logical references to assessment_db
+  questionId                    String
+  questionVersionId             String
+  quizRevisionSectionId         String
+  topicQuestionClassificationId String?
+  sectionTitleSnapshot          String?
+  sectionOrderIndex             Int?
+  questionCodeSnapshot          String?
+  instructionSnapshot           Json    @default("{}")
+
+  orderIndex                  Int
+  deliveredSequence           Int?
+  deliveryStatus              String   @default("PENDING")
+  isRequired                  Boolean  @default(true)
+  maxScoreSnapshot            Decimal  @db.Decimal(10, 4)
+  minScoreSnapshot            Decimal  @default(0) @db.Decimal(10, 4)
+  negativeScoreSnapshot       Decimal? @db.Decimal(10, 4)
+  timeLimitSecondsSnapshot    Int?
+  partialCreditPolicySnapshot Json     @default("{}")
+
+  // Runtime delivery snapshot: no assessment_db read required after start
+  questionTypeCodeSnapshot   String
+  contentSnapshot            Json
+  presentationConfigSnapshot Json    @default("{}")
+  optionsSnapshot            Json    @default("[]")
+  mediaSnapshot              Json    @default("[]")
+  classificationSnapshot     Json?   @default("{}")
+  contentHash                String?
+  optionsHash                String?
+  mediaHash                  String?
+
+  // Never return this to browser. Optional encrypted grading payload.
+  gradingConfigCipher  Bytes?
+  gradingConfigKeyId   String?
+  answerKeyVersionHash String?
+
+  optionsOrder    Json      @default("[]")
+  selectionReason Json      @default("{}")
+  deliveredAt     DateTime?
+  clientDecryptAt DateTime?
+  renderedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  attempt        QuizAttempt             @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  response       QuestionResponse?
+  responseEvents QuestionResponseEvent[]
+
+  @@unique([attemptId, orderIndex])
+  @@index([attemptId, questionVersionId])
+  @@index([topicQuestionClassificationId])
+  @@map("attempt_question")
+}
+
+// ============================================================
+// CURRENT ANSWER PROJECTION
+// ============================================================
+
+model QuestionResponse {
+  id                   String          @id @default(cuid())
+  attemptId            String
+  attemptQuestionId    String          @unique
+  answerValue          Json
+  encryptedAnswerValue Bytes?
+  answerChecksum       String?
+  answerStatus         AnswerStatus    @default(SAVED)
+  serverVersion        Int             @default(1)
+  rowVersion           Int             @default(1)
+  lastClientSequence   Int
+  clientTimeSpentMs    Int             @default(0)
+  timeSpentMsServer    Int             @default(0)
+  focusTimeMs          Int             @default(0)
+  blurTimeMs           Int             @default(0)
+  lastClientSavedAt    DateTime?
+  clientClockSkewMs    Int?
+  conflictCount        Int             @default(0)
+  firstAnsweredAt      DateTime?
+  lastAnsweredAt       DateTime?
+  savedAt              DateTime        @default(now())
+  lastSourceEventId    String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  attempt              QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attemptQuestion      AttemptQuestion @relation(fields: [attemptQuestionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@map("question_response")
+}
+
+// ============================================================
+// ANSWER EVENT AUDIT / IDEMPOTENCY
+// ============================================================
+
+model QuestionResponseEvent {
+  id                    String              @id @default(cuid())
+  attemptId             String
+  attemptQuestionId     String
+  partitionKey          String?
+  eventType             String              @default("ANSWER_CHANGED")
+  clientInstanceId      String
+  clientSequence        Int
+  baseServerVersion     Int?
+  idempotencyKey        String
+  answerValue           Json
+  payloadChecksum       String?
+  requestSignature      String?
+  nonce                 String?
+  clientOccurredAt      DateTime?
+  serverReceivedAt      DateTime            @default(now())
+  serverAppliedAt       DateTime?
+  applyStatus           ResponseApplyStatus @default(APPLIED)
+  rejectReason          String?
+  ipHash                String?
+  userAgentHash         String?
+  deviceFingerprintHash String?
+  sourceEventId         String?
+  attempt               QuizAttempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attemptQuestion       AttemptQuestion     @relation(fields: [attemptQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, clientInstanceId, clientSequence])
+  @@unique([attemptId, idempotencyKey])
+  @@index([attemptId, serverReceivedAt])
+  @@index([attemptId, clientInstanceId, clientSequence])
+  @@index([partitionKey, serverReceivedAt])
+  @@index([attemptQuestionId])
+  @@map("question_response_event")
+}
+
+// ============================================================
+// PROCTORING / VIOLATIONS
+// ============================================================
+
+model QuizViolation {
+  id                  String            @id @default(cuid())
+  attemptId           String
+  idempotencyKey      String?
+  violationType       String
+  severity            ViolationSeverity @default(WARNING)
+  clientInstanceId    String?
+  clientSequence      Int?
+  clientOccurredAt    DateTime?
+  serverReceivedAt    DateTime          @default(now())
+  actionTaken         String?
+  messageCode         String?
+  evidenceHash        String?
+  screenshotFileId    String?
+  proctoringSessionId String?
+  policyRuleId        String?
+  thresholdBefore     Decimal?          @db.Decimal(14, 4)
+  thresholdAfter      Decimal?          @db.Decimal(14, 4)
+  decisionStatus      String            @default("RECORDED")
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  reviewOutcome       String?
+  metadata            Json              @default("{}")
+  attempt             QuizAttempt       @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, idempotencyKey])
+  @@index([attemptId, serverReceivedAt])
+  @@index([attemptId, violationType, serverReceivedAt])
+  @@index([violationType, severity])
+  @@map("quiz_violation")
+}
+
+// ============================================================
+// RECONNECT / RECOVERY SNAPSHOT
+// ============================================================
+
+model AttemptStateSnapshot {
+  attemptId                 String      @id
+  snapshotVersion           Int         @default(1)
+  answers                   Json        @default("{}")
+  encryptedSnapshot         Bytes?
+  markedForReview           Json        @default("{}")
+  currentAttemptQuestionId  String?
+  lastClientSequence        Int?
+  lastResponseServerVersion Int?
+  navigationState           Json        @default("{}")
+  checksum                  String?
+  snapshotHash              String?
+  signature                 String?
+  keyId                     String?
+  lastHeartbeatAt           DateTime?
+  lastOnlineAt              DateTime?
+  pendingSubmitReason       String?
+  offlineSince              DateTime?
+  snapshotSource            String      @default("AUTOSAVE")
+  capturedAt                DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+  attempt                   QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@map("attempt_state_snapshot")
+}
+
+// ============================================================
+// SUBMISSION AUDIT / IDEMPOTENCY
+// ============================================================
+
+model AttemptSubmission {
+  id                   String                 @id @default(cuid())
+  attemptId            String
+  submissionVersion    Int
+  idempotencyKey       String
+  source               SubmissionSource
+  submitReason         String?
+  finalSnapshotVersion Int?
+  submissionChecksum   String
+  clientSubmittedAt    DateTime?
+  requestedAt          DateTime               @default(now())
+  serverReceivedAt     DateTime               @default(now())
+  clientClockSkewMs    Int?
+  finalAnswerCount     Int?
+  finalMarkedCount     Int?
+  finalDurationMs      Int?
+  requestSignature     String?
+  receiptNumber        String?
+  receiptPayloadHash   String?
+  gradingJobId         String?
+  acceptedAt           DateTime?
+  resultStatus         SubmissionResultStatus
+  rejectionReason      String?
+  attempt              QuizAttempt            @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, submissionVersion])
+  @@unique([attemptId, idempotencyKey])
+  @@unique([receiptNumber])
+  @@index([attemptId, requestedAt])
+  @@index([resultStatus, requestedAt])
+  @@map("attempt_submission")
+}
+
+model AttemptLifecycleEvent {
+  id             String      @id @default(cuid())
+  attemptId      String
+  previousStatus String?
+  newStatus      String
+  reason         String?
+  actorType      String
+  actorId        String?
+  idempotencyKey String?
+  metadata       Json        @default("{}")
+  occurredAt     DateTime    @default(now())
+  attempt        QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, idempotencyKey])
+  @@index([attemptId, occurredAt])
+  @@map("attempt_lifecycle_event")
+}
+
+model AttemptHeartbeatEvent {
+  id                String      @id @default(cuid())
+  attemptId         String
+  clientInstanceId  String?
+  clientNow         DateTime?
+  serverReceivedAt  DateTime    @default(now())
+  serverRespondedAt DateTime?
+  visible           Boolean
+  fullscreen        Boolean
+  online            Boolean     @default(true)
+  clientClockSkewMs Int?
+  roundTripMs       Int?
+  networkType       String?
+  remainingSeconds  Int
+  status            String
+  warning           String?
+  requestSignature  String?
+  metadata          Json        @default("{}")
+  attempt           QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId, serverReceivedAt])
+  @@index([status, serverReceivedAt])
+  @@map("attempt_heartbeat_event")
+}
+
+model AttemptInstructionAcknowledgement {
+  id              String      @id @default(cuid())
+  attemptId       String
+  instructionHash String
+  policyVersion   String
+  acceptedBy      String
+  acceptedAt      DateTime    @default(now())
+  clientIpHash    String?
+  userAgentHash   String?
+  metadata        Json        @default("{}")
+  attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, instructionHash])
+  @@map("attempt_instruction_acknowledgement")
+}
+
+model AttemptNavigationEvent {
+  id                    String      @id @default(cuid())
+  attemptId             String
+  fromAttemptQuestionId String?
+  toAttemptQuestionId   String
+  clientSequence        Int
+  idempotencyKey        String
+  saveRequired          Boolean     @default(false)
+  saveSucceeded         Boolean?
+  clientOccurredAt      DateTime?
+  serverReceivedAt      DateTime    @default(now())
+  attempt               QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, idempotencyKey])
+  @@index([attemptId, serverReceivedAt])
+  @@map("attempt_navigation_event")
+}
+
+model AttemptLockDecision {
+  id             String      @id @default(cuid())
+  attemptId      String
+  policyRuleId   String?
+  violationCount Int
+  decision       String
+  reason         String
+  decidedBy      String
+  decidedAt      DateTime    @default(now())
+  previousStatus String
+  newStatus      String
+  metadata       Json        @default("{}")
+  attempt        QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId, decidedAt])
+  @@map("attempt_lock_decision")
+}
+
+model AttemptPayloadReceipt {
+  id               String      @id @default(cuid())
+  attemptId        String
+  payloadHash      String
+  keyId            String?
+  receiptType      String      @default("PRELOAD")
+  deliveredAt      DateTime    @default(now())
+  acknowledgedAt   DateTime?
+  clientInstanceId String?
+  clientIpHash     String?
+  userAgentHash    String?
+  metadata         Json        @default("{}")
+  attempt          QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, payloadHash, receiptType])
+  @@index([attemptId, deliveredAt])
+  @@map("attempt_payload_receipt")
+}
+
+model RuntimeDeliveryEvent {
+  id               String      @id @default(cuid())
+  attemptId        String
+  eventType        String
+  deliveryKey      String?
+  payloadHash      String?
+  keyId            String?
+  deliveredAt      DateTime    @default(now())
+  acknowledgedAt   DateTime?
+  expiresAt        DateTime?
+  clientInstanceId String?
+  metadata         Json        @default("{}")
+  attempt          QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, eventType, deliveryKey])
+  @@index([attemptId, deliveredAt])
+  @@map("runtime_delivery_event")
+}
+
+// ============================================================
+// RELIABLE EVENT DELIVERY
+// ============================================================
+
+model OutboxEvent {
+  id             String    @id @default(cuid())
+  eventId        String    @unique
+  aggregateType  String
+  aggregateId    String
+  eventType      String
+  schemaVersion  Int       @default(1)
+  payload        Json
+  partitionKey   String?
+  idempotencyKey String?
+  traceId        String?
+  correlationId  String?
+  causationId    String?
+  status         String    @default("PENDING")
+  retryCount     Int       @default(0)
+  maxRetries     Int       @default(10)
+  availableAt    DateTime  @default(now())
+  nextRetryAt    DateTime?
+  lockedBy       String?
+  lockedAt       DateTime?
+  lockExpiresAt  DateTime?
+  createdAt      DateTime  @default(now())
+  publishedAt    DateTime?
+  lastAttemptAt  DateTime?
+  deadLetteredAt DateTime?
+  lastError      String?
+
+  @@unique([aggregateType, idempotencyKey])
+  @@index([status, availableAt])
+  @@index([partitionKey, status, availableAt])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_event")
+}

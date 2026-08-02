@@ -1,17 +1,19 @@
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 WORKDIR /app
 RUN npm install -g pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @seek/commerce build
 
-FROM node:18-alpine
+FROM node:18-slim
 WORKDIR /app
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm
-COPY . .
-RUN pnpm install --frozen-lockfile
-COPY --from=builder /app/packages/contracts/dist /app/packages/contracts/dist
+COPY scripts/service-entrypoint.sh /usr/local/bin/service-entrypoint.sh
+COPY services/commerce/package.json /app/services/commerce/package.json
+COPY services/commerce/prisma /app/services/commerce/prisma
 COPY --from=builder /app/services/commerce/dist /app/services/commerce/dist
 EXPOSE 3080
+ENV SERVICE_DIR=/app/services/commerce
 WORKDIR /app/services/commerce
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["service-entrypoint.sh"]

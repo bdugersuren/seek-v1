@@ -41,6 +41,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3010
+      - PROFILE_SERVICE_URL=http://profile:3030
+      - ORGANISATION_SERVICE_URL=http://organisation:3040
+      - ASSESSMENT_SERVICE_URL=http://assessment:3070
+      - COMMERCE_SERVICE_URL=http://commerce:3080
+      - FILE_SERVICE_URL=http://file:3140
+      - NOTIFICATION_SERVICE_URL=http://notification:3170
+      - REPORTING_SERVICE_URL=http://reporting:3150
     volumes:
       - ./services/gateway:/app/services/gateway
       - /app/services/gateway/node_modules
@@ -88,6 +95,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3030
+      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/profile_db
     volumes:
       - ./services/profile:/app/services/profile
       - /app/services/profile/node_modules
@@ -99,6 +107,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3040
+      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/organisation_db
     volumes:
       - ./services/organisation:/app/services/organisation
       - /app/services/organisation/node_modules
@@ -132,6 +141,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3070
+      - ASSESSMENT_DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/assessment_db
     volumes:
       - ./services/assessment:/app/services/assessment
       - /app/services/assessment/node_modules
@@ -143,6 +153,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3080
+      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/commerce_db
     volumes:
       - ./services/commerce:/app/services/commerce
       - /app/services/commerce/node_modules
@@ -154,6 +165,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3090
+      - EXECUTION_DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/execution_db
       - USE_REDIS=true
       - USE_RABBITMQ=true
       - REDIS_URL=redis://:seek_redis_pass@redis:6379
@@ -191,6 +203,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3150
+      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/reporting_db
     volumes:
       - ./services/reporting:/app/services/reporting
       - /app/services/reporting/node_modules
@@ -202,11 +215,29 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3140
+      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/file_db
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=seek_minio_admin
+      - MINIO_SECRET_KEY=seek_minio_pass
+      - MINIO_BUCKET=seek-files
     volumes:
       - ./services/file:/app/services/file
       - /app/services/file/node_modules
     ports:
       - "127.0.0.1:3140:3140"
+    command: pnpm run start:dev
+
+  notification:
+    environment:
+      - NODE_ENV=development
+      - PORT=3170
+      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/notification_db
+      - RABBITMQ_URL=amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
+    volumes:
+      - ./services/notification:/app/services/notification
+      - /app/services/notification/node_modules
+    ports:
+      - "127.0.0.1:3170:3170"
     command: pnpm run start:dev
 
   platform:

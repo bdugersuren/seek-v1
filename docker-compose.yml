@@ -18,6 +18,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+    ports:
+    - "5432:5432"
     networks:
       shared-net:
         aliases:
@@ -100,7 +102,12 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
       NODE_ENV: development
-    entrypoint: ["npx", "ts-node", "prisma/seed.ts"]
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "npx prisma generate --schema=prisma/schema.prisma && npx ts-node prisma/seed.ts",
+      ]
     depends_on:
       auth-migrate:
         condition: service_completed_successfully
@@ -159,7 +166,14 @@ services:
       PORT: 3010
       NODE_ENV: development
       AUTH_SERVICE_URL: http://auth:3020
+      PROFILE_SERVICE_URL: http://profile:3030
+      ORGANISATION_SERVICE_URL: http://organisation:3040
+      ASSESSMENT_SERVICE_URL: http://assessment:3070
       EXECUTION_SERVICE_URL: http://execution:3090
+      COMMERCE_SERVICE_URL: http://commerce:3080
+      FILE_SERVICE_URL: http://file:3140
+      NOTIFICATION_SERVICE_URL: http://notification:3170
+      REPORTING_SERVICE_URL: http://reporting:3150
       AUTH_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:8082,http://127.0.0.1:8081,http://127.0.0.1:8082,http://portal.seek.mn,http://quiz.seek.mn,http://quiz-api.seek.mn
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
       AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
@@ -262,8 +276,12 @@ services:
       - "3030"
     environment:
       PORT: 3030
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/profile_db
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   organisation:
     profiles:
@@ -277,8 +295,12 @@ services:
       - "3040"
     environment:
       PORT: 3040
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/organisation_db
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   verification:
     profiles:
@@ -322,8 +344,12 @@ services:
       - "3070"
     environment:
       PORT: 3070
+      ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/assessment_db
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   commerce:
     profiles:
@@ -337,8 +363,12 @@ services:
       - "3080"
     environment:
       PORT: 3080
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/commerce_db
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   execution:
     profiles:
@@ -354,10 +384,18 @@ services:
       PORT: 3090
       USE_REDIS: "true"
       USE_RABBITMQ: "true"
+      EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/execution_db
       REDIS_URL: redis://:seek_redis_pass@redis:6379
       RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
 
   evaluation-worker:
     profiles:
@@ -401,8 +439,12 @@ services:
       - "3150"
     environment:
       PORT: 3150
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/reporting_db
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   file:
     profiles:
@@ -416,8 +458,40 @@ services:
       - "3140"
     environment:
       PORT: 3140
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/file_db
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-seek_minio_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-seek_minio_pass}
+      MINIO_BUCKET: seek-files
     networks:
       - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  notification:
+    profiles:
+      - assessment
+    image: seek-notification:latest
+    build:
+      context: .
+      dockerfile: services/notification/Dockerfile
+    container_name: seek-notification
+    expose:
+      - "3170"
+    environment:
+      PORT: 3170
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/notification_db
+      RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
+    networks:
+      - shared-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
 
   platform:
     profiles:

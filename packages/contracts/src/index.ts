@@ -88,6 +88,26 @@ export interface AssessmentAttemptToken {
   accessMode: AssessmentAccessMode;
 }
 
+export interface CreateAssessmentAttemptRequest {
+  assessmentId: string;
+  idempotencyKey?: string;
+}
+
+export interface CreateAssessmentAttemptResponse {
+  attemptId: string;
+  quizId: string;
+  waitingUrl: string;
+  status: AssessmentAttemptStatus;
+}
+
+export interface StartAssessmentAttemptResponse {
+  attemptId: string;
+  quizId: string;
+  status: AssessmentAttemptStatus;
+  unlockKey: string;
+  serverNow: string;
+}
+
 export interface AssessmentQuestionManifest {
   id: string;
   code: string;
@@ -159,6 +179,13 @@ export interface AssessmentRuntimeSession {
   resultVisibilityPolicy: AssessmentResultVisibilityPolicy;
   autosaveIntervalSeconds: number;
   heartbeatIntervalSeconds: number;
+  scheduledStartsAt?: string;
+  scheduledEndsAt?: string;
+  waitingRoomOpensAt?: string;
+  requiredEarlyJoinMinutes?: number;
+  questionCount?: number;
+  totalPoints?: number;
+  passingPercent?: number;
 }
 
 export type AssessmentAnswerValue =

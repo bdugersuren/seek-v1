@@ -17,6 +17,12 @@ export interface CatalogAssessment {
   organisation?: string;
   certificateAvailable: boolean;
   favorite?: boolean;
+  scheduledStartsAt?: string;
+  scheduledEndsAt?: string;
+  waitingRoomOpensAt?: string;
+  requiredEarlyJoinMinutes?: number;
+  totalPoints?: number;
+  passingPercent?: number;
 }
 
 export interface CatalogFilterOption {

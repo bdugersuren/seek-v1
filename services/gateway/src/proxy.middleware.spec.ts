@@ -109,6 +109,34 @@ describe("ProxyMiddleware Unit Tests", () => {
     expect((middleware as any).isAuthProxyRequest(mockRequest)).toBe(false);
   });
 
+  it("should resolve bounded-context health proxy targets", () => {
+    mockRequest = {
+      ...mockRequest,
+      path: "/",
+      url: "/",
+      originalUrl: "/api/v1/notification/health/ready",
+    };
+
+    expect((middleware as any).getHealthProxyTarget(mockRequest)).toEqual({
+      service: "notification",
+      url: "http://localhost:3170",
+    });
+    expect(
+      (middleware as any).resolveHealthProxyPath(mockRequest, "notification"),
+    ).toBe("/health/ready");
+  });
+
+  it("should not expose non-health bounded-context routes by default", () => {
+    mockRequest = {
+      ...mockRequest,
+      path: "/",
+      url: "/",
+      originalUrl: "/api/v1/notification/templates",
+    };
+
+    expect((middleware as any).getHealthProxyTarget(mockRequest)).toBeNull();
+  });
+
   describe("CSRF Origin Validation", () => {
     it("should allow mutating request with allowed origin", () => {
       mockRequest.method = "POST";

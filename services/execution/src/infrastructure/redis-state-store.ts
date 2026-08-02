@@ -4,14 +4,27 @@ import {
   AssessmentAnswerSnapshot,
 } from "@seek/contracts";
 import Redis from "ioredis";
-import { AttemptStateStore } from "../interfaces/state-store.interface";
+import {
+  AttemptAuditEvent,
+  AttemptStateStore,
+} from "../interfaces/state-store.interface";
 
 @Injectable()
 export class RedisAttemptStateStore implements AttemptStateStore {
   constructor(
     @Inject("REDIS_CLIENT")
-    private readonly redis: Redis
+    private readonly redis: Redis | null
   ) {}
+
+  private getRedis(): Redis {
+    if (!this.redis) {
+      throw new Error(
+        "RedisAttemptStateStore requires USE_REDIS=true and an initialized Redis client"
+      );
+    }
+
+    return this.redis;
+  }
 
   private getSessionKey(attemptId: string): string {
     return `attempt:${attemptId}:session`;
@@ -29,6 +42,14 @@ export class RedisAttemptStateStore implements AttemptStateStore {
     return `attempt:${attemptId}:violation:${type}`;
   }
 
+  private getAuditKey(attemptId: string): string {
+    return `attempt:${attemptId}:audit`;
+  }
+
+  private getIdempotencyKey(attemptId: string): string {
+    return `attempt:${attemptId}:idempotency`;
+  }
+
   private calculateTTL(endsAt: string): number {
     const remaining = Math.floor((new Date(endsAt).getTime() - Date.now()) / 1000);
     // Keep in cache for remaining duration + 1 hour buffer (minimum 3600s)
@@ -36,7 +57,8 @@ export class RedisAttemptStateStore implements AttemptStateStore {
   }
 
   async getSession(attemptId: string): Promise<AssessmentRuntimeSession | null> {
-    const data = await this.redis.get(this.getSessionKey(attemptId));
+    const redis = this.getRedis();
+    const data = await redis.get(this.getSessionKey(attemptId));
     if (!data) {
       // Seed mock data if not exists for local testing
       if (attemptId === "mock-attempt-001") {
@@ -55,7 +77,7 @@ export class RedisAttemptStateStore implements AttemptStateStore {
 
   async saveSession(session: AssessmentRuntimeSession): Promise<void> {
     const ttl = this.calculateTTL(session.endsAt);
-    await this.redis.set(
+    await this.getRedis().set(
       this.getSessionKey(session.attemptId),
       JSON.stringify(session),
       "EX",
@@ -64,7 +86,8 @@ export class RedisAttemptStateStore implements AttemptStateStore {
   }
 
   async getAnswers(attemptId: string): Promise<AssessmentAnswerSnapshot | null> {
-    const data = await this.redis.get(this.getAnswersKey(attemptId));
+    const redis = this.getRedis();
+    const data = await redis.get(this.getAnswersKey(attemptId));
     if (!data) {
       if (attemptId === "mock-attempt-001") {
         const mockSnapshot = this.getMockSnapshot();
@@ -82,7 +105,7 @@ export class RedisAttemptStateStore implements AttemptStateStore {
   ): Promise<void> {
     const session = await this.getSession(attemptId);
     const ttl = session ? this.calculateTTL(session.endsAt) : 3600;
-    await this.redis.set(
+    await this.getRedis().set(
       this.getAnswersKey(attemptId),
       JSON.stringify(snapshot),
       "EX",
@@ -90,30 +113,43 @@ export class RedisAttemptStateStore implements AttemptStateStore {
     );
   }
 
+  async saveQuestions(attemptId: string, questions: any[]): Promise<void> {
+    const session = await this.getSession(attemptId);
+    const ttl = session ? this.calculateTTL(session.endsAt) : 3600;
+    await this.getRedis().set(
+      this.getQuestionsKey(attemptId),
+      JSON.stringify(questions),
+      "EX",
+      ttl
+    );
+  }
+
   async incrementViolation(attemptId: string, type: string): Promise<number> {
     const key = this.getViolationKey(attemptId, type);
-    const count = await this.redis.incr(key);
+    const redis = this.getRedis();
+    const count = await redis.incr(key);
     
     const session = await this.getSession(attemptId);
     const ttl = session ? this.calculateTTL(session.endsAt) : 3600;
-    await this.redis.expire(key, ttl);
+    await redis.expire(key, ttl);
     
     return count;
   }
 
   async getViolationCount(attemptId: string, type: string): Promise<number> {
-    const val = await this.redis.get(this.getViolationKey(attemptId, type));
+    const val = await this.getRedis().get(this.getViolationKey(attemptId, type));
     return val ? parseInt(val, 10) : 0;
   }
 
   async getQuestions(attemptId: string): Promise<any[] | null> {
-    const data = await this.redis.get(this.getQuestionsKey(attemptId));
+    const redis = this.getRedis();
+    const data = await redis.get(this.getQuestionsKey(attemptId));
     if (!data) {
       if (attemptId === "mock-attempt-001") {
         const mockQuestions = this.getMockQuestions();
         const session = await this.getSession(attemptId);
         const ttl = session ? this.calculateTTL(session.endsAt) : 3600;
-        await this.redis.set(
+        await redis.set(
           this.getQuestionsKey(attemptId),
           JSON.stringify(mockQuestions),
           "EX",
@@ -124,6 +160,40 @@ export class RedisAttemptStateStore implements AttemptStateStore {
       return null;
     }
     return JSON.parse(data);
+  }
+
+  async appendAuditEvent(event: AttemptAuditEvent): Promise<void> {
+    const session = await this.getSession(event.attemptId);
+    const ttl = session ? this.calculateTTL(session.endsAt) : 3600;
+    const redis = this.getRedis();
+
+    await redis.rpush(this.getAuditKey(event.attemptId), JSON.stringify(event));
+    await redis.expire(this.getAuditKey(event.attemptId), ttl);
+
+    if (event.idempotencyKey) {
+      await redis.sadd(this.getIdempotencyKey(event.attemptId), event.idempotencyKey);
+      await redis.expire(this.getIdempotencyKey(event.attemptId), ttl);
+    }
+  }
+
+  async getAuditEvents(
+    attemptId: string,
+    type?: string
+  ): Promise<AttemptAuditEvent[]> {
+    const rows = await this.getRedis().lrange(this.getAuditKey(attemptId), 0, -1);
+    const events = rows.map((row) => JSON.parse(row) as AttemptAuditEvent);
+    return type ? events.filter((event) => event.type === type) : events;
+  }
+
+  async hasIdempotencyKey(
+    attemptId: string,
+    idempotencyKey: string
+  ): Promise<boolean> {
+    const exists = await this.getRedis().sismember(
+      this.getIdempotencyKey(attemptId),
+      idempotencyKey
+    );
+    return exists === 1;
   }
 
   // --- Mock Data Generators for Local Dev Seeding ---
@@ -146,6 +216,13 @@ export class RedisAttemptStateStore implements AttemptStateStore {
       status: "active",
       autosaveIntervalSeconds: 5,
       heartbeatIntervalSeconds: 5,
+      scheduledStartsAt: startsAt.toISOString(),
+      scheduledEndsAt: endsAt.toISOString(),
+      waitingRoomOpensAt: new Date(startsAt.getTime() - 15 * 60 * 1000).toISOString(),
+      requiredEarlyJoinMinutes: 15,
+      questionCount: 60,
+      totalPoints: 100,
+      passingPercent: 70,
       encryptedPayload: {
         payloadId: "payload-mock-attempt-001",
         quizId: "quiz-civil-service-2026",

@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  displayName String?
+  birthDate   DateTime?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  locations   ProfileLocation[]
+  education   EducationRecord[]
+  workHistory WorkRecord[]
+
+  @@map("user_profile")
+}
+
+model ProfileLocation {
+  id         String   @id @default(uuid())
+  profileId String
+  regionId   String?
+  districtId String?
+  address    String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  profile    UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([regionId, districtId])
+  @@map("profile_location")
+}
+
+model EducationRecord {
+  id             String   @id @default(uuid())
+  profileId      String
+  organizationId String?
+  schoolId       String?
+  classId        String?
+  level          String?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  metadata       Json     @default("{}")
+  profile        UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, classId])
+  @@map("education_record")
+}
+
+model WorkRecord {
+  id             String   @id @default(uuid())
+  profileId      String
+  organizationId String?
+  positionTitle  String?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  metadata       Json     @default("{}")
+  profile        UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("work_record")
+}

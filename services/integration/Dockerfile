@@ -14,4 +14,4 @@ COPY --from=builder /app/packages/contracts/dist /app/packages/contracts/dist
 COPY --from=builder /app/services/integration/dist /app/services/integration/dist
 EXPOSE 3130
 WORKDIR /app/services/integration
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

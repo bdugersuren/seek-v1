@@ -17,11 +17,15 @@ export function AuthBootstrap({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const bootstrapSession = async () => {
       try {
-        const mockUser = readMockSession();
+        const enableMock = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH !== "false";
 
-        if (mockUser) {
-          dispatch(loginSuccess(mockUser));
-          return;
+        if (enableMock) {
+          const mockUser = readMockSession();
+
+          if (mockUser) {
+            dispatch(loginSuccess(mockUser));
+            return;
+          }
         }
 
         // Хөтөч ачаалагдах үед refresh токенийг ашиглан access токенийг сэргээнэ

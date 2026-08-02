@@ -231,8 +231,17 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const handleLogout = () => {
-    clearMockSession();
+  const handleLogout = async () => {
+    const enableMock = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH !== "false";
+    if (enableMock) {
+      clearMockSession();
+    } else {
+      try {
+        await fetch("/api/v1/auth/logout", { method: "POST" });
+      } catch (e) {
+        console.error("Failed to call logout API", e);
+      }
+    }
     setAccessToken(null);
     dispatch(logout());
     showToast("Системээс гарлаа.", "success");

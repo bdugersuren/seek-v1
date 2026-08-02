@@ -1,8 +1,17 @@
 FROM node:18-alpine
 WORKDIR /app
 RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
 COPY . .
+RUN pnpm install --frozen-lockfile
+
+ARG NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+ARG NEXT_PUBLIC_EXECUTION_URL=http://quiz-api.seek.mn/api/v1/execution
+ARG NEXT_PUBLIC_MOCK_MODE=false
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_EXECUTION_URL=$NEXT_PUBLIC_EXECUTION_URL
+ENV NEXT_PUBLIC_MOCK_MODE=$NEXT_PUBLIC_MOCK_MODE
+
+RUN pnpm --filter @seek/contracts build
+RUN pnpm --filter @seek/assessment-web build
 EXPOSE 8082
-CMD ["pnpm", "run", "dev"]
+CMD ["pnpm", "--filter", "@seek/assessment-web", "start"]

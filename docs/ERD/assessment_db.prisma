@@ -1,0 +1,994 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/assessment-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ASSESSMENT_DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum QuestionLifecycleStatus { ACTIVE ARCHIVED }
+enum QuestionVersionStatus { DRAFT IN_REVIEW CHANGES_REQUESTED APPROVED PUBLISHED RETIRED REJECTED }
+enum ClassificationStatus { VALID REVIEW_REQUIRED INVALID ARCHIVED }
+enum SectionSelectionStrategy { RANDOM UNSEEN_FIRST MOST_FAILED ADAPTIVE EASIEST_FIRST HARDEST_FIRST BALANCED WEAKEST_TOPIC }
+enum SectionMode { FIXED RULE_BASED ADAPTIVE }
+enum VersionSelectionMode { LATEST_PUBLISHED PINNED_VERSION }
+enum QuizLifecycleStatus { DRAFT IN_REVIEW PUBLISHED SUSPENDED ARCHIVED }
+enum QuizRevisionStatus { DRAFT IN_REVIEW APPROVED PUBLISHED RETIRED REJECTED }
+enum ScheduleStatus { DRAFT SCHEDULED OPEN ACTIVE CLOSED CANCELLED }
+enum ScheduleType { REGULAR MAKEUP PRACTICE PILOT SPECIAL }
+enum EndTimePolicy { FIXED_WINDOW_END DURATION_FROM_START EARLIEST_OF_BOTH }
+enum AccessMode { ASSIGNED_ONLY PUBLIC_REGISTRATION INVITATION_ONLY ORGANIZATION_ONLY OPEN_WITH_CODE }
+enum AssignmentStatus { ASSIGNED ELIGIBLE REGISTERED REVOKED COMPLETED }
+enum PaymentMode { FREE USER_PAYS ORGANIZATION_PAYS SPONSOR_PAYS MIXED }
+
+enum GradingJobStatus { QUEUED PROCESSING WAITING_FOR_MANUAL_GRADING COMPLETED FAILED CANCELLED SUPERSEDED }
+enum GradingTrigger { SUBMISSION AUTO_EXPIRE MANUAL_REQUEST ANSWER_KEY_CHANGED APPEAL SYSTEM_RECOVERY ADMIN_REGRADE }
+enum QuestionScoreStatus { PENDING AUTO_GRADED MANUAL_GRADING_REQUIRED MANUALLY_GRADED PARTIALLY_GRADED INVALIDATED NOT_ANSWERED ERROR }
+enum AnswerEvaluation { CORRECT PARTIALLY_CORRECT INCORRECT UNANSWERED NOT_APPLICABLE UNDETERMINED }
+enum GradingMethod { AUTOMATIC MANUAL HYBRID IMPORTED OVERRIDDEN }
+enum ManualGradingTaskStatus { PENDING_ASSIGNMENT ASSIGNED IN_PROGRESS SUBMITTED NEEDS_MODERATION RETURNED_FOR_REVISION COMPLETED CANCELLED }
+enum ManualGradingMode { SINGLE_GRADER DOUBLE_BLIND DOUBLE_REVIEW CONSENSUS MODERATOR_DECIDES }
+enum GraderRole { PRIMARY SECONDARY MODERATOR REVIEWER APPEAL_REVIEWER }
+enum GraderAssignmentStatus { ASSIGNED ACCEPTED DECLINED IN_PROGRESS SUBMITTED REASSIGNED CANCELLED }
+enum GradingDecisionStatus { DRAFT SUBMITTED ACCEPTED REJECTED SUPERSEDED }
+enum AssessmentResultStatus { PROVISIONAL PENDING_MANUAL_GRADING PENDING_REVIEW FINAL WITHHELD INVALIDATED SUPERSEDED }
+enum PassStatus { PASSED FAILED CONDITIONAL_PASS NOT_DETERMINED NOT_APPLICABLE }
+enum CompetenceAchievementStatus { NOT_ASSESSED INSUFFICIENT_EVIDENCE BELOW_EXPECTATION APPROACHING_EXPECTATION MEETS_EXPECTATION EXCEEDS_EXPECTATION }
+enum ResultPublicationStatus { DRAFT SCHEDULED PUBLISHED PARTIALLY_PUBLISHED WITHHELD REVOKED EXPIRED }
+enum ResultPublicationAudience { CANDIDATE GUARDIAN ORGANIZATION TEACHER GRADER ADMIN PUBLIC }
+enum ResultPublicationEventType { CREATED SCHEDULED PUBLISHED WITHHELD REPUBLISHED REVOKED EXPIRED POLICY_CHANGED }
+
+// ============================================================
+// QUESTION BANK
+// ============================================================
+
+model Question {
+  id                        String                  @id @default(cuid())
+  code                      String                  @unique
+  lifecycleStatus           QuestionLifecycleStatus @default(ACTIVE)
+  ownerUserId               String?
+  ownerOrganizationId       String?
+  currentPublishedVersionId String?                 @unique
+  createdBy                 String
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  archivedAt                DateTime?
+
+  versions                  QuestionVersion[]       @relation("QuestionVersions")
+  currentPublishedVersion   QuestionVersion?        @relation("CurrentPublishedQuestionVersion", fields: [currentPublishedVersionId], references: [id], onDelete: SetNull)
+  classifications           TopicQuestionClassification[]
+  sectionQuestions          SectionQuestion[]
+  revisionQuestions         QuizRevisionQuestion[]
+
+  @@index([lifecycleStatus])
+  @@index([ownerOrganizationId])
+  @@map("question")
+}
+
+model QuestionType {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  name        String
+  description String?
+  isGrid      Boolean           @default(false)
+  icon        String?
+  isActive    Boolean           @default(true)
+  versions    QuestionVersion[]
+  @@map("question_type")
+}
+
+model QuestionVersion {
+  id                   String                 @id @default(cuid())
+  questionId           String
+  versionNumber        Int
+  versionStatus        QuestionVersionStatus  @default(DRAFT)
+  typeId               String
+  title                String?
+  body                 String                 @db.Text
+  defaultTimeSeconds   Int?
+  defaultMaxScore      Decimal                @default(1) @db.Decimal(10, 4)
+  defaultMinScore      Decimal                @default(0) @db.Decimal(10, 4)
+  tags                 String[]
+  feedbackCorrectly    String?                @db.Text
+  feedbackIncorrectly  String?                @db.Text
+  explanation          String?                @db.Text
+  payload              Json                   @default("{}")
+  answerConfig         Json                   @default("{}")
+  presentationConfig   Json                   @default("{}")
+  changeSummary        String?
+  createdBy            String
+  createdAt            DateTime               @default(now())
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  publishedBy          String?
+  publishedAt          DateTime?
+  retiredAt            DateTime?
+
+  question             Question               @relation("QuestionVersions", fields: [questionId], references: [id], onDelete: Cascade)
+  currentForQuestion   Question?              @relation("CurrentPublishedQuestionVersion")
+  type                 QuestionType           @relation(fields: [typeId], references: [id])
+  options              QuestionOptionVersion[]
+  media                QuestionMedia[]
+  validatedClassifications TopicQuestionClassification[] @relation("ValidatedQuestionVersion")
+  pinnedSectionQuestions   SectionQuestion[]   @relation("PinnedQuestionVersion")
+  revisionQuestions        QuizRevisionQuestion[]
+
+  @@unique([questionId, versionNumber])
+  @@index([questionId, versionStatus])
+  @@index([typeId])
+  @@map("question_version")
+}
+
+model QuestionOptionVersion {
+  id                String          @id @default(cuid())
+  questionVersionId String
+  optionKey         String
+  value             String          @db.Text
+  orderIndex        Int
+  matchRules        Json?           @default("{}")
+  metadata          Json?           @default("{}")
+  questionVersion   QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Cascade)
+  @@unique([questionVersionId, optionKey])
+  @@unique([questionVersionId, orderIndex])
+  @@index([questionVersionId])
+  @@map("question_option_version")
+}
+
+model QuestionMedia {
+  id                String          @id @default(cuid())
+  questionVersionId String
+  mediaType         String
+  storageKey        String
+  mimeType          String?
+  altText           String?
+  caption           String?
+  orderIndex        Int             @default(0)
+  metadata          Json            @default("{}")
+  createdAt         DateTime        @default(now())
+  questionVersion   QuestionVersion @relation(fields: [questionVersionId], references: [id], onDelete: Cascade)
+  @@unique([questionVersionId, orderIndex])
+  @@index([questionVersionId])
+  @@map("question_media")
+}
+
+// ============================================================
+// CONTEXT / FRAMEWORKS
+// ============================================================
+
+model AudienceType {
+  id          String              @id @default(cuid())
+  code        String              @unique
+  name        String
+  description String?
+  isActive    Boolean             @default(true)
+  levels      AudienceLevel[]
+  contexts    AssessmentContext[]
+  audienceRules QuizAudienceRule[]
+  @@map("audience_type")
+}
+
+model AudienceLevel {
+  id             String              @id @default(cuid())
+  audienceTypeId String
+  parentId       String?
+  code           String
+  name           String
+  orderIndex     Int                 @default(0)
+  isActive       Boolean             @default(true)
+  audienceType   AudienceType        @relation(fields: [audienceTypeId], references: [id])
+  parent         AudienceLevel?       @relation("AudienceLevelTree", fields: [parentId], references: [id])
+  children       AudienceLevel[]      @relation("AudienceLevelTree")
+  contexts       AssessmentContext[]
+  audienceRules  QuizAudienceRule[]
+  @@unique([audienceTypeId, code])
+  @@index([parentId])
+  @@map("audience_level")
+}
+
+model DifficultyScale {
+  id          String              @id @default(cuid())
+  code        String              @unique
+  name        String
+  description String?
+  isActive    Boolean             @default(true)
+  levels      DifficultyLevel[]
+  contexts    AssessmentContext[]
+  @@map("difficulty_scale")
+}
+
+model DifficultyLevel {
+  id                String                         @id @default(cuid())
+  difficultyScaleId String
+  code              String
+  name              String
+  rank              Int
+  description       String?
+  icon              String?
+  isActive          Boolean                        @default(true)
+  scale             DifficultyScale                @relation(fields: [difficultyScaleId], references: [id])
+  classifications   TopicQuestionClassification[]
+  sections          QuizSection[]
+  @@unique([difficultyScaleId, code])
+  @@unique([difficultyScaleId, rank])
+  @@map("difficulty_level")
+}
+
+model CognitiveFramework {
+  id          String              @id @default(cuid())
+  code        String              @unique
+  name        String
+  description String?
+  isActive    Boolean             @default(true)
+  levels      CognitiveLevel[]
+  contexts    AssessmentContext[]
+  @@map("cognitive_framework")
+}
+
+model CognitiveLevel {
+  id                   String                         @id @default(cuid())
+  cognitiveFrameworkId String
+  code                 String
+  name                 String
+  rank                 Int
+  description          String?
+  icon                 String?
+  isActive             Boolean                        @default(true)
+  framework            CognitiveFramework             @relation(fields: [cognitiveFrameworkId], references: [id])
+  classifications      TopicQuestionClassification[]
+  @@unique([cognitiveFrameworkId, code])
+  @@unique([cognitiveFrameworkId, rank])
+  @@map("cognitive_level")
+}
+
+model CompetenceFramework {
+  id          String              @id @default(cuid())
+  code        String
+  name        String
+  version     String
+  description String?
+  validFrom   DateTime?
+  validTo     DateTime?
+  isActive    Boolean             @default(true)
+  competences CompetenceType[]
+  contexts    AssessmentContext[]
+  @@unique([code, version])
+  @@map("competence_framework")
+}
+
+model CompetenceType {
+  id                    String                      @id @default(cuid())
+  competenceFrameworkId String
+  parentId              String?
+  code                  String
+  name                  String
+  description           String?
+  orderIndex            Int                         @default(0)
+  icon                  String?
+  isActive              Boolean                     @default(true)
+  framework             CompetenceFramework         @relation(fields: [competenceFrameworkId], references: [id])
+  parent                CompetenceType?              @relation("CompetenceTree", fields: [parentId], references: [id])
+  children              CompetenceType[]             @relation("CompetenceTree")
+  classificationLinks   TopicQuestionCompetence[]
+  @@unique([competenceFrameworkId, code])
+  @@index([parentId])
+  @@map("competence_type")
+}
+
+model AssessmentContext {
+  id                    String               @id @default(cuid())
+  code                  String               @unique
+  name                  String
+  audienceTypeId        String
+  audienceLevelId       String?
+  curriculumId          String?
+  subjectId             String?
+  occupationId          String?
+  organizationTypeId    String?
+  difficultyScaleId     String
+  cognitiveFrameworkId  String
+  competenceFrameworkId String
+  validFrom             DateTime?
+  validTo               DateTime?
+  isActive              Boolean              @default(true)
+  audienceType          AudienceType         @relation(fields: [audienceTypeId], references: [id])
+  audienceLevel         AudienceLevel?        @relation(fields: [audienceLevelId], references: [id])
+  difficultyScale       DifficultyScale      @relation(fields: [difficultyScaleId], references: [id])
+  cognitiveFramework    CognitiveFramework   @relation(fields: [cognitiveFrameworkId], references: [id])
+  competenceFramework   CompetenceFramework  @relation(fields: [competenceFrameworkId], references: [id])
+  classifications       TopicQuestionClassification[]
+  templates             QuizTemplate[]
+  revisions             QuizRevision[]
+  audienceRules         QuizAudienceRule[]
+  @@index([audienceTypeId, audienceLevelId])
+  @@index([curriculumId, subjectId])
+  @@map("assessment_context")
+}
+
+// ============================================================
+// TOPIC / CLASSIFICATION
+// ============================================================
+
+model Topic {
+  id              String                         @id @default(cuid())
+  parentId        String?
+  code            String                         @unique
+  title           String
+  description     String?
+  isActive        Boolean                        @default(true)
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  parent          Topic?                         @relation("TopicTree", fields: [parentId], references: [id])
+  children        Topic[]                        @relation("TopicTree")
+  classifications TopicQuestionClassification[]
+  sections        QuizSection[]
+  @@index([parentId])
+  @@map("topic")
+}
+
+model TopicQuestionClassification {
+  id                         String               @id @default(cuid())
+  topicId                    String
+  questionId                 String
+  assessmentContextId        String
+  difficultyLevelId          String
+  cognitiveLevelId           String
+  validatedQuestionVersionId String?
+  classificationStatus       ClassificationStatus @default(REVIEW_REQUIRED)
+  isPrimary                  Boolean              @default(false)
+  weight                     Decimal?             @db.Decimal(7, 4)
+  validFrom                  DateTime?
+  validTo                    DateTime?
+  createdBy                  String
+  createdAt                  DateTime              @default(now())
+  reviewedBy                 String?
+  reviewedAt                 DateTime?
+  updatedAt                  DateTime              @updatedAt
+  topic                      Topic                 @relation(fields: [topicId], references: [id])
+  question                   Question              @relation(fields: [questionId], references: [id])
+  assessmentContext          AssessmentContext     @relation(fields: [assessmentContextId], references: [id])
+  difficultyLevel            DifficultyLevel       @relation(fields: [difficultyLevelId], references: [id])
+  cognitiveLevel             CognitiveLevel        @relation(fields: [cognitiveLevelId], references: [id])
+  validatedQuestionVersion   QuestionVersion?      @relation("ValidatedQuestionVersion", fields: [validatedQuestionVersionId], references: [id])
+  competences                TopicQuestionCompetence[]
+  revisionQuestions          QuizRevisionQuestion[]
+  @@unique([topicId, questionId, assessmentContextId])
+  @@index([assessmentContextId, topicId, difficultyLevelId])
+  @@index([questionId, classificationStatus])
+  @@map("topic_question_classification")
+}
+
+model TopicQuestionCompetence {
+  id               String                      @id @default(cuid())
+  classificationId String
+  competenceId     String
+  weight           Decimal?                    @db.Decimal(7, 4)
+  isPrimary        Boolean                     @default(false)
+  createdAt        DateTime                    @default(now())
+  classification   TopicQuestionClassification @relation(fields: [classificationId], references: [id], onDelete: Cascade)
+  competence       CompetenceType              @relation(fields: [competenceId], references: [id])
+  @@unique([classificationId, competenceId])
+  @@map("topic_question_competence")
+}
+
+// ============================================================
+// QUIZ TEMPLATE / IMMUTABLE REVISION
+// ============================================================
+
+model QuizTemplate {
+  id                       String              @id @default(cuid())
+  assessmentContextId      String
+  code                     String              @unique
+  name                     String
+  description              String?
+  defaultDurationMinutes   Int
+  defaultPassingScore      Decimal             @db.Decimal(7, 4)
+  defaultMaxAttempts       Int                 @default(1)
+  defaultShuffleQuestions  Boolean             @default(false)
+  defaultShuffleOptions    Boolean             @default(false)
+  lifecycleStatus          QuizLifecycleStatus @default(DRAFT)
+  createdBy                String
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  assessmentContext        AssessmentContext   @relation(fields: [assessmentContextId], references: [id])
+  sections                 QuizSection[]
+  quizzes                  Quiz[]
+  @@index([assessmentContextId, lifecycleStatus])
+  @@map("quiz_template")
+}
+
+model QuizSection {
+  id                      String                   @id @default(cuid())
+  templateId              String
+  title                   String
+  description             String?
+  sectionMode             SectionMode
+  orderIndex              Int
+  questionCount           Int
+  maxScorePerQuestion     Decimal                  @db.Decimal(10, 4)
+  minScorePerQuestion     Decimal                  @default(0) @db.Decimal(10, 4)
+  topicId                 String?
+  difficultyLevelId       String?
+  difficultyWeights       Json                     @default("{}")
+  selectionStrategy       SectionSelectionStrategy
+  timeLimitPerQuestionSec Int?
+  allowSeenQuestions      Boolean                  @default(true)
+  shuffleOptions          Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  template                QuizTemplate             @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  topic                   Topic?                   @relation(fields: [topicId], references: [id])
+  difficultyLevel         DifficultyLevel?         @relation(fields: [difficultyLevelId], references: [id])
+  questions               SectionQuestion[]
+  revisionSections        QuizRevisionSection[]
+  @@unique([templateId, orderIndex])
+  @@index([topicId, difficultyLevelId])
+  @@map("quiz_section")
+}
+
+model SectionQuestion {
+  id                      String               @id @default(cuid())
+  sectionId               String
+  questionId              String
+  pinnedQuestionVersionId String?
+  versionSelectionMode    VersionSelectionMode @default(LATEST_PUBLISHED)
+  orderIndex              Int
+  maxScoreOverride        Decimal?             @db.Decimal(10, 4)
+  minScoreOverride        Decimal?             @db.Decimal(10, 4)
+  isRequired              Boolean              @default(true)
+  createdAt               DateTime             @default(now())
+  section                 QuizSection          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  question                Question             @relation(fields: [questionId], references: [id])
+  pinnedQuestionVersion   QuestionVersion?     @relation("PinnedQuestionVersion", fields: [pinnedQuestionVersionId], references: [id])
+  @@unique([sectionId, questionId])
+  @@unique([sectionId, orderIndex])
+  @@map("section_question")
+}
+
+model Quiz {
+  id                         String              @id @default(cuid())
+  templateId                 String
+  code                       String              @unique
+  title                      String
+  lifecycleStatus            QuizLifecycleStatus @default(DRAFT)
+  currentPublishedRevisionId String?             @unique
+  createdBy                  String
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  archivedAt                 DateTime?
+  template                   QuizTemplate        @relation(fields: [templateId], references: [id])
+  revisions                  QuizRevision[]       @relation("QuizRevisions")
+  currentPublishedRevision   QuizRevision?        @relation("CurrentPublishedQuizRevision", fields: [currentPublishedRevisionId], references: [id], onDelete: SetNull)
+  @@index([templateId, lifecycleStatus])
+  @@map("quiz")
+}
+
+model QuizRevision {
+  id                     String             @id @default(cuid())
+  quizId                 String
+  revisionNumber         Int
+  revisionStatus         QuizRevisionStatus @default(DRAFT)
+  assessmentContextId    String
+  title                  String
+  description            String?
+  durationMinutes        Int
+  passingScore           Decimal            @db.Decimal(7, 4)
+  maxAttempts            Int                @default(1)
+  shuffleQuestions       Boolean            @default(false)
+  shuffleOptions         Boolean            @default(false)
+  resumeAllowed          Boolean            @default(true)
+  proctoringPolicy       Json               @default("{}")
+  resultVisibilityPolicy Json               @default("{}")
+  runtimePolicy          Json               @default("{}")
+  paymentRequired        Boolean            @default(false)
+  defaultPrice           Decimal?           @db.Decimal(14, 2)
+  currencyCode           String?            @db.VarChar(3)
+  createdBy              String
+  createdAt              DateTime           @default(now())
+  reviewedBy             String?
+  reviewedAt             DateTime?
+  publishedBy            String?
+  publishedAt            DateTime?
+  retiredAt              DateTime?
+  quiz                    Quiz               @relation("QuizRevisions", fields: [quizId], references: [id], onDelete: Cascade)
+  currentForQuiz          Quiz?              @relation("CurrentPublishedQuizRevision")
+  assessmentContext      AssessmentContext  @relation(fields: [assessmentContextId], references: [id])
+  sections                QuizRevisionSection[]
+  schedules               QuizSchedule[]
+  @@unique([quizId, revisionNumber])
+  @@index([quizId, revisionStatus])
+  @@map("quiz_revision")
+}
+
+model QuizRevisionSection {
+  id                       String                   @id @default(cuid())
+  quizRevisionId           String
+  sourceSectionId          String?
+  title                    String
+  description              String?
+  sectionMode              SectionMode
+  orderIndex               Int
+  questionCount            Int
+  maxScorePerQuestion      Decimal                  @db.Decimal(10, 4)
+  minScorePerQuestion      Decimal                  @default(0) @db.Decimal(10, 4)
+  selectionStrategy        SectionSelectionStrategy
+  selectionRuleSnapshot    Json                     @default("{}")
+  timeLimitPerQuestionSec  Int?
+  shuffleOptions           Boolean                  @default(false)
+  quizRevision             QuizRevision             @relation(fields: [quizRevisionId], references: [id], onDelete: Cascade)
+  sourceSection            QuizSection?             @relation(fields: [sourceSectionId], references: [id])
+  questions                QuizRevisionQuestion[]
+  @@unique([quizRevisionId, orderIndex])
+  @@index([sourceSectionId])
+  @@map("quiz_revision_section")
+}
+
+model QuizRevisionQuestion {
+  id                       String                       @id @default(cuid())
+  revisionSectionId        String
+  questionId               String
+  questionVersionId        String
+  classificationId         String?
+  orderIndex               Int
+  maxScore                 Decimal                      @db.Decimal(10, 4)
+  minScore                 Decimal                      @default(0) @db.Decimal(10, 4)
+  revisionSection          QuizRevisionSection          @relation(fields: [revisionSectionId], references: [id], onDelete: Cascade)
+  question                 Question                     @relation(fields: [questionId], references: [id])
+  questionVersion          QuestionVersion              @relation(fields: [questionVersionId], references: [id])
+  classification           TopicQuestionClassification? @relation(fields: [classificationId], references: [id])
+  @@unique([revisionSectionId, orderIndex])
+  @@index([questionVersionId])
+  @@index([classificationId])
+  @@map("quiz_revision_question")
+}
+
+// ============================================================
+// SCHEDULING / AUDIENCE / PAYMENT
+// ============================================================
+
+model QuizSchedule {
+  id                        String          @id @default(cuid())
+  quizRevisionId            String
+  code                      String          @unique
+  name                      String
+  scheduleType              ScheduleType    @default(REGULAR)
+  status                    ScheduleStatus  @default(DRAFT)
+  registrationStartAt       DateTime?
+  registrationEndAt         DateTime?
+  availableFrom             DateTime
+  availableUntil            DateTime
+  durationMinutesOverride   Int?
+  maxAttemptsOverride       Int?
+  shuffleQuestionsOverride  Boolean?
+  shuffleOptionsOverride    Boolean?
+  resumeAllowedOverride     Boolean?
+  endTimePolicy             EndTimePolicy   @default(EARLIEST_OF_BOTH)
+  accessMode                AccessMode      @default(ASSIGNED_ONLY)
+  accessCodeHash            String?
+  capacity                  Int?
+  priceOverride             Decimal?        @db.Decimal(14, 2)
+  currencyCodeOverride      String?         @db.VarChar(3)
+  operationalPolicyOverride Json            @default("{}")
+  timezone                  String          @default("Asia/Ulaanbaatar")
+  organizationId            String?
+  venueId                   String?
+  createdBy                 String
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  publishedBy               String?
+  publishedAt               DateTime?
+  cancelledBy               String?
+  cancelledAt               DateTime?
+  cancellationReason        String?
+  quizRevision              QuizRevision    @relation(fields: [quizRevisionId], references: [id])
+  audienceRules             QuizAudienceRule[]
+  assignments               QuizUserAssignment[]
+  paymentPolicy             QuizSchedulePaymentPolicy?
+  @@index([quizRevisionId, status])
+  @@index([availableFrom, availableUntil])
+  @@index([organizationId])
+  @@map("quiz_schedule")
+}
+
+model QuizAudienceRule {
+  id                   String             @id @default(cuid())
+  scheduleId           String
+  assessmentContextId  String?
+  audienceTypeId       String?
+  audienceLevelId      String?
+  organizationId       String?
+  organizationUnitId   String?
+  regionId             String?
+  groupId              String?
+  additionalCriteria   Json               @default("{}")
+  includeFutureMembers Boolean            @default(false)
+  createdBy            String
+  createdAt            DateTime           @default(now())
+  schedule             QuizSchedule       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  assessmentContext    AssessmentContext? @relation(fields: [assessmentContextId], references: [id])
+  audienceType         AudienceType?       @relation(fields: [audienceTypeId], references: [id])
+  audienceLevel        AudienceLevel?      @relation(fields: [audienceLevelId], references: [id])
+  assignments          QuizUserAssignment[]
+  @@index([scheduleId])
+  @@index([organizationId, organizationUnitId])
+  @@index([regionId, groupId])
+  @@map("quiz_audience_rule")
+}
+
+model QuizUserAssignment {
+  id                      String           @id @default(cuid())
+  scheduleId              String
+  userId                  String
+  sourceRuleId            String?
+  status                  AssignmentStatus @default(ASSIGNED)
+  assignedAt              DateTime         @default(now())
+  registeredAt            DateTime?
+  revokedAt               DateTime?
+  availableFromOverride   DateTime?
+  availableUntilOverride  DateTime?
+  maxAttemptsOverride     Int?
+  paymentRequiredOverride Boolean?
+  priceOverride           Decimal?         @db.Decimal(14, 2)
+  currencyCodeOverride    String?          @db.VarChar(3)
+  schedule                QuizSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  sourceRule              QuizAudienceRule? @relation(fields: [sourceRuleId], references: [id], onDelete: SetNull)
+  @@unique([scheduleId, userId])
+  @@index([userId, status])
+  @@index([sourceRuleId])
+  @@map("quiz_user_assignment")
+}
+
+model QuizSchedulePaymentPolicy {
+  id               String       @id @default(cuid())
+  scheduleId       String       @unique
+  paymentRequired  Boolean      @default(false)
+  paymentMode      PaymentMode  @default(FREE)
+  defaultAmount    Decimal?     @db.Decimal(14, 2)
+  currencyCode     String?      @db.VarChar(3)
+  refundAllowed    Boolean      @default(false)
+  refundPolicy     Json         @default("{}")
+  eligibilityRules Json         @default("{}")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  schedule         QuizSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  @@map("quiz_schedule_payment_policy")
+}
+
+// ============================================================
+// GRADING (logical references to execution_db only)
+// ============================================================
+
+model GradingJob {
+  id                    String           @id @default(cuid())
+  attemptId             String
+  submissionId          String?
+  gradingVersion        Int
+  trigger               GradingTrigger
+  status                GradingJobStatus @default(QUEUED)
+  algorithmVersion      String?
+  gradingPolicySnapshot Json             @default("{}")
+  answerKeySnapshotHash String?
+  inputChecksum         String
+  outputChecksum        String?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  failedAt              DateTime?
+  failureCode           String?
+  failureMessage        String?
+  requestedBy           String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  questionScores        AttemptQuestionScore[]
+  manualTasks           ManualGradingTask[]
+  result                AssessmentResult?
+  @@unique([attemptId, gradingVersion])
+  @@index([attemptId, status])
+  @@index([status, createdAt])
+  @@map("grading_job")
+}
+
+model AttemptQuestionScore {
+  id                       String              @id @default(cuid())
+  gradingJobId             String
+  attemptId                String
+  attemptQuestionId        String
+  questionId               String
+  questionVersionId        String
+  revisionSectionId        String
+  classificationId         String?
+  status                   QuestionScoreStatus @default(PENDING)
+  evaluation               AnswerEvaluation    @default(UNDETERMINED)
+  gradingMethod            GradingMethod
+  rawScore                 Decimal             @default(0) @db.Decimal(10, 4)
+  finalScore               Decimal             @default(0) @db.Decimal(10, 4)
+  minScore                 Decimal             @default(0) @db.Decimal(10, 4)
+  maxScore                 Decimal             @db.Decimal(10, 4)
+  scoreBeforeOverride      Decimal?            @db.Decimal(10, 4)
+  scoreOverrideReason      String?
+  scoreOverriddenBy        String?
+  scoreOverriddenAt        DateTime?
+  answerSnapshot           Json
+  answerKeySnapshot        Json?
+  gradingDetail            Json                @default("{}")
+  feedback                 String?             @db.Text
+  autoGradedAt             DateTime?
+  manuallyGradedAt         DateTime?
+  finalizedAt              DateTime?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  gradingJob               GradingJob          @relation(fields: [gradingJobId], references: [id], onDelete: Cascade)
+  manualTask               ManualGradingTask?
+  manualDecisions          ManualGradingDecision[]
+  competenceContributions  QuestionCompetenceScoreContribution[]
+  @@unique([gradingJobId, attemptQuestionId])
+  @@index([attemptId, status])
+  @@index([attemptQuestionId])
+  @@map("attempt_question_score")
+}
+
+model ManualGradingTask {
+  id                    String                  @id @default(cuid())
+  gradingJobId          String
+  attemptId             String
+  attemptQuestionId     String
+  questionScoreId       String                  @unique
+  status                ManualGradingTaskStatus @default(PENDING_ASSIGNMENT)
+  gradingMode           ManualGradingMode       @default(SINGLE_GRADER)
+  rubricSnapshot        Json
+  responseSnapshot      Json
+  requiredGraderCount   Int                     @default(1)
+  completedGraderCount  Int                     @default(0)
+  dueAt                 DateTime?
+  priority              Int                     @default(0)
+  assignedAt            DateTime?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  gradingJob            GradingJob              @relation(fields: [gradingJobId], references: [id], onDelete: Cascade)
+  questionScore         AttemptQuestionScore    @relation(fields: [questionScoreId], references: [id], onDelete: Cascade)
+  assignments           GraderAssignment[]
+  decisions             ManualGradingDecision[]
+  @@unique([gradingJobId, attemptQuestionId])
+  @@index([status, priority, dueAt])
+  @@map("manual_grading_task")
+}
+
+model GraderAssignment {
+  id                 String                  @id @default(cuid())
+  manualTaskId       String
+  graderUserId       String
+  role               GraderRole
+  status             GraderAssignmentStatus @default(ASSIGNED)
+  assignedBy         String?
+  assignedAt         DateTime                @default(now())
+  acceptedAt         DateTime?
+  declinedAt         DateTime?
+  declineReason      String?
+  startedAt          DateTime?
+  submittedAt        DateTime?
+  cancelledAt        DateTime?
+  workloadMetadata   Json                    @default("{}")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  manualTask         ManualGradingTask       @relation(fields: [manualTaskId], references: [id], onDelete: Cascade)
+  decisions          ManualGradingDecision[]
+  @@unique([manualTaskId, graderUserId, role])
+  @@index([graderUserId, status])
+  @@index([manualTaskId, role])
+  @@map("grader_assignment")
+}
+
+model ManualGradingDecision {
+  id                    String                @id @default(cuid())
+  manualTaskId          String
+  graderAssignmentId    String
+  questionScoreId       String
+  decisionVersion       Int
+  status                GradingDecisionStatus @default(DRAFT)
+  awardedScore          Decimal               @db.Decimal(10, 4)
+  rubricScores          Json                  @default("{}")
+  feedbackToCandidate   String?               @db.Text
+  internalComment       String?               @db.Text
+  confidence            Decimal?              @db.Decimal(7, 4)
+  submittedAt           DateTime?
+  acceptedAt            DateTime?
+  rejectedAt            DateTime?
+  rejectionReason       String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  manualTask            ManualGradingTask     @relation(fields: [manualTaskId], references: [id], onDelete: Cascade)
+  graderAssignment      GraderAssignment      @relation(fields: [graderAssignmentId], references: [id], onDelete: Cascade)
+  questionScore         AttemptQuestionScore  @relation(fields: [questionScoreId], references: [id], onDelete: Cascade)
+  @@unique([graderAssignmentId, decisionVersion])
+  @@index([manualTaskId, status])
+  @@map("manual_grading_decision")
+}
+
+model QuestionCompetenceScoreContribution {
+  id                      String               @id @default(cuid())
+  questionScoreId         String
+  competenceId            String
+  classificationId        String?
+  weight                  Decimal              @db.Decimal(7, 4)
+  earnedContribution      Decimal              @db.Decimal(14, 4)
+  maxContribution         Decimal              @db.Decimal(14, 4)
+  calculationDetail       Json                 @default("{}")
+  createdAt               DateTime             @default(now())
+  questionScore           AttemptQuestionScore @relation(fields: [questionScoreId], references: [id], onDelete: Cascade)
+  @@unique([questionScoreId, competenceId])
+  @@index([competenceId])
+  @@map("question_competence_score_contribution")
+}
+
+// ============================================================
+// RESULT / PUBLICATION
+// ============================================================
+
+model AssessmentResult {
+  id                     String                 @id @default(cuid())
+  attemptId              String
+  gradingJobId           String                 @unique
+  resultVersion          Int
+  status                 AssessmentResultStatus
+  passStatus             PassStatus             @default(NOT_DETERMINED)
+  rawScore               Decimal                @db.Decimal(14, 4)
+  adjustedScore          Decimal                @db.Decimal(14, 4)
+  finalScore             Decimal                @db.Decimal(14, 4)
+  maxPossibleScore       Decimal                @db.Decimal(14, 4)
+  percentage             Decimal                @db.Decimal(7, 4)
+  passingScore           Decimal?               @db.Decimal(7, 4)
+  correctCount           Int                    @default(0)
+  partiallyCorrectCount  Int                    @default(0)
+  incorrectCount         Int                    @default(0)
+  unansweredCount        Int                    @default(0)
+  invalidQuestionCount   Int                    @default(0)
+  gradeCode              String?
+  gradeLabel             String?
+  percentileRank         Decimal?               @db.Decimal(7, 4)
+  standardScore          Decimal?               @db.Decimal(14, 4)
+  calculationPolicy      Json                   @default("{}")
+  calculationBreakdown   Json                   @default("{}")
+  finalizedBy            String?
+  finalizedAt            DateTime?
+  invalidatedBy          String?
+  invalidatedAt          DateTime?
+  invalidationReason     String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  gradingJob             GradingJob             @relation(fields: [gradingJobId], references: [id], onDelete: Cascade)
+  sectionResults         SectionResult[]
+  topicResults           TopicResult[]
+  competenceResults      CompetenceResult[]
+  publications           ResultPublication[]
+  @@unique([attemptId, resultVersion])
+  @@index([attemptId, status])
+  @@index([passStatus])
+  @@map("assessment_result")
+}
+
+model SectionResult {
+  id                    String           @id @default(cuid())
+  assessmentResultId    String
+  revisionSectionId     String
+  sectionTitle          String
+  orderIndex            Int
+  earnedScore           Decimal          @db.Decimal(14, 4)
+  maxPossibleScore      Decimal          @db.Decimal(14, 4)
+  percentage            Decimal          @db.Decimal(7, 4)
+  correctCount          Int              @default(0)
+  partiallyCorrectCount Int              @default(0)
+  incorrectCount        Int              @default(0)
+  unansweredCount       Int              @default(0)
+  calculationDetail     Json             @default("{}")
+  assessmentResult      AssessmentResult @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+  @@unique([assessmentResultId, revisionSectionId])
+  @@map("section_result")
+}
+
+model TopicResult {
+  id                    String           @id @default(cuid())
+  assessmentResultId    String
+  topicId               String
+  topicCode             String?
+  topicTitle            String?
+  earnedScore           Decimal          @db.Decimal(14, 4)
+  maxPossibleScore      Decimal          @db.Decimal(14, 4)
+  percentage            Decimal          @db.Decimal(7, 4)
+  evidenceQuestionCount Int              @default(0)
+  calculationDetail     Json             @default("{}")
+  assessmentResult      AssessmentResult @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+  @@unique([assessmentResultId, topicId])
+  @@index([topicId])
+  @@map("topic_result")
+}
+
+model CompetenceResult {
+  id                    String                      @id @default(cuid())
+  assessmentResultId    String
+  competenceId          String
+  competenceCode        String?
+  competenceName        String?
+  earnedScore           Decimal                     @db.Decimal(14, 4)
+  maxPossibleScore      Decimal                     @db.Decimal(14, 4)
+  percentage            Decimal                     @db.Decimal(7, 4)
+  evidenceQuestionCount Int                         @default(0)
+  achievementStatus     CompetenceAchievementStatus
+  proficiencyLevelCode  String?
+  confidence            Decimal?                    @db.Decimal(7, 4)
+  calculationDetail     Json                        @default("{}")
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  assessmentResult      AssessmentResult            @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+  @@unique([assessmentResultId, competenceId])
+  @@index([competenceId, achievementStatus])
+  @@map("competence_result")
+}
+
+model ResultPublication {
+  id                    String                    @id @default(cuid())
+  assessmentResultId    String
+  publicationVersion    Int
+  audience              ResultPublicationAudience
+  status                ResultPublicationStatus   @default(DRAFT)
+  visibilityPolicy      Json                      @default("{}")
+  availableFrom         DateTime?
+  availableUntil        DateTime?
+  publishedBy           String?
+  publishedAt           DateTime?
+  withheldBy            String?
+  withheldAt            DateTime?
+  withheldReason        String?
+  revokedBy             String?
+  revokedAt             DateTime?
+  revocationReason      String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  assessmentResult      AssessmentResult          @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+  events                ResultPublicationEvent[]
+  @@unique([assessmentResultId, publicationVersion, audience])
+  @@index([status, availableFrom])
+  @@map("result_publication")
+}
+
+model ResultPublicationEvent {
+  id                  String                     @id @default(cuid())
+  publicationId       String
+  eventType           ResultPublicationEventType
+  actorUserId         String?
+  reason              String?
+  previousState       Json?
+  newState            Json?
+  occurredAt          DateTime                   @default(now())
+  publication         ResultPublication          @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  @@index([publicationId, occurredAt])
+  @@map("result_publication_event")
+}
+
+// ============================================================
+// RELIABLE EVENT DELIVERY
+// ============================================================
+
+model OutboxEvent {
+  id            String   @id @default(cuid())
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        String   @default("PENDING")
+  retryCount    Int      @default(0)
+  availableAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  @@index([status, availableAt])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_event")
+}

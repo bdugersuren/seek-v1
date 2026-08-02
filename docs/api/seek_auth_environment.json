@@ -1,0 +1,19 @@
+{
+	"id": "c1f71dfb-8a8b-4a5f-9721-a4b5ff4f9f74",
+	"name": "seek.mn Local",
+	"values": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3010",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment"
+}

@@ -4,6 +4,8 @@ dist
 coverage
 .turbo
 infra
+docker/nginx-proxy/data
+docker/nginx-proxy/letsencrypt
 docker-compose*
 Dockerfile
 .git

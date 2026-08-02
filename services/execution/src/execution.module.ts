@@ -19,15 +19,24 @@ import { RabbitMQAttemptEventPublisher } from "./infrastructure/rabbitmq-event-p
     {
       provide: "REDIS_CLIENT",
       useFactory: () => {
+        if (process.env.USE_REDIS !== "true") {
+          return null;
+        }
+
         const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
         return new Redis(redisUrl, {
           maxRetriesPerRequest: null,
+          lazyConnect: true,
         });
       },
     },
     {
       provide: "RABBITMQ_CHANNEL",
       useFactory: async () => {
+        if (process.env.USE_RABBITMQ !== "true") {
+          return null;
+        }
+
         const rabbitmqUrl = process.env.RABBITMQ_URL || "amqp://localhost:5672";
         try {
           const conn = await amqp.connect(rabbitmqUrl);

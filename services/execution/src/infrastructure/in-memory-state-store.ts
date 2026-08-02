@@ -3,7 +3,10 @@ import {
   AssessmentRuntimeSession,
   AssessmentAnswerSnapshot,
 } from "@seek/contracts";
-import { AttemptStateStore } from "../interfaces/state-store.interface";
+import {
+  AttemptAuditEvent,
+  AttemptStateStore,
+} from "../interfaces/state-store.interface";
 
 @Injectable()
 export class InMemoryAttemptStateStore implements AttemptStateStore {
@@ -11,6 +14,8 @@ export class InMemoryAttemptStateStore implements AttemptStateStore {
   private readonly snapshots = new Map<string, AssessmentAnswerSnapshot>();
   private readonly violations = new Map<string, Map<string, number>>();
   private readonly questions = new Map<string, any[]>();
+  private readonly auditEvents = new Map<string, AttemptAuditEvent[]>();
+  private readonly idempotencyKeys = new Map<string, Set<string>>();
 
   constructor() {
     this.initializeMockData();
@@ -35,6 +40,13 @@ export class InMemoryAttemptStateStore implements AttemptStateStore {
       status: "active",
       autosaveIntervalSeconds: 5,
       heartbeatIntervalSeconds: 5,
+      scheduledStartsAt: startsAt.toISOString(),
+      scheduledEndsAt: endsAt.toISOString(),
+      waitingRoomOpensAt: new Date(startsAt.getTime() - 15 * 60 * 1000).toISOString(),
+      requiredEarlyJoinMinutes: 15,
+      questionCount: 60,
+      totalPoints: 100,
+      passingPercent: 70,
       encryptedPayload: {
         payloadId: "payload-mock-attempt-001",
         quizId: "quiz-civil-service-2026",
@@ -174,6 +186,10 @@ export class InMemoryAttemptStateStore implements AttemptStateStore {
     this.snapshots.set(attemptId, snapshot);
   }
 
+  async saveQuestions(attemptId: string, questions: any[]): Promise<void> {
+    this.questions.set(attemptId, questions);
+  }
+
   async incrementViolation(attemptId: string, type: string): Promise<number> {
     if (!this.violations.has(attemptId)) {
       this.violations.set(attemptId, new Map<string, number>());
@@ -193,5 +209,32 @@ export class InMemoryAttemptStateStore implements AttemptStateStore {
 
   async getQuestions(attemptId: string): Promise<any[] | null> {
     return this.questions.get(attemptId) || null;
+  }
+
+  async appendAuditEvent(event: AttemptAuditEvent): Promise<void> {
+    const existing = this.auditEvents.get(event.attemptId) || [];
+    existing.push(event);
+    this.auditEvents.set(event.attemptId, existing);
+
+    if (event.idempotencyKey) {
+      const keys = this.idempotencyKeys.get(event.attemptId) || new Set<string>();
+      keys.add(event.idempotencyKey);
+      this.idempotencyKeys.set(event.attemptId, keys);
+    }
+  }
+
+  async getAuditEvents(
+    attemptId: string,
+    type?: string
+  ): Promise<AttemptAuditEvent[]> {
+    const events = this.auditEvents.get(attemptId) || [];
+    return type ? events.filter((event) => event.type === type) : events;
+  }
+
+  async hasIdempotencyKey(
+    attemptId: string,
+    idempotencyKey: string
+  ): Promise<boolean> {
+    return this.idempotencyKeys.get(attemptId)?.has(idempotencyKey) || false;
   }
 }

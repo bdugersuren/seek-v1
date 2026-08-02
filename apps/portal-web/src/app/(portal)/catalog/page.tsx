@@ -18,15 +18,13 @@ import {
   catalogAssessments,
   catalogCategories,
 } from "@/features/catalog/mock-data";
+import { createAssessmentRuntimeUrl } from "@/features/assessment-runtime/url";
+import { createCatalogAttempt } from "@/features/catalog/attempts";
 import { readCatalogCart, saveCatalogCart } from "@/features/catalog/cart";
 import type { CatalogAssessment } from "@/features/catalog/types";
 
 type ViewMode = "card" | "list";
-
-const assessmentRuntimeBaseUrl =
-  process.env.NEXT_PUBLIC_ASSESSMENT_WEB_URL ?? "http://localhost:8082";
-
-const mockRuntimeStartHref = `${assessmentRuntimeBaseUrl}/waiting/mock-attempt-001`;
+type ScheduleStatus = "scheduled" | "waiting" | "active" | "expired";
 
 const sidebarItems = [
   "Бүгд",
@@ -50,6 +48,11 @@ export default function CatalogPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [cartItems, setCartItems] = useState<CatalogAssessment[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [scheduleDetail, setScheduleDetail] =
+    useState<CatalogAssessment | null>(null);
+  const [startingAssessmentId, setStartingAssessmentId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     setCartItems(readCatalogCart());
@@ -134,6 +137,33 @@ export default function CatalogPage() {
     saveCatalogCart([]);
     setCartItems([]);
     showToast("Худалдан авалт demo амжилттай боллоо.", "success");
+  };
+
+  const openScheduleOrStart = async (assessment: CatalogAssessment) => {
+    if (assessment.price > 0 || startingAssessmentId) {
+      return;
+    }
+
+    if (!canEnterWaitingRoom(assessment)) {
+      setScheduleDetail(assessment);
+      return;
+    }
+
+    setStartingAssessmentId(assessment.id);
+    try {
+      const attempt = await createCatalogAttempt({
+        assessmentId: assessment.id,
+        idempotencyKey:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}`,
+      });
+
+      window.location.href = createAssessmentRuntimeUrl(attempt.waitingUrl);
+    } catch (error) {
+      showToast("Шалгалт эхлүүлэхэд алдаа гарлаа. Дахин оролдоно уу.", "danger");
+      setStartingAssessmentId(null);
+    }
   };
 
   return (
@@ -318,7 +348,9 @@ export default function CatalogPage() {
                         (item) => item.id === assessment.id,
                       )}
                       onAddToCart={addToCart}
-                      runtimeStartHref={mockRuntimeStartHref}
+                      onStart={openScheduleOrStart}
+                      starting={startingAssessmentId === assessment.id}
+                      onOpenSchedule={setScheduleDetail}
                     />
                   ))}
                 </div>
@@ -332,7 +364,9 @@ export default function CatalogPage() {
                         (item) => item.id === assessment.id,
                       )}
                       onAddToCart={addToCart}
-                      runtimeStartHref={mockRuntimeStartHref}
+                      onStart={openScheduleOrStart}
+                      starting={startingAssessmentId === assessment.id}
+                      onOpenSchedule={setScheduleDetail}
                     />
                   ))}
                 </div>
@@ -365,8 +399,61 @@ export default function CatalogPage() {
           onConfirm={confirmCheckout}
         />
       )}
+      {scheduleDetail && (
+        <ScheduleDetailModal
+          assessment={scheduleDetail}
+          onClose={() => setScheduleDetail(null)}
+          onEnterWaiting={() => openScheduleOrStart(scheduleDetail)}
+        />
+      )}
     </PageContainer>
   );
+}
+
+function getScheduleStatus(assessment: CatalogAssessment): ScheduleStatus {
+  const now = Date.now();
+  const waitingRoomOpensAt = assessment.waitingRoomOpensAt
+    ? new Date(assessment.waitingRoomOpensAt).getTime()
+    : now;
+  const startsAt = assessment.scheduledStartsAt
+    ? new Date(assessment.scheduledStartsAt).getTime()
+    : now;
+  const endsAt = assessment.scheduledEndsAt
+    ? new Date(assessment.scheduledEndsAt).getTime()
+    : startsAt + assessment.durationMinutes * 60 * 1000;
+
+  if (now >= endsAt) return "expired";
+  if (now >= startsAt) return "active";
+  if (now >= waitingRoomOpensAt) return "waiting";
+  return "scheduled";
+}
+
+function canEnterWaitingRoom(assessment: CatalogAssessment) {
+  const status = getScheduleStatus(assessment);
+  return status === "waiting" || status === "active";
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return "Тодорхойгүй";
+
+  return new Intl.DateTimeFormat("mn-MN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function scheduleStatusLabel(status: ScheduleStatus) {
+  const labels: Record<ScheduleStatus, string> = {
+    scheduled: "Хуваарьтай",
+    waiting: "Хүлээлгийн өрөө нээгдсэн",
+    active: "Үргэлжилж байна",
+    expired: "Дууссан",
+  };
+
+  return labels[status];
 }
 
 function FilterSelect({
@@ -423,13 +510,20 @@ function AssessmentCard({
   assessment,
   inCart,
   onAddToCart,
-  runtimeStartHref,
+  onStart,
+  starting,
+  onOpenSchedule,
 }: {
   assessment: CatalogAssessment;
   inCart: boolean;
   onAddToCart: (assessment: CatalogAssessment) => void;
-  runtimeStartHref: string;
+  onStart: (assessment: CatalogAssessment) => void;
+  starting: boolean;
+  onOpenSchedule: (assessment: CatalogAssessment) => void;
 }) {
+  const scheduleStatus = getScheduleStatus(assessment);
+  const waitingAvailable = canEnterWaitingRoom(assessment);
+
   return (
     <article className="overflow-hidden rounded-seek-lg border border-border bg-surface shadow-seek-sm">
       <div
@@ -462,6 +556,20 @@ function AssessmentCard({
           <span>·</span>
           <span>{assessment.questionCount} асуулт</span>
         </div>
+        <div className="rounded-seek-md border border-border bg-muted-background p-seek-3 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-seek-2">
+            <span className="font-semibold text-foreground">
+              {scheduleStatusLabel(scheduleStatus)}
+            </span>
+            <span>{assessment.totalPoints ?? 0} оноо</span>
+          </div>
+          <p className="mt-1">Эхлэх: {formatDateTime(assessment.scheduledStartsAt)}</p>
+          <p>Дуусах: {formatDateTime(assessment.scheduledEndsAt)}</p>
+          <p>
+            Хүлээлгийн өрөө: {formatDateTime(assessment.waitingRoomOpensAt)}
+          </p>
+          <p>Тэнцэх хувь: {assessment.passingPercent ?? 0}%</p>
+        </div>
         <div className="flex items-center justify-between gap-seek-3">
           <Badge variant={assessment.price === 0 ? "success" : "warning"}>
             {assessment.accessLabel}
@@ -476,6 +584,10 @@ function AssessmentCard({
           <Link
             href="/catalog"
             className="inline-flex items-center justify-center rounded-seek-md border border-primary px-seek-3 py-seek-2 text-sm font-semibold text-primary"
+            onClick={(event) => {
+              event.preventDefault();
+              onOpenSchedule(assessment);
+            }}
           >
             Дэлгэрэнгүй
           </Link>
@@ -489,12 +601,18 @@ function AssessmentCard({
               {inCart ? "Сагсанд" : "Сагсанд нэмэх"}
             </button>
           ) : (
-            <Link
-              href={runtimeStartHref}
+            <button
+              type="button"
+              disabled={starting || scheduleStatus === "expired"}
               className="inline-flex items-center justify-center rounded-seek-md bg-primary px-seek-3 py-seek-2 text-sm font-semibold text-primary-foreground"
+              onClick={() => onStart(assessment)}
             >
-              Эхлүүлэх
-            </Link>
+              {starting
+                ? "Эхлүүлж байна"
+                : waitingAvailable
+                  ? "Хүлээлгийн өрөөнд орох"
+                  : "Хуваарь харах"}
+            </button>
           )}
         </div>
       </div>
@@ -506,13 +624,20 @@ function AssessmentListItem({
   assessment,
   inCart,
   onAddToCart,
-  runtimeStartHref,
+  onStart,
+  starting,
+  onOpenSchedule,
 }: {
   assessment: CatalogAssessment;
   inCart: boolean;
   onAddToCart: (assessment: CatalogAssessment) => void;
-  runtimeStartHref: string;
+  onStart: (assessment: CatalogAssessment) => void;
+  starting: boolean;
+  onOpenSchedule: (assessment: CatalogAssessment) => void;
 }) {
+  const scheduleStatus = getScheduleStatus(assessment);
+  const waitingAvailable = canEnterWaitingRoom(assessment);
+
   return (
     <article className="grid grid-cols-1 gap-seek-4 rounded-seek-lg border border-border bg-surface p-seek-4 shadow-seek-sm md:grid-cols-[9rem_minmax(0,1fr)_10rem] md:items-center">
       <div
@@ -544,6 +669,18 @@ function AssessmentListItem({
         <Text variant="muted" className="text-sm">
           {assessment.durationMinutes} мин · {assessment.questionCount} асуулт
         </Text>
+        <Text variant="muted" className="text-xs">
+          {scheduleStatusLabel(scheduleStatus)} · Эхлэх{" "}
+          {formatDateTime(assessment.scheduledStartsAt)} · Хүлээлгийн өрөө{" "}
+          {formatDateTime(assessment.waitingRoomOpensAt)}
+        </Text>
+        <button
+          type="button"
+          className="text-xs font-semibold text-primary"
+          onClick={() => onOpenSchedule(assessment)}
+        >
+          Хуваарь, заавар харах
+        </button>
         {assessment.price > 0 ? (
           <Button
             type="button"
@@ -553,15 +690,118 @@ function AssessmentListItem({
             {inCart ? "Сагсанд" : "Сагсанд нэмэх"}
           </Button>
         ) : (
-          <Link
-            href={runtimeStartHref}
+          <button
+            type="button"
+            disabled={starting || scheduleStatus === "expired"}
             className="inline-flex rounded-seek-md bg-primary px-seek-4 py-seek-2 text-sm font-semibold text-primary-foreground"
+            onClick={() => onStart(assessment)}
           >
-            Эхлүүлэх
-          </Link>
+            {starting
+              ? "Эхлүүлж байна"
+              : waitingAvailable
+                ? "Хүлээлгийн өрөөнд орох"
+                : "Хуваарь харах"}
+          </button>
         )}
       </div>
     </article>
+  );
+}
+
+function ScheduleDetailModal({
+  assessment,
+  onClose,
+  onEnterWaiting,
+}: {
+  assessment: CatalogAssessment;
+  onClose: () => void;
+  onEnterWaiting: () => void;
+}) {
+  const status = getScheduleStatus(assessment);
+  const waitingAvailable = canEnterWaitingRoom(assessment);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-seek-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-seek-lg bg-surface p-seek-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-seek-4">
+          <div>
+            <Badge variant={waitingAvailable ? "success" : "secondary"}>
+              {scheduleStatusLabel(status)}
+            </Badge>
+            <h2 className="mt-seek-3 font-sans text-2xl font-bold text-foreground">
+              {assessment.title}
+            </h2>
+            <Text variant="muted" className="mt-seek-2">
+              {assessment.description}
+            </Text>
+          </div>
+          <button
+            type="button"
+            className="rounded-seek-md border border-border px-seek-3 py-seek-1 text-sm font-semibold"
+            onClick={onClose}
+          >
+            Хаах
+          </button>
+        </div>
+
+        <div className="mt-seek-5 grid grid-cols-1 gap-seek-3 sm:grid-cols-2">
+          <ScheduleMetric label="Эхлэх" value={formatDateTime(assessment.scheduledStartsAt)} />
+          <ScheduleMetric label="Дуусах" value={formatDateTime(assessment.scheduledEndsAt)} />
+          <ScheduleMetric
+            label="Хүлээлгийн өрөө"
+            value={formatDateTime(assessment.waitingRoomOpensAt)}
+          />
+          <ScheduleMetric
+            label="Урьдчилан нэвтрэх"
+            value={`${assessment.requiredEarlyJoinMinutes ?? 0} минутын өмнө`}
+          />
+          <ScheduleMetric label="Үргэлжлэх хугацаа" value={`${assessment.durationMinutes} минут`} />
+          <ScheduleMetric
+            label="Асуулт / оноо / тэнцэх"
+            value={`${assessment.questionCount} асуулт · ${assessment.totalPoints ?? 0} оноо · ${
+              assessment.passingPercent ?? 0
+            }%`}
+          />
+        </div>
+
+        <div className="mt-seek-5 rounded-seek-md bg-muted-background p-seek-4">
+          <Text className="font-bold">Нэвтрэх нөхцөл</Text>
+          <Text variant="muted" className="mt-seek-2 text-sm leading-6">
+            Хүлээлгийн өрөө нээгдсэн үед quiz runtime рүү шилжинэ. Тэнд
+            payload readiness, төхөөрөмжийн төлөв, заавартай танилцсан эсэхийг
+            шалгаад эхлэх цаг болоход тест нээгдэнэ.
+          </Text>
+        </div>
+
+        <div className="mt-seek-6 grid grid-cols-1 gap-seek-3 sm:grid-cols-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Буцах
+          </Button>
+          <Button
+            type="button"
+            disabled={!waitingAvailable}
+            onClick={onEnterWaiting}
+          >
+            {waitingAvailable
+              ? "Хүлээлгийн өрөөнд орох"
+              : `Хүлээлгийн өрөө ${formatDateTime(
+                  assessment.waitingRoomOpensAt,
+                )}-д нээгдэнэ`}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-seek-md border border-border p-seek-3">
+      <Text variant="muted" className="text-xs uppercase">
+        {label}
+      </Text>
+      <Text className="mt-1 font-semibold">{value}</Text>
+    </div>
   );
 }
 

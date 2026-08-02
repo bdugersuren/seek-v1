@@ -1,0 +1,62 @@
+erDiagram
+    UserAccount {
+        string id PK "UUID"
+        string email UK "Имэйл хаяг"
+        string status "ACTIVE, BLOCKED, etc."
+        datetime createdAt
+        datetime updatedAt
+    }
+    Role {
+        string id PK "UUID"
+        string name UK "e.g., SUPER_ADMIN, TECHNICAL_USER, TESTER"
+        string description "Үүргийн тайлбар"
+    }
+    UserRole {
+        string userAccountId PK, FK
+        string roleId PK, FK
+        datetime assignedAt "Хэзээ оноосон бэ"
+    }
+    Credential {
+        string id PK "UUID"
+        string userAccountId FK
+        string type "PASSWORD, MFA_TOTP, etc."
+        string value "Шифрлэгдсэн нууц үг эсвэл түлхүүр"
+        datetime createdAt
+        datetime updatedAt
+    }
+    Session {
+        string id PK "UUID"
+        string userAccountId FK
+        string refreshTokenFamilyId "Токен эргэлтийн гэр бүлийн ID"
+        string userAgentSummary "Хөтчийн мэдээлэл"
+        string ipAddressSummary "IP хаяг"
+        datetime expiresAt "Хүчинтэй хугацаа"
+        datetime revokedAt "Хүчингүй болгосон огноо"
+        string revocationReason "Цуцалсан шалтгаан"
+        datetime createdAt
+        datetime lastUsedAt
+    }
+    RefreshToken {
+        string id PK "UUID"
+        string sessionId FK
+        string tokenHash UK "SHA-256 хэш"
+        datetime expiresAt
+        datetime rotatedAt "Шинэчлэгдсэн огноо"
+        datetime revokedAt "Хүчингүй болгосон огноо"
+        datetime createdAt
+    }
+    SecurityEvent {
+        string id PK "UUID"
+        string userAccountId FK
+        string eventType "LOGIN_FAILED, REFRESH_TOKEN_REUSE_DETECTED, etc."
+        string ipAddress
+        string userAgent
+        string payload "Нэмэлт мэдээлэл"
+        datetime createdAt
+    }
+    UserAccount ||--o{ UserRole : "has"
+    Role ||--o{ UserRole : "assigned_to"
+    UserAccount ||--o{ Credential : "authenticates_with"
+    UserAccount ||--o{ Session : "owns"
+    UserAccount ||--o{ SecurityEvent : "triggers"
+    Session ||--o{ RefreshToken : "contains"
