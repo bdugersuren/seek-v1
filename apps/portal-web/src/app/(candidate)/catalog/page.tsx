@@ -21,6 +21,7 @@ import {
 import { createAssessmentRuntimeUrl } from "@/features/assessment-runtime/url";
 import { createCatalogAttempt } from "@/features/catalog/attempts";
 import { readCatalogCart, saveCatalogCart } from "@/features/catalog/cart";
+import { checkAssessmentEnrollmentGate } from "@/features/profile/api";
 import type { CatalogAssessment } from "@/features/catalog/types";
 
 type ViewMode = "card" | "list";
@@ -140,16 +141,47 @@ export default function CatalogPage() {
   };
 
   const openScheduleOrStart = async (assessment: CatalogAssessment) => {
-    if (assessment.price > 0 || startingAssessmentId) {
-      return;
-    }
-
-    if (!canEnterWaitingRoom(assessment)) {
-      setScheduleDetail(assessment);
+    if (startingAssessmentId) {
       return;
     }
 
     setStartingAssessmentId(assessment.id);
+    try {
+      const gate = await checkAssessmentEnrollmentGate(assessment);
+
+      if (!gate.allowed) {
+        setStartingAssessmentId(null);
+
+        if (gate.blockedReason === "PROFILE_INCOMPLETE") {
+          showToast("Үнэлгээ эхлүүлэхийн өмнө профайлаа гүйцээнэ үү.", "warning");
+          window.location.href = `/onboarding?redirect=${encodeURIComponent(
+            "/catalog",
+          )}`;
+          return;
+        }
+
+        if (gate.blockedReason === "PAYMENT_REQUIRED") {
+          addToCart(assessment);
+          setCheckoutOpen(true);
+          showToast("Төлбөр төлсний дараа үнэлгээнд орох боломжтой.", "info");
+          return;
+        }
+
+        showToast("Энэ үнэлгээнд одоогоор орох боломжгүй байна.", "warning");
+        return;
+      }
+    } catch {
+      setStartingAssessmentId(null);
+      showToast("Үнэлгээний эрх шалгахад алдаа гарлаа.", "danger");
+      return;
+    }
+
+    if (!canEnterWaitingRoom(assessment)) {
+      setStartingAssessmentId(null);
+      setScheduleDetail(assessment);
+      return;
+    }
+
     try {
       const attempt = await createCatalogAttempt({
         assessmentId: assessment.id,

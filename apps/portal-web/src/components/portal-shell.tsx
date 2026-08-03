@@ -174,8 +174,50 @@ const navItems: Array<{
 
 function isActivePath(pathname: string, href: string) {
   return (
-    pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
+    pathname === href ||
+    (!href.endsWith("/dashboard") && pathname.startsWith(href))
   );
+}
+
+function getRoleHref(href: string, role: PortalRole): string {
+  if (role === "candidate") {
+    return href;
+  }
+
+  if (href === "/dashboard" || href === "/profile" || href === "/settings") {
+    if (role === "super_admin") return `/superadmin${href}`;
+    if (role === "organisation_admin") return `/admin${href}`;
+    if (role === "assessor") return `/assessor${href}`;
+    return href;
+  }
+
+  if (href === "/admin") {
+    if (role === "super_admin") return "/superadmin/dashboard";
+    return href;
+  }
+
+  if (href === "/organisations") {
+    if (role === "super_admin") return "/superadmin/organisations";
+    if (role === "organisation_admin") return "/admin/organisations";
+    return href;
+  }
+
+  if (
+    href === "/assessments" ||
+    href === "/blueprints" ||
+    href === "/question-bank" ||
+    href === "/quizzes"
+  ) {
+    return `/assessor${href}`;
+  }
+
+  if (href === "/results") {
+    if (role === "organisation_admin") return "/admin/results";
+    if (role === "assessor") return "/assessor/results";
+    return href;
+  }
+
+  return href;
 }
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
@@ -193,9 +235,12 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     (state: RootState) => state.auth.user,
   ) as PortalUser | null;
   const currentRole = user?.role || "assessor";
-  const visibleItems = navItems.filter((item) =>
-    item.roles.includes(currentRole),
-  );
+  const visibleItems = navItems
+    .filter((item) => item.roles.includes(currentRole))
+    .map((item) => ({
+      ...item,
+      href: getRoleHref(item.href, currentRole),
+    }));
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -386,8 +431,14 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                   </Text>
                 </div>
                 <div className="p-seek-2">
-                  <ProfileMenuLink href="/profile" label="Миний профайл" />
-                  <ProfileMenuLink href="/settings" label="Тохиргоо" />
+                  <ProfileMenuLink
+                    href={getRoleHref("/profile", currentRole)}
+                    label="Миний профайл"
+                  />
+                  <ProfileMenuLink
+                    href={getRoleHref("/settings", currentRole)}
+                    label="Тохиргоо"
+                  />
                   {currentRole === "candidate" && (
                     <>
                       <ProfileMenuLink href="/wallet" label="Хэтэвч" />

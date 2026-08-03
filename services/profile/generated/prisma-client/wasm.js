@@ -126,10 +126,58 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   displayName: 'displayName',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  phoneNumber: 'phoneNumber',
+  phoneNumberVerifiedAt: 'phoneNumberVerifiedAt',
+  organisation: 'organisation',
   birthDate: 'birthDate',
+  gender: 'gender',
+  country: 'country',
+  address: 'address',
+  preferredLanguage: 'preferredLanguage',
+  completionStatus: 'completionStatus',
+  verifiedAt: 'verifiedAt',
   metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProfileVerificationScalarFieldEnum = {
+  id: 'id',
+  profileId: 'profileId',
+  status: 'status',
+  type: 'type',
+  rejectedReason: 'rejectedReason',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProfileDocumentScalarFieldEnum = {
+  id: 'id',
+  profileId: 'profileId',
+  type: 'type',
+  name: 'name',
+  storageKey: 'storageKey',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  status: 'status',
+  uploadedAt: 'uploadedAt'
+};
+
+exports.Prisma.ProfileAuditLogScalarFieldEnum = {
+  id: 'id',
+  profileId: 'profileId',
+  userId: 'userId',
+  actorUserId: 'actorUserId',
+  action: 'action',
+  before: 'before',
+  after: 'after',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ProfileLocationScalarFieldEnum = {
@@ -192,6 +240,9 @@ exports.Prisma.NullsOrder = {
 
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
+  ProfileVerification: 'ProfileVerification',
+  ProfileDocument: 'ProfileDocument',
+  ProfileAuditLog: 'ProfileAuditLog',
   ProfileLocation: 'ProfileLocation',
   EducationRecord: 'EducationRecord',
   WorkRecord: 'WorkRecord'

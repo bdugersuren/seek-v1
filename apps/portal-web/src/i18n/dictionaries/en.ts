@@ -41,6 +41,9 @@ export const en = {
   "login.errorTitle": "Error",
   "login.failed": "Sign-in failed.",
   "login.mockPasswordWrong": "The mock user's password is incorrect.",
+  "login.resendVerification": "Resend verification email",
+  "login.resendSuccess": "Verification email sent again.",
+  "login.resendFailed": "Could not resend the verification email.",
   "login.prototypeHint":
     "Prototype roles: superadmin, orgadmin, assessor, candidate, reviewer @lms.local / TestPassword123!",
   "login.rolePanelTitle": "Role demo accounts",
@@ -54,10 +57,24 @@ export const en = {
   "login.forgotPasswordLink": "Forgot password?",
   "register.title": "Register",
   "register.subtitle":
-    "During the prototype phase, new users are registered through organisation invites or admin approval.",
+    "Create your account and verify your email address.",
   "register.description":
-    "This page validates the frontend route and UX boundary. The backend registration API will be defined in a later auth workflow task.",
+    "After registration, a verification link will be sent to your email.",
   "register.backToLogin": "Back to sign in",
+  "register.confirmTitle": "Check your email",
+  "register.confirmDescription":
+    "A verification link has been sent. Verify your email before signing in.",
+  "register.resend": "Resend email",
+  "register.resendSuccess": "Verification email sent again.",
+  "register.resendFailed": "Could not resend the verification email.",
+  "verify.title": "Email verification",
+  "verify.loading": "Verifying...",
+  "verify.successTitle": "Email verified",
+  "verify.successDescription": "You can now sign in with your account.",
+  "verify.errorTitle": "Invalid link",
+  "verify.errorDescription":
+    "The verification link is invalid or may have expired.",
+  "verify.missingToken": "Verification token was not found.",
   "forgot.title": "Reset password",
   "forgot.subtitle":
     "The flow for sending a reset link to a registered email address will live here.",

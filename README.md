@@ -309,8 +309,6 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-t
   redis \
   rabbitmq \
   minio \
-  auth-migrate \
-  auth-seed \
   auth \
   profile \
   organisation \

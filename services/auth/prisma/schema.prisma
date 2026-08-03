@@ -10,6 +10,7 @@ generator client {
 model UserAccount {
   id              String          @id @default(uuid())
   email           String          @unique
+  isEmailVerified Boolean         @default(false)
   phoneNumber     String?         @unique
   isPhoneVerified Boolean         @default(false)
   status          String          @default("ACTIVE")
@@ -19,6 +20,7 @@ model UserAccount {
   sessions        Session[]
   securityEvents  SecurityEvent[]
   roles           UserRole[]
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 model Credential {
@@ -55,6 +57,18 @@ model RefreshToken {
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
   session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model EmailVerificationToken {
+  id            String      @id @default(uuid())
+  userAccountId String
+  tokenHash     String      @unique
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  userAccount   UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+
+  @@index([userAccountId, expiresAt])
 }
 
 model SecurityEvent {

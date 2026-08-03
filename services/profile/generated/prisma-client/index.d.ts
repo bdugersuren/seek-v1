@@ -19,6 +19,21 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type UserProfile = $Result.DefaultSelection<Prisma.$UserProfilePayload>
 /**
+ * Model ProfileVerification
+ * 
+ */
+export type ProfileVerification = $Result.DefaultSelection<Prisma.$ProfileVerificationPayload>
+/**
+ * Model ProfileDocument
+ * 
+ */
+export type ProfileDocument = $Result.DefaultSelection<Prisma.$ProfileDocumentPayload>
+/**
+ * Model ProfileAuditLog
+ * 
+ */
+export type ProfileAuditLog = $Result.DefaultSelection<Prisma.$ProfileAuditLogPayload>
+/**
  * Model ProfileLocation
  * 
  */
@@ -166,6 +181,36 @@ export class PrismaClient<
     * ```
     */
   get userProfile(): Prisma.UserProfileDelegate<ExtArgs>;
+
+  /**
+   * `prisma.profileVerification`: Exposes CRUD operations for the **ProfileVerification** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProfileVerifications
+    * const profileVerifications = await prisma.profileVerification.findMany()
+    * ```
+    */
+  get profileVerification(): Prisma.ProfileVerificationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.profileDocument`: Exposes CRUD operations for the **ProfileDocument** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProfileDocuments
+    * const profileDocuments = await prisma.profileDocument.findMany()
+    * ```
+    */
+  get profileDocument(): Prisma.ProfileDocumentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.profileAuditLog`: Exposes CRUD operations for the **ProfileAuditLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProfileAuditLogs
+    * const profileAuditLogs = await prisma.profileAuditLog.findMany()
+    * ```
+    */
+  get profileAuditLog(): Prisma.ProfileAuditLogDelegate<ExtArgs>;
 
   /**
    * `prisma.profileLocation`: Exposes CRUD operations for the **ProfileLocation** model.
@@ -638,6 +683,9 @@ export namespace Prisma {
 
   export const ModelName: {
     UserProfile: 'UserProfile',
+    ProfileVerification: 'ProfileVerification',
+    ProfileDocument: 'ProfileDocument',
+    ProfileAuditLog: 'ProfileAuditLog',
     ProfileLocation: 'ProfileLocation',
     EducationRecord: 'EducationRecord',
     WorkRecord: 'WorkRecord'
@@ -656,7 +704,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "profileLocation" | "educationRecord" | "workRecord"
+      modelProps: "userProfile" | "profileVerification" | "profileDocument" | "profileAuditLog" | "profileLocation" | "educationRecord" | "workRecord"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -727,6 +775,216 @@ export namespace Prisma {
           count: {
             args: Prisma.UserProfileCountArgs<ExtArgs>
             result: $Utils.Optional<UserProfileCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProfileVerification: {
+        payload: Prisma.$ProfileVerificationPayload<ExtArgs>
+        fields: Prisma.ProfileVerificationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProfileVerificationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProfileVerificationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>
+          }
+          findFirst: {
+            args: Prisma.ProfileVerificationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProfileVerificationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>
+          }
+          findMany: {
+            args: Prisma.ProfileVerificationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>[]
+          }
+          create: {
+            args: Prisma.ProfileVerificationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>
+          }
+          createMany: {
+            args: Prisma.ProfileVerificationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProfileVerificationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>[]
+          }
+          delete: {
+            args: Prisma.ProfileVerificationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>
+          }
+          update: {
+            args: Prisma.ProfileVerificationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProfileVerificationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProfileVerificationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ProfileVerificationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileVerificationPayload>
+          }
+          aggregate: {
+            args: Prisma.ProfileVerificationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProfileVerification>
+          }
+          groupBy: {
+            args: Prisma.ProfileVerificationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProfileVerificationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProfileVerificationCountArgs<ExtArgs>
+            result: $Utils.Optional<ProfileVerificationCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProfileDocument: {
+        payload: Prisma.$ProfileDocumentPayload<ExtArgs>
+        fields: Prisma.ProfileDocumentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProfileDocumentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProfileDocumentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>
+          }
+          findFirst: {
+            args: Prisma.ProfileDocumentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProfileDocumentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>
+          }
+          findMany: {
+            args: Prisma.ProfileDocumentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>[]
+          }
+          create: {
+            args: Prisma.ProfileDocumentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>
+          }
+          createMany: {
+            args: Prisma.ProfileDocumentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProfileDocumentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>[]
+          }
+          delete: {
+            args: Prisma.ProfileDocumentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>
+          }
+          update: {
+            args: Prisma.ProfileDocumentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProfileDocumentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProfileDocumentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ProfileDocumentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileDocumentPayload>
+          }
+          aggregate: {
+            args: Prisma.ProfileDocumentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProfileDocument>
+          }
+          groupBy: {
+            args: Prisma.ProfileDocumentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProfileDocumentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProfileDocumentCountArgs<ExtArgs>
+            result: $Utils.Optional<ProfileDocumentCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProfileAuditLog: {
+        payload: Prisma.$ProfileAuditLogPayload<ExtArgs>
+        fields: Prisma.ProfileAuditLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProfileAuditLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProfileAuditLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>
+          }
+          findFirst: {
+            args: Prisma.ProfileAuditLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProfileAuditLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>
+          }
+          findMany: {
+            args: Prisma.ProfileAuditLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>[]
+          }
+          create: {
+            args: Prisma.ProfileAuditLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>
+          }
+          createMany: {
+            args: Prisma.ProfileAuditLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProfileAuditLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>[]
+          }
+          delete: {
+            args: Prisma.ProfileAuditLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>
+          }
+          update: {
+            args: Prisma.ProfileAuditLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProfileAuditLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProfileAuditLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ProfileAuditLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProfileAuditLogPayload>
+          }
+          aggregate: {
+            args: Prisma.ProfileAuditLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProfileAuditLog>
+          }
+          groupBy: {
+            args: Prisma.ProfileAuditLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProfileAuditLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProfileAuditLogCountArgs<ExtArgs>
+            result: $Utils.Optional<ProfileAuditLogCountAggregateOutputType> | number
           }
         }
       }
@@ -1104,12 +1362,18 @@ export namespace Prisma {
     locations: number
     education: number
     workHistory: number
+    verifications: number
+    documents: number
+    auditLogs: number
   }
 
   export type UserProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     locations?: boolean | UserProfileCountOutputTypeCountLocationsArgs
     education?: boolean | UserProfileCountOutputTypeCountEducationArgs
     workHistory?: boolean | UserProfileCountOutputTypeCountWorkHistoryArgs
+    verifications?: boolean | UserProfileCountOutputTypeCountVerificationsArgs
+    documents?: boolean | UserProfileCountOutputTypeCountDocumentsArgs
+    auditLogs?: boolean | UserProfileCountOutputTypeCountAuditLogsArgs
   }
 
   // Custom InputTypes
@@ -1144,6 +1408,27 @@ export namespace Prisma {
     where?: WorkRecordWhereInput
   }
 
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountVerificationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProfileVerificationWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountDocumentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProfileDocumentWhereInput
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountAuditLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProfileAuditLogWhereInput
+  }
+
 
   /**
    * Models
@@ -1163,7 +1448,18 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     displayName: string | null
+    firstName: string | null
+    lastName: string | null
+    phoneNumber: string | null
+    phoneNumberVerifiedAt: Date | null
+    organisation: string | null
     birthDate: Date | null
+    gender: string | null
+    country: string | null
+    address: string | null
+    preferredLanguage: string | null
+    completionStatus: string | null
+    verifiedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1172,7 +1468,18 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     displayName: string | null
+    firstName: string | null
+    lastName: string | null
+    phoneNumber: string | null
+    phoneNumberVerifiedAt: Date | null
+    organisation: string | null
     birthDate: Date | null
+    gender: string | null
+    country: string | null
+    address: string | null
+    preferredLanguage: string | null
+    completionStatus: string | null
+    verifiedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1181,7 +1488,18 @@ export namespace Prisma {
     id: number
     userId: number
     displayName: number
+    firstName: number
+    lastName: number
+    phoneNumber: number
+    phoneNumberVerifiedAt: number
+    organisation: number
     birthDate: number
+    gender: number
+    country: number
+    address: number
+    preferredLanguage: number
+    completionStatus: number
+    verifiedAt: number
     metadata: number
     createdAt: number
     updatedAt: number
@@ -1193,7 +1511,18 @@ export namespace Prisma {
     id?: true
     userId?: true
     displayName?: true
+    firstName?: true
+    lastName?: true
+    phoneNumber?: true
+    phoneNumberVerifiedAt?: true
+    organisation?: true
     birthDate?: true
+    gender?: true
+    country?: true
+    address?: true
+    preferredLanguage?: true
+    completionStatus?: true
+    verifiedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1202,7 +1531,18 @@ export namespace Prisma {
     id?: true
     userId?: true
     displayName?: true
+    firstName?: true
+    lastName?: true
+    phoneNumber?: true
+    phoneNumberVerifiedAt?: true
+    organisation?: true
     birthDate?: true
+    gender?: true
+    country?: true
+    address?: true
+    preferredLanguage?: true
+    completionStatus?: true
+    verifiedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1211,7 +1551,18 @@ export namespace Prisma {
     id?: true
     userId?: true
     displayName?: true
+    firstName?: true
+    lastName?: true
+    phoneNumber?: true
+    phoneNumberVerifiedAt?: true
+    organisation?: true
     birthDate?: true
+    gender?: true
+    country?: true
+    address?: true
+    preferredLanguage?: true
+    completionStatus?: true
+    verifiedAt?: true
     metadata?: true
     createdAt?: true
     updatedAt?: true
@@ -1294,7 +1645,18 @@ export namespace Prisma {
     id: string
     userId: string
     displayName: string | null
+    firstName: string | null
+    lastName: string | null
+    phoneNumber: string | null
+    phoneNumberVerifiedAt: Date | null
+    organisation: string | null
     birthDate: Date | null
+    gender: string | null
+    country: string | null
+    address: string | null
+    preferredLanguage: string | null
+    completionStatus: string | null
+    verifiedAt: Date | null
     metadata: JsonValue
     createdAt: Date
     updatedAt: Date
@@ -1321,13 +1683,27 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     displayName?: boolean
+    firstName?: boolean
+    lastName?: boolean
+    phoneNumber?: boolean
+    phoneNumberVerifiedAt?: boolean
+    organisation?: boolean
     birthDate?: boolean
+    gender?: boolean
+    country?: boolean
+    address?: boolean
+    preferredLanguage?: boolean
+    completionStatus?: boolean
+    verifiedAt?: boolean
     metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     locations?: boolean | UserProfile$locationsArgs<ExtArgs>
     education?: boolean | UserProfile$educationArgs<ExtArgs>
     workHistory?: boolean | UserProfile$workHistoryArgs<ExtArgs>
+    verifications?: boolean | UserProfile$verificationsArgs<ExtArgs>
+    documents?: boolean | UserProfile$documentsArgs<ExtArgs>
+    auditLogs?: boolean | UserProfile$auditLogsArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["userProfile"]>
 
@@ -1335,7 +1711,18 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     displayName?: boolean
+    firstName?: boolean
+    lastName?: boolean
+    phoneNumber?: boolean
+    phoneNumberVerifiedAt?: boolean
+    organisation?: boolean
     birthDate?: boolean
+    gender?: boolean
+    country?: boolean
+    address?: boolean
+    preferredLanguage?: boolean
+    completionStatus?: boolean
+    verifiedAt?: boolean
     metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -1345,7 +1732,18 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     displayName?: boolean
+    firstName?: boolean
+    lastName?: boolean
+    phoneNumber?: boolean
+    phoneNumberVerifiedAt?: boolean
+    organisation?: boolean
     birthDate?: boolean
+    gender?: boolean
+    country?: boolean
+    address?: boolean
+    preferredLanguage?: boolean
+    completionStatus?: boolean
+    verifiedAt?: boolean
     metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -1355,6 +1753,9 @@ export namespace Prisma {
     locations?: boolean | UserProfile$locationsArgs<ExtArgs>
     education?: boolean | UserProfile$educationArgs<ExtArgs>
     workHistory?: boolean | UserProfile$workHistoryArgs<ExtArgs>
+    verifications?: boolean | UserProfile$verificationsArgs<ExtArgs>
+    documents?: boolean | UserProfile$documentsArgs<ExtArgs>
+    auditLogs?: boolean | UserProfile$auditLogsArgs<ExtArgs>
     _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -1365,12 +1766,26 @@ export namespace Prisma {
       locations: Prisma.$ProfileLocationPayload<ExtArgs>[]
       education: Prisma.$EducationRecordPayload<ExtArgs>[]
       workHistory: Prisma.$WorkRecordPayload<ExtArgs>[]
+      verifications: Prisma.$ProfileVerificationPayload<ExtArgs>[]
+      documents: Prisma.$ProfileDocumentPayload<ExtArgs>[]
+      auditLogs: Prisma.$ProfileAuditLogPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
       displayName: string | null
+      firstName: string | null
+      lastName: string | null
+      phoneNumber: string | null
+      phoneNumberVerifiedAt: Date | null
+      organisation: string | null
       birthDate: Date | null
+      gender: string | null
+      country: string | null
+      address: string | null
+      preferredLanguage: string | null
+      completionStatus: string | null
+      verifiedAt: Date | null
       metadata: Prisma.JsonValue
       createdAt: Date
       updatedAt: Date
@@ -1741,6 +2156,9 @@ export namespace Prisma {
     locations<T extends UserProfile$locationsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$locationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileLocationPayload<ExtArgs>, T, "findMany"> | Null>
     education<T extends UserProfile$educationArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$educationArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EducationRecordPayload<ExtArgs>, T, "findMany"> | Null>
     workHistory<T extends UserProfile$workHistoryArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$workHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkRecordPayload<ExtArgs>, T, "findMany"> | Null>
+    verifications<T extends UserProfile$verificationsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$verificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "findMany"> | Null>
+    documents<T extends UserProfile$documentsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$documentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "findMany"> | Null>
+    auditLogs<T extends UserProfile$auditLogsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1773,7 +2191,18 @@ export namespace Prisma {
     readonly id: FieldRef<"UserProfile", 'String'>
     readonly userId: FieldRef<"UserProfile", 'String'>
     readonly displayName: FieldRef<"UserProfile", 'String'>
+    readonly firstName: FieldRef<"UserProfile", 'String'>
+    readonly lastName: FieldRef<"UserProfile", 'String'>
+    readonly phoneNumber: FieldRef<"UserProfile", 'String'>
+    readonly phoneNumberVerifiedAt: FieldRef<"UserProfile", 'DateTime'>
+    readonly organisation: FieldRef<"UserProfile", 'String'>
     readonly birthDate: FieldRef<"UserProfile", 'DateTime'>
+    readonly gender: FieldRef<"UserProfile", 'String'>
+    readonly country: FieldRef<"UserProfile", 'String'>
+    readonly address: FieldRef<"UserProfile", 'String'>
+    readonly preferredLanguage: FieldRef<"UserProfile", 'String'>
+    readonly completionStatus: FieldRef<"UserProfile", 'String'>
+    readonly verifiedAt: FieldRef<"UserProfile", 'DateTime'>
     readonly metadata: FieldRef<"UserProfile", 'Json'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"UserProfile", 'DateTime'>
@@ -2151,6 +2580,66 @@ export namespace Prisma {
   }
 
   /**
+   * UserProfile.verifications
+   */
+  export type UserProfile$verificationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    where?: ProfileVerificationWhereInput
+    orderBy?: ProfileVerificationOrderByWithRelationInput | ProfileVerificationOrderByWithRelationInput[]
+    cursor?: ProfileVerificationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProfileVerificationScalarFieldEnum | ProfileVerificationScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.documents
+   */
+  export type UserProfile$documentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    where?: ProfileDocumentWhereInput
+    orderBy?: ProfileDocumentOrderByWithRelationInput | ProfileDocumentOrderByWithRelationInput[]
+    cursor?: ProfileDocumentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProfileDocumentScalarFieldEnum | ProfileDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * UserProfile.auditLogs
+   */
+  export type UserProfile$auditLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    where?: ProfileAuditLogWhereInput
+    orderBy?: ProfileAuditLogOrderByWithRelationInput | ProfileAuditLogOrderByWithRelationInput[]
+    cursor?: ProfileAuditLogWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProfileAuditLogScalarFieldEnum | ProfileAuditLogScalarFieldEnum[]
+  }
+
+  /**
    * UserProfile without action
    */
   export type UserProfileDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2162,6 +2651,2987 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: UserProfileInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProfileVerification
+   */
+
+  export type AggregateProfileVerification = {
+    _count: ProfileVerificationCountAggregateOutputType | null
+    _min: ProfileVerificationMinAggregateOutputType | null
+    _max: ProfileVerificationMaxAggregateOutputType | null
+  }
+
+  export type ProfileVerificationMinAggregateOutputType = {
+    id: string | null
+    profileId: string | null
+    status: string | null
+    type: string | null
+    rejectedReason: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProfileVerificationMaxAggregateOutputType = {
+    id: string | null
+    profileId: string | null
+    status: string | null
+    type: string | null
+    rejectedReason: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProfileVerificationCountAggregateOutputType = {
+    id: number
+    profileId: number
+    status: number
+    type: number
+    rejectedReason: number
+    reviewedBy: number
+    reviewedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProfileVerificationMinAggregateInputType = {
+    id?: true
+    profileId?: true
+    status?: true
+    type?: true
+    rejectedReason?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProfileVerificationMaxAggregateInputType = {
+    id?: true
+    profileId?: true
+    status?: true
+    type?: true
+    rejectedReason?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProfileVerificationCountAggregateInputType = {
+    id?: true
+    profileId?: true
+    status?: true
+    type?: true
+    rejectedReason?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProfileVerificationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProfileVerification to aggregate.
+     */
+    where?: ProfileVerificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileVerifications to fetch.
+     */
+    orderBy?: ProfileVerificationOrderByWithRelationInput | ProfileVerificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProfileVerificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileVerifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileVerifications.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProfileVerifications
+    **/
+    _count?: true | ProfileVerificationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProfileVerificationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProfileVerificationMaxAggregateInputType
+  }
+
+  export type GetProfileVerificationAggregateType<T extends ProfileVerificationAggregateArgs> = {
+        [P in keyof T & keyof AggregateProfileVerification]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProfileVerification[P]>
+      : GetScalarType<T[P], AggregateProfileVerification[P]>
+  }
+
+
+
+
+  export type ProfileVerificationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProfileVerificationWhereInput
+    orderBy?: ProfileVerificationOrderByWithAggregationInput | ProfileVerificationOrderByWithAggregationInput[]
+    by: ProfileVerificationScalarFieldEnum[] | ProfileVerificationScalarFieldEnum
+    having?: ProfileVerificationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProfileVerificationCountAggregateInputType | true
+    _min?: ProfileVerificationMinAggregateInputType
+    _max?: ProfileVerificationMaxAggregateInputType
+  }
+
+  export type ProfileVerificationGroupByOutputType = {
+    id: string
+    profileId: string
+    status: string
+    type: string
+    rejectedReason: string | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProfileVerificationCountAggregateOutputType | null
+    _min: ProfileVerificationMinAggregateOutputType | null
+    _max: ProfileVerificationMaxAggregateOutputType | null
+  }
+
+  type GetProfileVerificationGroupByPayload<T extends ProfileVerificationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProfileVerificationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProfileVerificationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProfileVerificationGroupByOutputType[P]>
+            : GetScalarType<T[P], ProfileVerificationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProfileVerificationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    profileId?: boolean
+    status?: boolean
+    type?: boolean
+    rejectedReason?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["profileVerification"]>
+
+  export type ProfileVerificationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    profileId?: boolean
+    status?: boolean
+    type?: boolean
+    rejectedReason?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["profileVerification"]>
+
+  export type ProfileVerificationSelectScalar = {
+    id?: boolean
+    profileId?: boolean
+    status?: boolean
+    type?: boolean
+    rejectedReason?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProfileVerificationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type ProfileVerificationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $ProfileVerificationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProfileVerification"
+    objects: {
+      profile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      profileId: string
+      status: string
+      type: string
+      rejectedReason: string | null
+      reviewedBy: string | null
+      reviewedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["profileVerification"]>
+    composites: {}
+  }
+
+  type ProfileVerificationGetPayload<S extends boolean | null | undefined | ProfileVerificationDefaultArgs> = $Result.GetResult<Prisma.$ProfileVerificationPayload, S>
+
+  type ProfileVerificationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ProfileVerificationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ProfileVerificationCountAggregateInputType | true
+    }
+
+  export interface ProfileVerificationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProfileVerification'], meta: { name: 'ProfileVerification' } }
+    /**
+     * Find zero or one ProfileVerification that matches the filter.
+     * @param {ProfileVerificationFindUniqueArgs} args - Arguments to find a ProfileVerification
+     * @example
+     * // Get one ProfileVerification
+     * const profileVerification = await prisma.profileVerification.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProfileVerificationFindUniqueArgs>(args: SelectSubset<T, ProfileVerificationFindUniqueArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ProfileVerification that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ProfileVerificationFindUniqueOrThrowArgs} args - Arguments to find a ProfileVerification
+     * @example
+     * // Get one ProfileVerification
+     * const profileVerification = await prisma.profileVerification.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProfileVerificationFindUniqueOrThrowArgs>(args: SelectSubset<T, ProfileVerificationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ProfileVerification that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationFindFirstArgs} args - Arguments to find a ProfileVerification
+     * @example
+     * // Get one ProfileVerification
+     * const profileVerification = await prisma.profileVerification.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProfileVerificationFindFirstArgs>(args?: SelectSubset<T, ProfileVerificationFindFirstArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ProfileVerification that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationFindFirstOrThrowArgs} args - Arguments to find a ProfileVerification
+     * @example
+     * // Get one ProfileVerification
+     * const profileVerification = await prisma.profileVerification.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProfileVerificationFindFirstOrThrowArgs>(args?: SelectSubset<T, ProfileVerificationFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ProfileVerifications that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProfileVerifications
+     * const profileVerifications = await prisma.profileVerification.findMany()
+     * 
+     * // Get first 10 ProfileVerifications
+     * const profileVerifications = await prisma.profileVerification.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const profileVerificationWithIdOnly = await prisma.profileVerification.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProfileVerificationFindManyArgs>(args?: SelectSubset<T, ProfileVerificationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ProfileVerification.
+     * @param {ProfileVerificationCreateArgs} args - Arguments to create a ProfileVerification.
+     * @example
+     * // Create one ProfileVerification
+     * const ProfileVerification = await prisma.profileVerification.create({
+     *   data: {
+     *     // ... data to create a ProfileVerification
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProfileVerificationCreateArgs>(args: SelectSubset<T, ProfileVerificationCreateArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ProfileVerifications.
+     * @param {ProfileVerificationCreateManyArgs} args - Arguments to create many ProfileVerifications.
+     * @example
+     * // Create many ProfileVerifications
+     * const profileVerification = await prisma.profileVerification.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProfileVerificationCreateManyArgs>(args?: SelectSubset<T, ProfileVerificationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProfileVerifications and returns the data saved in the database.
+     * @param {ProfileVerificationCreateManyAndReturnArgs} args - Arguments to create many ProfileVerifications.
+     * @example
+     * // Create many ProfileVerifications
+     * const profileVerification = await prisma.profileVerification.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProfileVerifications and only return the `id`
+     * const profileVerificationWithIdOnly = await prisma.profileVerification.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProfileVerificationCreateManyAndReturnArgs>(args?: SelectSubset<T, ProfileVerificationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ProfileVerification.
+     * @param {ProfileVerificationDeleteArgs} args - Arguments to delete one ProfileVerification.
+     * @example
+     * // Delete one ProfileVerification
+     * const ProfileVerification = await prisma.profileVerification.delete({
+     *   where: {
+     *     // ... filter to delete one ProfileVerification
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProfileVerificationDeleteArgs>(args: SelectSubset<T, ProfileVerificationDeleteArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ProfileVerification.
+     * @param {ProfileVerificationUpdateArgs} args - Arguments to update one ProfileVerification.
+     * @example
+     * // Update one ProfileVerification
+     * const profileVerification = await prisma.profileVerification.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProfileVerificationUpdateArgs>(args: SelectSubset<T, ProfileVerificationUpdateArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ProfileVerifications.
+     * @param {ProfileVerificationDeleteManyArgs} args - Arguments to filter ProfileVerifications to delete.
+     * @example
+     * // Delete a few ProfileVerifications
+     * const { count } = await prisma.profileVerification.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProfileVerificationDeleteManyArgs>(args?: SelectSubset<T, ProfileVerificationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProfileVerifications.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProfileVerifications
+     * const profileVerification = await prisma.profileVerification.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProfileVerificationUpdateManyArgs>(args: SelectSubset<T, ProfileVerificationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ProfileVerification.
+     * @param {ProfileVerificationUpsertArgs} args - Arguments to update or create a ProfileVerification.
+     * @example
+     * // Update or create a ProfileVerification
+     * const profileVerification = await prisma.profileVerification.upsert({
+     *   create: {
+     *     // ... data to create a ProfileVerification
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProfileVerification we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProfileVerificationUpsertArgs>(args: SelectSubset<T, ProfileVerificationUpsertArgs<ExtArgs>>): Prisma__ProfileVerificationClient<$Result.GetResult<Prisma.$ProfileVerificationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ProfileVerifications.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationCountArgs} args - Arguments to filter ProfileVerifications to count.
+     * @example
+     * // Count the number of ProfileVerifications
+     * const count = await prisma.profileVerification.count({
+     *   where: {
+     *     // ... the filter for the ProfileVerifications we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProfileVerificationCountArgs>(
+      args?: Subset<T, ProfileVerificationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProfileVerificationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProfileVerification.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProfileVerificationAggregateArgs>(args: Subset<T, ProfileVerificationAggregateArgs>): Prisma.PrismaPromise<GetProfileVerificationAggregateType<T>>
+
+    /**
+     * Group by ProfileVerification.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileVerificationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProfileVerificationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProfileVerificationGroupByArgs['orderBy'] }
+        : { orderBy?: ProfileVerificationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProfileVerificationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProfileVerificationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProfileVerification model
+   */
+  readonly fields: ProfileVerificationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProfileVerification.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProfileVerificationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    profile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProfileVerification model
+   */ 
+  interface ProfileVerificationFieldRefs {
+    readonly id: FieldRef<"ProfileVerification", 'String'>
+    readonly profileId: FieldRef<"ProfileVerification", 'String'>
+    readonly status: FieldRef<"ProfileVerification", 'String'>
+    readonly type: FieldRef<"ProfileVerification", 'String'>
+    readonly rejectedReason: FieldRef<"ProfileVerification", 'String'>
+    readonly reviewedBy: FieldRef<"ProfileVerification", 'String'>
+    readonly reviewedAt: FieldRef<"ProfileVerification", 'DateTime'>
+    readonly createdAt: FieldRef<"ProfileVerification", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProfileVerification", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProfileVerification findUnique
+   */
+  export type ProfileVerificationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileVerification to fetch.
+     */
+    where: ProfileVerificationWhereUniqueInput
+  }
+
+  /**
+   * ProfileVerification findUniqueOrThrow
+   */
+  export type ProfileVerificationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileVerification to fetch.
+     */
+    where: ProfileVerificationWhereUniqueInput
+  }
+
+  /**
+   * ProfileVerification findFirst
+   */
+  export type ProfileVerificationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileVerification to fetch.
+     */
+    where?: ProfileVerificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileVerifications to fetch.
+     */
+    orderBy?: ProfileVerificationOrderByWithRelationInput | ProfileVerificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProfileVerifications.
+     */
+    cursor?: ProfileVerificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileVerifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileVerifications.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProfileVerifications.
+     */
+    distinct?: ProfileVerificationScalarFieldEnum | ProfileVerificationScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileVerification findFirstOrThrow
+   */
+  export type ProfileVerificationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileVerification to fetch.
+     */
+    where?: ProfileVerificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileVerifications to fetch.
+     */
+    orderBy?: ProfileVerificationOrderByWithRelationInput | ProfileVerificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProfileVerifications.
+     */
+    cursor?: ProfileVerificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileVerifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileVerifications.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProfileVerifications.
+     */
+    distinct?: ProfileVerificationScalarFieldEnum | ProfileVerificationScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileVerification findMany
+   */
+  export type ProfileVerificationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileVerifications to fetch.
+     */
+    where?: ProfileVerificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileVerifications to fetch.
+     */
+    orderBy?: ProfileVerificationOrderByWithRelationInput | ProfileVerificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProfileVerifications.
+     */
+    cursor?: ProfileVerificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileVerifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileVerifications.
+     */
+    skip?: number
+    distinct?: ProfileVerificationScalarFieldEnum | ProfileVerificationScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileVerification create
+   */
+  export type ProfileVerificationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProfileVerification.
+     */
+    data: XOR<ProfileVerificationCreateInput, ProfileVerificationUncheckedCreateInput>
+  }
+
+  /**
+   * ProfileVerification createMany
+   */
+  export type ProfileVerificationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProfileVerifications.
+     */
+    data: ProfileVerificationCreateManyInput | ProfileVerificationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProfileVerification createManyAndReturn
+   */
+  export type ProfileVerificationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ProfileVerifications.
+     */
+    data: ProfileVerificationCreateManyInput | ProfileVerificationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProfileVerification update
+   */
+  export type ProfileVerificationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProfileVerification.
+     */
+    data: XOR<ProfileVerificationUpdateInput, ProfileVerificationUncheckedUpdateInput>
+    /**
+     * Choose, which ProfileVerification to update.
+     */
+    where: ProfileVerificationWhereUniqueInput
+  }
+
+  /**
+   * ProfileVerification updateMany
+   */
+  export type ProfileVerificationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProfileVerifications.
+     */
+    data: XOR<ProfileVerificationUpdateManyMutationInput, ProfileVerificationUncheckedUpdateManyInput>
+    /**
+     * Filter which ProfileVerifications to update
+     */
+    where?: ProfileVerificationWhereInput
+  }
+
+  /**
+   * ProfileVerification upsert
+   */
+  export type ProfileVerificationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProfileVerification to update in case it exists.
+     */
+    where: ProfileVerificationWhereUniqueInput
+    /**
+     * In case the ProfileVerification found by the `where` argument doesn't exist, create a new ProfileVerification with this data.
+     */
+    create: XOR<ProfileVerificationCreateInput, ProfileVerificationUncheckedCreateInput>
+    /**
+     * In case the ProfileVerification was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProfileVerificationUpdateInput, ProfileVerificationUncheckedUpdateInput>
+  }
+
+  /**
+   * ProfileVerification delete
+   */
+  export type ProfileVerificationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+    /**
+     * Filter which ProfileVerification to delete.
+     */
+    where: ProfileVerificationWhereUniqueInput
+  }
+
+  /**
+   * ProfileVerification deleteMany
+   */
+  export type ProfileVerificationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProfileVerifications to delete
+     */
+    where?: ProfileVerificationWhereInput
+  }
+
+  /**
+   * ProfileVerification without action
+   */
+  export type ProfileVerificationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileVerification
+     */
+    select?: ProfileVerificationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileVerificationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProfileDocument
+   */
+
+  export type AggregateProfileDocument = {
+    _count: ProfileDocumentCountAggregateOutputType | null
+    _avg: ProfileDocumentAvgAggregateOutputType | null
+    _sum: ProfileDocumentSumAggregateOutputType | null
+    _min: ProfileDocumentMinAggregateOutputType | null
+    _max: ProfileDocumentMaxAggregateOutputType | null
+  }
+
+  export type ProfileDocumentAvgAggregateOutputType = {
+    sizeBytes: number | null
+  }
+
+  export type ProfileDocumentSumAggregateOutputType = {
+    sizeBytes: number | null
+  }
+
+  export type ProfileDocumentMinAggregateOutputType = {
+    id: string | null
+    profileId: string | null
+    type: string | null
+    name: string | null
+    storageKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    status: string | null
+    uploadedAt: Date | null
+  }
+
+  export type ProfileDocumentMaxAggregateOutputType = {
+    id: string | null
+    profileId: string | null
+    type: string | null
+    name: string | null
+    storageKey: string | null
+    mimeType: string | null
+    sizeBytes: number | null
+    status: string | null
+    uploadedAt: Date | null
+  }
+
+  export type ProfileDocumentCountAggregateOutputType = {
+    id: number
+    profileId: number
+    type: number
+    name: number
+    storageKey: number
+    mimeType: number
+    sizeBytes: number
+    status: number
+    uploadedAt: number
+    _all: number
+  }
+
+
+  export type ProfileDocumentAvgAggregateInputType = {
+    sizeBytes?: true
+  }
+
+  export type ProfileDocumentSumAggregateInputType = {
+    sizeBytes?: true
+  }
+
+  export type ProfileDocumentMinAggregateInputType = {
+    id?: true
+    profileId?: true
+    type?: true
+    name?: true
+    storageKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    status?: true
+    uploadedAt?: true
+  }
+
+  export type ProfileDocumentMaxAggregateInputType = {
+    id?: true
+    profileId?: true
+    type?: true
+    name?: true
+    storageKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    status?: true
+    uploadedAt?: true
+  }
+
+  export type ProfileDocumentCountAggregateInputType = {
+    id?: true
+    profileId?: true
+    type?: true
+    name?: true
+    storageKey?: true
+    mimeType?: true
+    sizeBytes?: true
+    status?: true
+    uploadedAt?: true
+    _all?: true
+  }
+
+  export type ProfileDocumentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProfileDocument to aggregate.
+     */
+    where?: ProfileDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileDocuments to fetch.
+     */
+    orderBy?: ProfileDocumentOrderByWithRelationInput | ProfileDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProfileDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileDocuments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProfileDocuments
+    **/
+    _count?: true | ProfileDocumentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProfileDocumentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProfileDocumentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProfileDocumentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProfileDocumentMaxAggregateInputType
+  }
+
+  export type GetProfileDocumentAggregateType<T extends ProfileDocumentAggregateArgs> = {
+        [P in keyof T & keyof AggregateProfileDocument]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProfileDocument[P]>
+      : GetScalarType<T[P], AggregateProfileDocument[P]>
+  }
+
+
+
+
+  export type ProfileDocumentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProfileDocumentWhereInput
+    orderBy?: ProfileDocumentOrderByWithAggregationInput | ProfileDocumentOrderByWithAggregationInput[]
+    by: ProfileDocumentScalarFieldEnum[] | ProfileDocumentScalarFieldEnum
+    having?: ProfileDocumentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProfileDocumentCountAggregateInputType | true
+    _avg?: ProfileDocumentAvgAggregateInputType
+    _sum?: ProfileDocumentSumAggregateInputType
+    _min?: ProfileDocumentMinAggregateInputType
+    _max?: ProfileDocumentMaxAggregateInputType
+  }
+
+  export type ProfileDocumentGroupByOutputType = {
+    id: string
+    profileId: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt: Date
+    _count: ProfileDocumentCountAggregateOutputType | null
+    _avg: ProfileDocumentAvgAggregateOutputType | null
+    _sum: ProfileDocumentSumAggregateOutputType | null
+    _min: ProfileDocumentMinAggregateOutputType | null
+    _max: ProfileDocumentMaxAggregateOutputType | null
+  }
+
+  type GetProfileDocumentGroupByPayload<T extends ProfileDocumentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProfileDocumentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProfileDocumentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProfileDocumentGroupByOutputType[P]>
+            : GetScalarType<T[P], ProfileDocumentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProfileDocumentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    profileId?: boolean
+    type?: boolean
+    name?: boolean
+    storageKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    status?: boolean
+    uploadedAt?: boolean
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["profileDocument"]>
+
+  export type ProfileDocumentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    profileId?: boolean
+    type?: boolean
+    name?: boolean
+    storageKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    status?: boolean
+    uploadedAt?: boolean
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["profileDocument"]>
+
+  export type ProfileDocumentSelectScalar = {
+    id?: boolean
+    profileId?: boolean
+    type?: boolean
+    name?: boolean
+    storageKey?: boolean
+    mimeType?: boolean
+    sizeBytes?: boolean
+    status?: boolean
+    uploadedAt?: boolean
+  }
+
+  export type ProfileDocumentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type ProfileDocumentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $ProfileDocumentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProfileDocument"
+    objects: {
+      profile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      profileId: string
+      type: string
+      name: string
+      storageKey: string
+      mimeType: string
+      sizeBytes: number
+      status: string
+      uploadedAt: Date
+    }, ExtArgs["result"]["profileDocument"]>
+    composites: {}
+  }
+
+  type ProfileDocumentGetPayload<S extends boolean | null | undefined | ProfileDocumentDefaultArgs> = $Result.GetResult<Prisma.$ProfileDocumentPayload, S>
+
+  type ProfileDocumentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ProfileDocumentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ProfileDocumentCountAggregateInputType | true
+    }
+
+  export interface ProfileDocumentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProfileDocument'], meta: { name: 'ProfileDocument' } }
+    /**
+     * Find zero or one ProfileDocument that matches the filter.
+     * @param {ProfileDocumentFindUniqueArgs} args - Arguments to find a ProfileDocument
+     * @example
+     * // Get one ProfileDocument
+     * const profileDocument = await prisma.profileDocument.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProfileDocumentFindUniqueArgs>(args: SelectSubset<T, ProfileDocumentFindUniqueArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ProfileDocument that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ProfileDocumentFindUniqueOrThrowArgs} args - Arguments to find a ProfileDocument
+     * @example
+     * // Get one ProfileDocument
+     * const profileDocument = await prisma.profileDocument.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProfileDocumentFindUniqueOrThrowArgs>(args: SelectSubset<T, ProfileDocumentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ProfileDocument that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentFindFirstArgs} args - Arguments to find a ProfileDocument
+     * @example
+     * // Get one ProfileDocument
+     * const profileDocument = await prisma.profileDocument.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProfileDocumentFindFirstArgs>(args?: SelectSubset<T, ProfileDocumentFindFirstArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ProfileDocument that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentFindFirstOrThrowArgs} args - Arguments to find a ProfileDocument
+     * @example
+     * // Get one ProfileDocument
+     * const profileDocument = await prisma.profileDocument.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProfileDocumentFindFirstOrThrowArgs>(args?: SelectSubset<T, ProfileDocumentFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ProfileDocuments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProfileDocuments
+     * const profileDocuments = await prisma.profileDocument.findMany()
+     * 
+     * // Get first 10 ProfileDocuments
+     * const profileDocuments = await prisma.profileDocument.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const profileDocumentWithIdOnly = await prisma.profileDocument.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProfileDocumentFindManyArgs>(args?: SelectSubset<T, ProfileDocumentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ProfileDocument.
+     * @param {ProfileDocumentCreateArgs} args - Arguments to create a ProfileDocument.
+     * @example
+     * // Create one ProfileDocument
+     * const ProfileDocument = await prisma.profileDocument.create({
+     *   data: {
+     *     // ... data to create a ProfileDocument
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProfileDocumentCreateArgs>(args: SelectSubset<T, ProfileDocumentCreateArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ProfileDocuments.
+     * @param {ProfileDocumentCreateManyArgs} args - Arguments to create many ProfileDocuments.
+     * @example
+     * // Create many ProfileDocuments
+     * const profileDocument = await prisma.profileDocument.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProfileDocumentCreateManyArgs>(args?: SelectSubset<T, ProfileDocumentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProfileDocuments and returns the data saved in the database.
+     * @param {ProfileDocumentCreateManyAndReturnArgs} args - Arguments to create many ProfileDocuments.
+     * @example
+     * // Create many ProfileDocuments
+     * const profileDocument = await prisma.profileDocument.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProfileDocuments and only return the `id`
+     * const profileDocumentWithIdOnly = await prisma.profileDocument.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProfileDocumentCreateManyAndReturnArgs>(args?: SelectSubset<T, ProfileDocumentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ProfileDocument.
+     * @param {ProfileDocumentDeleteArgs} args - Arguments to delete one ProfileDocument.
+     * @example
+     * // Delete one ProfileDocument
+     * const ProfileDocument = await prisma.profileDocument.delete({
+     *   where: {
+     *     // ... filter to delete one ProfileDocument
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProfileDocumentDeleteArgs>(args: SelectSubset<T, ProfileDocumentDeleteArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ProfileDocument.
+     * @param {ProfileDocumentUpdateArgs} args - Arguments to update one ProfileDocument.
+     * @example
+     * // Update one ProfileDocument
+     * const profileDocument = await prisma.profileDocument.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProfileDocumentUpdateArgs>(args: SelectSubset<T, ProfileDocumentUpdateArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ProfileDocuments.
+     * @param {ProfileDocumentDeleteManyArgs} args - Arguments to filter ProfileDocuments to delete.
+     * @example
+     * // Delete a few ProfileDocuments
+     * const { count } = await prisma.profileDocument.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProfileDocumentDeleteManyArgs>(args?: SelectSubset<T, ProfileDocumentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProfileDocuments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProfileDocuments
+     * const profileDocument = await prisma.profileDocument.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProfileDocumentUpdateManyArgs>(args: SelectSubset<T, ProfileDocumentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ProfileDocument.
+     * @param {ProfileDocumentUpsertArgs} args - Arguments to update or create a ProfileDocument.
+     * @example
+     * // Update or create a ProfileDocument
+     * const profileDocument = await prisma.profileDocument.upsert({
+     *   create: {
+     *     // ... data to create a ProfileDocument
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProfileDocument we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProfileDocumentUpsertArgs>(args: SelectSubset<T, ProfileDocumentUpsertArgs<ExtArgs>>): Prisma__ProfileDocumentClient<$Result.GetResult<Prisma.$ProfileDocumentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ProfileDocuments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentCountArgs} args - Arguments to filter ProfileDocuments to count.
+     * @example
+     * // Count the number of ProfileDocuments
+     * const count = await prisma.profileDocument.count({
+     *   where: {
+     *     // ... the filter for the ProfileDocuments we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProfileDocumentCountArgs>(
+      args?: Subset<T, ProfileDocumentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProfileDocumentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProfileDocument.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProfileDocumentAggregateArgs>(args: Subset<T, ProfileDocumentAggregateArgs>): Prisma.PrismaPromise<GetProfileDocumentAggregateType<T>>
+
+    /**
+     * Group by ProfileDocument.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileDocumentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProfileDocumentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProfileDocumentGroupByArgs['orderBy'] }
+        : { orderBy?: ProfileDocumentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProfileDocumentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProfileDocumentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProfileDocument model
+   */
+  readonly fields: ProfileDocumentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProfileDocument.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProfileDocumentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    profile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProfileDocument model
+   */ 
+  interface ProfileDocumentFieldRefs {
+    readonly id: FieldRef<"ProfileDocument", 'String'>
+    readonly profileId: FieldRef<"ProfileDocument", 'String'>
+    readonly type: FieldRef<"ProfileDocument", 'String'>
+    readonly name: FieldRef<"ProfileDocument", 'String'>
+    readonly storageKey: FieldRef<"ProfileDocument", 'String'>
+    readonly mimeType: FieldRef<"ProfileDocument", 'String'>
+    readonly sizeBytes: FieldRef<"ProfileDocument", 'Int'>
+    readonly status: FieldRef<"ProfileDocument", 'String'>
+    readonly uploadedAt: FieldRef<"ProfileDocument", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProfileDocument findUnique
+   */
+  export type ProfileDocumentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileDocument to fetch.
+     */
+    where: ProfileDocumentWhereUniqueInput
+  }
+
+  /**
+   * ProfileDocument findUniqueOrThrow
+   */
+  export type ProfileDocumentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileDocument to fetch.
+     */
+    where: ProfileDocumentWhereUniqueInput
+  }
+
+  /**
+   * ProfileDocument findFirst
+   */
+  export type ProfileDocumentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileDocument to fetch.
+     */
+    where?: ProfileDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileDocuments to fetch.
+     */
+    orderBy?: ProfileDocumentOrderByWithRelationInput | ProfileDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProfileDocuments.
+     */
+    cursor?: ProfileDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileDocuments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProfileDocuments.
+     */
+    distinct?: ProfileDocumentScalarFieldEnum | ProfileDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileDocument findFirstOrThrow
+   */
+  export type ProfileDocumentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileDocument to fetch.
+     */
+    where?: ProfileDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileDocuments to fetch.
+     */
+    orderBy?: ProfileDocumentOrderByWithRelationInput | ProfileDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProfileDocuments.
+     */
+    cursor?: ProfileDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileDocuments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProfileDocuments.
+     */
+    distinct?: ProfileDocumentScalarFieldEnum | ProfileDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileDocument findMany
+   */
+  export type ProfileDocumentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileDocuments to fetch.
+     */
+    where?: ProfileDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileDocuments to fetch.
+     */
+    orderBy?: ProfileDocumentOrderByWithRelationInput | ProfileDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProfileDocuments.
+     */
+    cursor?: ProfileDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileDocuments.
+     */
+    skip?: number
+    distinct?: ProfileDocumentScalarFieldEnum | ProfileDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileDocument create
+   */
+  export type ProfileDocumentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProfileDocument.
+     */
+    data: XOR<ProfileDocumentCreateInput, ProfileDocumentUncheckedCreateInput>
+  }
+
+  /**
+   * ProfileDocument createMany
+   */
+  export type ProfileDocumentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProfileDocuments.
+     */
+    data: ProfileDocumentCreateManyInput | ProfileDocumentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProfileDocument createManyAndReturn
+   */
+  export type ProfileDocumentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ProfileDocuments.
+     */
+    data: ProfileDocumentCreateManyInput | ProfileDocumentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProfileDocument update
+   */
+  export type ProfileDocumentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProfileDocument.
+     */
+    data: XOR<ProfileDocumentUpdateInput, ProfileDocumentUncheckedUpdateInput>
+    /**
+     * Choose, which ProfileDocument to update.
+     */
+    where: ProfileDocumentWhereUniqueInput
+  }
+
+  /**
+   * ProfileDocument updateMany
+   */
+  export type ProfileDocumentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProfileDocuments.
+     */
+    data: XOR<ProfileDocumentUpdateManyMutationInput, ProfileDocumentUncheckedUpdateManyInput>
+    /**
+     * Filter which ProfileDocuments to update
+     */
+    where?: ProfileDocumentWhereInput
+  }
+
+  /**
+   * ProfileDocument upsert
+   */
+  export type ProfileDocumentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProfileDocument to update in case it exists.
+     */
+    where: ProfileDocumentWhereUniqueInput
+    /**
+     * In case the ProfileDocument found by the `where` argument doesn't exist, create a new ProfileDocument with this data.
+     */
+    create: XOR<ProfileDocumentCreateInput, ProfileDocumentUncheckedCreateInput>
+    /**
+     * In case the ProfileDocument was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProfileDocumentUpdateInput, ProfileDocumentUncheckedUpdateInput>
+  }
+
+  /**
+   * ProfileDocument delete
+   */
+  export type ProfileDocumentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+    /**
+     * Filter which ProfileDocument to delete.
+     */
+    where: ProfileDocumentWhereUniqueInput
+  }
+
+  /**
+   * ProfileDocument deleteMany
+   */
+  export type ProfileDocumentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProfileDocuments to delete
+     */
+    where?: ProfileDocumentWhereInput
+  }
+
+  /**
+   * ProfileDocument without action
+   */
+  export type ProfileDocumentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileDocument
+     */
+    select?: ProfileDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileDocumentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProfileAuditLog
+   */
+
+  export type AggregateProfileAuditLog = {
+    _count: ProfileAuditLogCountAggregateOutputType | null
+    _min: ProfileAuditLogMinAggregateOutputType | null
+    _max: ProfileAuditLogMaxAggregateOutputType | null
+  }
+
+  export type ProfileAuditLogMinAggregateOutputType = {
+    id: string | null
+    profileId: string | null
+    userId: string | null
+    actorUserId: string | null
+    action: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date | null
+  }
+
+  export type ProfileAuditLogMaxAggregateOutputType = {
+    id: string | null
+    profileId: string | null
+    userId: string | null
+    actorUserId: string | null
+    action: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date | null
+  }
+
+  export type ProfileAuditLogCountAggregateOutputType = {
+    id: number
+    profileId: number
+    userId: number
+    actorUserId: number
+    action: number
+    before: number
+    after: number
+    ipAddress: number
+    userAgent: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProfileAuditLogMinAggregateInputType = {
+    id?: true
+    profileId?: true
+    userId?: true
+    actorUserId?: true
+    action?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+  }
+
+  export type ProfileAuditLogMaxAggregateInputType = {
+    id?: true
+    profileId?: true
+    userId?: true
+    actorUserId?: true
+    action?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+  }
+
+  export type ProfileAuditLogCountAggregateInputType = {
+    id?: true
+    profileId?: true
+    userId?: true
+    actorUserId?: true
+    action?: true
+    before?: true
+    after?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProfileAuditLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProfileAuditLog to aggregate.
+     */
+    where?: ProfileAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileAuditLogs to fetch.
+     */
+    orderBy?: ProfileAuditLogOrderByWithRelationInput | ProfileAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProfileAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProfileAuditLogs
+    **/
+    _count?: true | ProfileAuditLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProfileAuditLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProfileAuditLogMaxAggregateInputType
+  }
+
+  export type GetProfileAuditLogAggregateType<T extends ProfileAuditLogAggregateArgs> = {
+        [P in keyof T & keyof AggregateProfileAuditLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProfileAuditLog[P]>
+      : GetScalarType<T[P], AggregateProfileAuditLog[P]>
+  }
+
+
+
+
+  export type ProfileAuditLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProfileAuditLogWhereInput
+    orderBy?: ProfileAuditLogOrderByWithAggregationInput | ProfileAuditLogOrderByWithAggregationInput[]
+    by: ProfileAuditLogScalarFieldEnum[] | ProfileAuditLogScalarFieldEnum
+    having?: ProfileAuditLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProfileAuditLogCountAggregateInputType | true
+    _min?: ProfileAuditLogMinAggregateInputType
+    _max?: ProfileAuditLogMaxAggregateInputType
+  }
+
+  export type ProfileAuditLogGroupByOutputType = {
+    id: string
+    profileId: string
+    userId: string
+    actorUserId: string
+    action: string
+    before: JsonValue
+    after: JsonValue
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date
+    _count: ProfileAuditLogCountAggregateOutputType | null
+    _min: ProfileAuditLogMinAggregateOutputType | null
+    _max: ProfileAuditLogMaxAggregateOutputType | null
+  }
+
+  type GetProfileAuditLogGroupByPayload<T extends ProfileAuditLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProfileAuditLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProfileAuditLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProfileAuditLogGroupByOutputType[P]>
+            : GetScalarType<T[P], ProfileAuditLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProfileAuditLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    profileId?: boolean
+    userId?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    before?: boolean
+    after?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["profileAuditLog"]>
+
+  export type ProfileAuditLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    profileId?: boolean
+    userId?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    before?: boolean
+    after?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["profileAuditLog"]>
+
+  export type ProfileAuditLogSelectScalar = {
+    id?: boolean
+    profileId?: boolean
+    userId?: boolean
+    actorUserId?: boolean
+    action?: boolean
+    before?: boolean
+    after?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProfileAuditLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type ProfileAuditLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    profile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $ProfileAuditLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProfileAuditLog"
+    objects: {
+      profile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      profileId: string
+      userId: string
+      actorUserId: string
+      action: string
+      before: Prisma.JsonValue
+      after: Prisma.JsonValue
+      ipAddress: string | null
+      userAgent: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["profileAuditLog"]>
+    composites: {}
+  }
+
+  type ProfileAuditLogGetPayload<S extends boolean | null | undefined | ProfileAuditLogDefaultArgs> = $Result.GetResult<Prisma.$ProfileAuditLogPayload, S>
+
+  type ProfileAuditLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ProfileAuditLogFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ProfileAuditLogCountAggregateInputType | true
+    }
+
+  export interface ProfileAuditLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProfileAuditLog'], meta: { name: 'ProfileAuditLog' } }
+    /**
+     * Find zero or one ProfileAuditLog that matches the filter.
+     * @param {ProfileAuditLogFindUniqueArgs} args - Arguments to find a ProfileAuditLog
+     * @example
+     * // Get one ProfileAuditLog
+     * const profileAuditLog = await prisma.profileAuditLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProfileAuditLogFindUniqueArgs>(args: SelectSubset<T, ProfileAuditLogFindUniqueArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ProfileAuditLog that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ProfileAuditLogFindUniqueOrThrowArgs} args - Arguments to find a ProfileAuditLog
+     * @example
+     * // Get one ProfileAuditLog
+     * const profileAuditLog = await prisma.profileAuditLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProfileAuditLogFindUniqueOrThrowArgs>(args: SelectSubset<T, ProfileAuditLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ProfileAuditLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogFindFirstArgs} args - Arguments to find a ProfileAuditLog
+     * @example
+     * // Get one ProfileAuditLog
+     * const profileAuditLog = await prisma.profileAuditLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProfileAuditLogFindFirstArgs>(args?: SelectSubset<T, ProfileAuditLogFindFirstArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ProfileAuditLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogFindFirstOrThrowArgs} args - Arguments to find a ProfileAuditLog
+     * @example
+     * // Get one ProfileAuditLog
+     * const profileAuditLog = await prisma.profileAuditLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProfileAuditLogFindFirstOrThrowArgs>(args?: SelectSubset<T, ProfileAuditLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ProfileAuditLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProfileAuditLogs
+     * const profileAuditLogs = await prisma.profileAuditLog.findMany()
+     * 
+     * // Get first 10 ProfileAuditLogs
+     * const profileAuditLogs = await prisma.profileAuditLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const profileAuditLogWithIdOnly = await prisma.profileAuditLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProfileAuditLogFindManyArgs>(args?: SelectSubset<T, ProfileAuditLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ProfileAuditLog.
+     * @param {ProfileAuditLogCreateArgs} args - Arguments to create a ProfileAuditLog.
+     * @example
+     * // Create one ProfileAuditLog
+     * const ProfileAuditLog = await prisma.profileAuditLog.create({
+     *   data: {
+     *     // ... data to create a ProfileAuditLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProfileAuditLogCreateArgs>(args: SelectSubset<T, ProfileAuditLogCreateArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ProfileAuditLogs.
+     * @param {ProfileAuditLogCreateManyArgs} args - Arguments to create many ProfileAuditLogs.
+     * @example
+     * // Create many ProfileAuditLogs
+     * const profileAuditLog = await prisma.profileAuditLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProfileAuditLogCreateManyArgs>(args?: SelectSubset<T, ProfileAuditLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProfileAuditLogs and returns the data saved in the database.
+     * @param {ProfileAuditLogCreateManyAndReturnArgs} args - Arguments to create many ProfileAuditLogs.
+     * @example
+     * // Create many ProfileAuditLogs
+     * const profileAuditLog = await prisma.profileAuditLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProfileAuditLogs and only return the `id`
+     * const profileAuditLogWithIdOnly = await prisma.profileAuditLog.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProfileAuditLogCreateManyAndReturnArgs>(args?: SelectSubset<T, ProfileAuditLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ProfileAuditLog.
+     * @param {ProfileAuditLogDeleteArgs} args - Arguments to delete one ProfileAuditLog.
+     * @example
+     * // Delete one ProfileAuditLog
+     * const ProfileAuditLog = await prisma.profileAuditLog.delete({
+     *   where: {
+     *     // ... filter to delete one ProfileAuditLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProfileAuditLogDeleteArgs>(args: SelectSubset<T, ProfileAuditLogDeleteArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ProfileAuditLog.
+     * @param {ProfileAuditLogUpdateArgs} args - Arguments to update one ProfileAuditLog.
+     * @example
+     * // Update one ProfileAuditLog
+     * const profileAuditLog = await prisma.profileAuditLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProfileAuditLogUpdateArgs>(args: SelectSubset<T, ProfileAuditLogUpdateArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ProfileAuditLogs.
+     * @param {ProfileAuditLogDeleteManyArgs} args - Arguments to filter ProfileAuditLogs to delete.
+     * @example
+     * // Delete a few ProfileAuditLogs
+     * const { count } = await prisma.profileAuditLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProfileAuditLogDeleteManyArgs>(args?: SelectSubset<T, ProfileAuditLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProfileAuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProfileAuditLogs
+     * const profileAuditLog = await prisma.profileAuditLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProfileAuditLogUpdateManyArgs>(args: SelectSubset<T, ProfileAuditLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ProfileAuditLog.
+     * @param {ProfileAuditLogUpsertArgs} args - Arguments to update or create a ProfileAuditLog.
+     * @example
+     * // Update or create a ProfileAuditLog
+     * const profileAuditLog = await prisma.profileAuditLog.upsert({
+     *   create: {
+     *     // ... data to create a ProfileAuditLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProfileAuditLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProfileAuditLogUpsertArgs>(args: SelectSubset<T, ProfileAuditLogUpsertArgs<ExtArgs>>): Prisma__ProfileAuditLogClient<$Result.GetResult<Prisma.$ProfileAuditLogPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ProfileAuditLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogCountArgs} args - Arguments to filter ProfileAuditLogs to count.
+     * @example
+     * // Count the number of ProfileAuditLogs
+     * const count = await prisma.profileAuditLog.count({
+     *   where: {
+     *     // ... the filter for the ProfileAuditLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProfileAuditLogCountArgs>(
+      args?: Subset<T, ProfileAuditLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProfileAuditLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProfileAuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProfileAuditLogAggregateArgs>(args: Subset<T, ProfileAuditLogAggregateArgs>): Prisma.PrismaPromise<GetProfileAuditLogAggregateType<T>>
+
+    /**
+     * Group by ProfileAuditLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProfileAuditLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProfileAuditLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProfileAuditLogGroupByArgs['orderBy'] }
+        : { orderBy?: ProfileAuditLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProfileAuditLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProfileAuditLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProfileAuditLog model
+   */
+  readonly fields: ProfileAuditLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProfileAuditLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProfileAuditLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    profile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProfileAuditLog model
+   */ 
+  interface ProfileAuditLogFieldRefs {
+    readonly id: FieldRef<"ProfileAuditLog", 'String'>
+    readonly profileId: FieldRef<"ProfileAuditLog", 'String'>
+    readonly userId: FieldRef<"ProfileAuditLog", 'String'>
+    readonly actorUserId: FieldRef<"ProfileAuditLog", 'String'>
+    readonly action: FieldRef<"ProfileAuditLog", 'String'>
+    readonly before: FieldRef<"ProfileAuditLog", 'Json'>
+    readonly after: FieldRef<"ProfileAuditLog", 'Json'>
+    readonly ipAddress: FieldRef<"ProfileAuditLog", 'String'>
+    readonly userAgent: FieldRef<"ProfileAuditLog", 'String'>
+    readonly createdAt: FieldRef<"ProfileAuditLog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProfileAuditLog findUnique
+   */
+  export type ProfileAuditLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileAuditLog to fetch.
+     */
+    where: ProfileAuditLogWhereUniqueInput
+  }
+
+  /**
+   * ProfileAuditLog findUniqueOrThrow
+   */
+  export type ProfileAuditLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileAuditLog to fetch.
+     */
+    where: ProfileAuditLogWhereUniqueInput
+  }
+
+  /**
+   * ProfileAuditLog findFirst
+   */
+  export type ProfileAuditLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileAuditLog to fetch.
+     */
+    where?: ProfileAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileAuditLogs to fetch.
+     */
+    orderBy?: ProfileAuditLogOrderByWithRelationInput | ProfileAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProfileAuditLogs.
+     */
+    cursor?: ProfileAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProfileAuditLogs.
+     */
+    distinct?: ProfileAuditLogScalarFieldEnum | ProfileAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileAuditLog findFirstOrThrow
+   */
+  export type ProfileAuditLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileAuditLog to fetch.
+     */
+    where?: ProfileAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileAuditLogs to fetch.
+     */
+    orderBy?: ProfileAuditLogOrderByWithRelationInput | ProfileAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProfileAuditLogs.
+     */
+    cursor?: ProfileAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileAuditLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProfileAuditLogs.
+     */
+    distinct?: ProfileAuditLogScalarFieldEnum | ProfileAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileAuditLog findMany
+   */
+  export type ProfileAuditLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter, which ProfileAuditLogs to fetch.
+     */
+    where?: ProfileAuditLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProfileAuditLogs to fetch.
+     */
+    orderBy?: ProfileAuditLogOrderByWithRelationInput | ProfileAuditLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProfileAuditLogs.
+     */
+    cursor?: ProfileAuditLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProfileAuditLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProfileAuditLogs.
+     */
+    skip?: number
+    distinct?: ProfileAuditLogScalarFieldEnum | ProfileAuditLogScalarFieldEnum[]
+  }
+
+  /**
+   * ProfileAuditLog create
+   */
+  export type ProfileAuditLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProfileAuditLog.
+     */
+    data: XOR<ProfileAuditLogCreateInput, ProfileAuditLogUncheckedCreateInput>
+  }
+
+  /**
+   * ProfileAuditLog createMany
+   */
+  export type ProfileAuditLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProfileAuditLogs.
+     */
+    data: ProfileAuditLogCreateManyInput | ProfileAuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProfileAuditLog createManyAndReturn
+   */
+  export type ProfileAuditLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ProfileAuditLogs.
+     */
+    data: ProfileAuditLogCreateManyInput | ProfileAuditLogCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProfileAuditLog update
+   */
+  export type ProfileAuditLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProfileAuditLog.
+     */
+    data: XOR<ProfileAuditLogUpdateInput, ProfileAuditLogUncheckedUpdateInput>
+    /**
+     * Choose, which ProfileAuditLog to update.
+     */
+    where: ProfileAuditLogWhereUniqueInput
+  }
+
+  /**
+   * ProfileAuditLog updateMany
+   */
+  export type ProfileAuditLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProfileAuditLogs.
+     */
+    data: XOR<ProfileAuditLogUpdateManyMutationInput, ProfileAuditLogUncheckedUpdateManyInput>
+    /**
+     * Filter which ProfileAuditLogs to update
+     */
+    where?: ProfileAuditLogWhereInput
+  }
+
+  /**
+   * ProfileAuditLog upsert
+   */
+  export type ProfileAuditLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProfileAuditLog to update in case it exists.
+     */
+    where: ProfileAuditLogWhereUniqueInput
+    /**
+     * In case the ProfileAuditLog found by the `where` argument doesn't exist, create a new ProfileAuditLog with this data.
+     */
+    create: XOR<ProfileAuditLogCreateInput, ProfileAuditLogUncheckedCreateInput>
+    /**
+     * In case the ProfileAuditLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProfileAuditLogUpdateInput, ProfileAuditLogUncheckedUpdateInput>
+  }
+
+  /**
+   * ProfileAuditLog delete
+   */
+  export type ProfileAuditLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
+    /**
+     * Filter which ProfileAuditLog to delete.
+     */
+    where: ProfileAuditLogWhereUniqueInput
+  }
+
+  /**
+   * ProfileAuditLog deleteMany
+   */
+  export type ProfileAuditLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProfileAuditLogs to delete
+     */
+    where?: ProfileAuditLogWhereInput
+  }
+
+  /**
+   * ProfileAuditLog without action
+   */
+  export type ProfileAuditLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProfileAuditLog
+     */
+    select?: ProfileAuditLogSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProfileAuditLogInclude<ExtArgs> | null
   }
 
 
@@ -5070,13 +8540,70 @@ export namespace Prisma {
     id: 'id',
     userId: 'userId',
     displayName: 'displayName',
+    firstName: 'firstName',
+    lastName: 'lastName',
+    phoneNumber: 'phoneNumber',
+    phoneNumberVerifiedAt: 'phoneNumberVerifiedAt',
+    organisation: 'organisation',
     birthDate: 'birthDate',
+    gender: 'gender',
+    country: 'country',
+    address: 'address',
+    preferredLanguage: 'preferredLanguage',
+    completionStatus: 'completionStatus',
+    verifiedAt: 'verifiedAt',
     metadata: 'metadata',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type UserProfileScalarFieldEnum = (typeof UserProfileScalarFieldEnum)[keyof typeof UserProfileScalarFieldEnum]
+
+
+  export const ProfileVerificationScalarFieldEnum: {
+    id: 'id',
+    profileId: 'profileId',
+    status: 'status',
+    type: 'type',
+    rejectedReason: 'rejectedReason',
+    reviewedBy: 'reviewedBy',
+    reviewedAt: 'reviewedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProfileVerificationScalarFieldEnum = (typeof ProfileVerificationScalarFieldEnum)[keyof typeof ProfileVerificationScalarFieldEnum]
+
+
+  export const ProfileDocumentScalarFieldEnum: {
+    id: 'id',
+    profileId: 'profileId',
+    type: 'type',
+    name: 'name',
+    storageKey: 'storageKey',
+    mimeType: 'mimeType',
+    sizeBytes: 'sizeBytes',
+    status: 'status',
+    uploadedAt: 'uploadedAt'
+  };
+
+  export type ProfileDocumentScalarFieldEnum = (typeof ProfileDocumentScalarFieldEnum)[keyof typeof ProfileDocumentScalarFieldEnum]
+
+
+  export const ProfileAuditLogScalarFieldEnum: {
+    id: 'id',
+    profileId: 'profileId',
+    userId: 'userId',
+    actorUserId: 'actorUserId',
+    action: 'action',
+    before: 'before',
+    after: 'after',
+    ipAddress: 'ipAddress',
+    userAgent: 'userAgent',
+    createdAt: 'createdAt'
+  };
+
+  export type ProfileAuditLogScalarFieldEnum = (typeof ProfileAuditLogScalarFieldEnum)[keyof typeof ProfileAuditLogScalarFieldEnum]
 
 
   export const ProfileLocationScalarFieldEnum: {
@@ -5201,13 +8728,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -5218,6 +8738,27 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
   /**
    * Deep Input Types
@@ -5231,26 +8772,54 @@ export namespace Prisma {
     id?: StringFilter<"UserProfile"> | string
     userId?: StringFilter<"UserProfile"> | string
     displayName?: StringNullableFilter<"UserProfile"> | string | null
+    firstName?: StringNullableFilter<"UserProfile"> | string | null
+    lastName?: StringNullableFilter<"UserProfile"> | string | null
+    phoneNumber?: StringNullableFilter<"UserProfile"> | string | null
+    phoneNumberVerifiedAt?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
+    organisation?: StringNullableFilter<"UserProfile"> | string | null
     birthDate?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
+    gender?: StringNullableFilter<"UserProfile"> | string | null
+    country?: StringNullableFilter<"UserProfile"> | string | null
+    address?: StringNullableFilter<"UserProfile"> | string | null
+    preferredLanguage?: StringNullableFilter<"UserProfile"> | string | null
+    completionStatus?: StringNullableFilter<"UserProfile"> | string | null
+    verifiedAt?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     metadata?: JsonFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     locations?: ProfileLocationListRelationFilter
     education?: EducationRecordListRelationFilter
     workHistory?: WorkRecordListRelationFilter
+    verifications?: ProfileVerificationListRelationFilter
+    documents?: ProfileDocumentListRelationFilter
+    auditLogs?: ProfileAuditLogListRelationFilter
   }
 
   export type UserProfileOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
     displayName?: SortOrderInput | SortOrder
+    firstName?: SortOrderInput | SortOrder
+    lastName?: SortOrderInput | SortOrder
+    phoneNumber?: SortOrderInput | SortOrder
+    phoneNumberVerifiedAt?: SortOrderInput | SortOrder
+    organisation?: SortOrderInput | SortOrder
     birthDate?: SortOrderInput | SortOrder
+    gender?: SortOrderInput | SortOrder
+    country?: SortOrderInput | SortOrder
+    address?: SortOrderInput | SortOrder
+    preferredLanguage?: SortOrderInput | SortOrder
+    completionStatus?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     locations?: ProfileLocationOrderByRelationAggregateInput
     education?: EducationRecordOrderByRelationAggregateInput
     workHistory?: WorkRecordOrderByRelationAggregateInput
+    verifications?: ProfileVerificationOrderByRelationAggregateInput
+    documents?: ProfileDocumentOrderByRelationAggregateInput
+    auditLogs?: ProfileAuditLogOrderByRelationAggregateInput
   }
 
   export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -5260,20 +8829,45 @@ export namespace Prisma {
     OR?: UserProfileWhereInput[]
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
     displayName?: StringNullableFilter<"UserProfile"> | string | null
+    firstName?: StringNullableFilter<"UserProfile"> | string | null
+    lastName?: StringNullableFilter<"UserProfile"> | string | null
+    phoneNumber?: StringNullableFilter<"UserProfile"> | string | null
+    phoneNumberVerifiedAt?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
+    organisation?: StringNullableFilter<"UserProfile"> | string | null
     birthDate?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
+    gender?: StringNullableFilter<"UserProfile"> | string | null
+    country?: StringNullableFilter<"UserProfile"> | string | null
+    address?: StringNullableFilter<"UserProfile"> | string | null
+    preferredLanguage?: StringNullableFilter<"UserProfile"> | string | null
+    completionStatus?: StringNullableFilter<"UserProfile"> | string | null
+    verifiedAt?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     metadata?: JsonFilter<"UserProfile">
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     locations?: ProfileLocationListRelationFilter
     education?: EducationRecordListRelationFilter
     workHistory?: WorkRecordListRelationFilter
+    verifications?: ProfileVerificationListRelationFilter
+    documents?: ProfileDocumentListRelationFilter
+    auditLogs?: ProfileAuditLogListRelationFilter
   }, "id" | "userId">
 
   export type UserProfileOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
     displayName?: SortOrderInput | SortOrder
+    firstName?: SortOrderInput | SortOrder
+    lastName?: SortOrderInput | SortOrder
+    phoneNumber?: SortOrderInput | SortOrder
+    phoneNumberVerifiedAt?: SortOrderInput | SortOrder
+    organisation?: SortOrderInput | SortOrder
     birthDate?: SortOrderInput | SortOrder
+    gender?: SortOrderInput | SortOrder
+    country?: SortOrderInput | SortOrder
+    address?: SortOrderInput | SortOrder
+    preferredLanguage?: SortOrderInput | SortOrder
+    completionStatus?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -5289,10 +8883,253 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"UserProfile"> | string
     userId?: StringWithAggregatesFilter<"UserProfile"> | string
     displayName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    firstName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    lastName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    phoneNumber?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    phoneNumberVerifiedAt?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
+    organisation?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     birthDate?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
+    gender?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    country?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    address?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    preferredLanguage?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    completionStatus?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
     metadata?: JsonWithAggregatesFilter<"UserProfile">
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
+  }
+
+  export type ProfileVerificationWhereInput = {
+    AND?: ProfileVerificationWhereInput | ProfileVerificationWhereInput[]
+    OR?: ProfileVerificationWhereInput[]
+    NOT?: ProfileVerificationWhereInput | ProfileVerificationWhereInput[]
+    id?: StringFilter<"ProfileVerification"> | string
+    profileId?: StringFilter<"ProfileVerification"> | string
+    status?: StringFilter<"ProfileVerification"> | string
+    type?: StringFilter<"ProfileVerification"> | string
+    rejectedReason?: StringNullableFilter<"ProfileVerification"> | string | null
+    reviewedBy?: StringNullableFilter<"ProfileVerification"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"ProfileVerification"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProfileVerification"> | Date | string
+    updatedAt?: DateTimeFilter<"ProfileVerification"> | Date | string
+    profile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type ProfileVerificationOrderByWithRelationInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    status?: SortOrder
+    type?: SortOrder
+    rejectedReason?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    profile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type ProfileVerificationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProfileVerificationWhereInput | ProfileVerificationWhereInput[]
+    OR?: ProfileVerificationWhereInput[]
+    NOT?: ProfileVerificationWhereInput | ProfileVerificationWhereInput[]
+    profileId?: StringFilter<"ProfileVerification"> | string
+    status?: StringFilter<"ProfileVerification"> | string
+    type?: StringFilter<"ProfileVerification"> | string
+    rejectedReason?: StringNullableFilter<"ProfileVerification"> | string | null
+    reviewedBy?: StringNullableFilter<"ProfileVerification"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"ProfileVerification"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProfileVerification"> | Date | string
+    updatedAt?: DateTimeFilter<"ProfileVerification"> | Date | string
+    profile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type ProfileVerificationOrderByWithAggregationInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    status?: SortOrder
+    type?: SortOrder
+    rejectedReason?: SortOrderInput | SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProfileVerificationCountOrderByAggregateInput
+    _max?: ProfileVerificationMaxOrderByAggregateInput
+    _min?: ProfileVerificationMinOrderByAggregateInput
+  }
+
+  export type ProfileVerificationScalarWhereWithAggregatesInput = {
+    AND?: ProfileVerificationScalarWhereWithAggregatesInput | ProfileVerificationScalarWhereWithAggregatesInput[]
+    OR?: ProfileVerificationScalarWhereWithAggregatesInput[]
+    NOT?: ProfileVerificationScalarWhereWithAggregatesInput | ProfileVerificationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProfileVerification"> | string
+    profileId?: StringWithAggregatesFilter<"ProfileVerification"> | string
+    status?: StringWithAggregatesFilter<"ProfileVerification"> | string
+    type?: StringWithAggregatesFilter<"ProfileVerification"> | string
+    rejectedReason?: StringNullableWithAggregatesFilter<"ProfileVerification"> | string | null
+    reviewedBy?: StringNullableWithAggregatesFilter<"ProfileVerification"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"ProfileVerification"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProfileVerification"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProfileVerification"> | Date | string
+  }
+
+  export type ProfileDocumentWhereInput = {
+    AND?: ProfileDocumentWhereInput | ProfileDocumentWhereInput[]
+    OR?: ProfileDocumentWhereInput[]
+    NOT?: ProfileDocumentWhereInput | ProfileDocumentWhereInput[]
+    id?: StringFilter<"ProfileDocument"> | string
+    profileId?: StringFilter<"ProfileDocument"> | string
+    type?: StringFilter<"ProfileDocument"> | string
+    name?: StringFilter<"ProfileDocument"> | string
+    storageKey?: StringFilter<"ProfileDocument"> | string
+    mimeType?: StringFilter<"ProfileDocument"> | string
+    sizeBytes?: IntFilter<"ProfileDocument"> | number
+    status?: StringFilter<"ProfileDocument"> | string
+    uploadedAt?: DateTimeFilter<"ProfileDocument"> | Date | string
+    profile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type ProfileDocumentOrderByWithRelationInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    storageKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    status?: SortOrder
+    uploadedAt?: SortOrder
+    profile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type ProfileDocumentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProfileDocumentWhereInput | ProfileDocumentWhereInput[]
+    OR?: ProfileDocumentWhereInput[]
+    NOT?: ProfileDocumentWhereInput | ProfileDocumentWhereInput[]
+    profileId?: StringFilter<"ProfileDocument"> | string
+    type?: StringFilter<"ProfileDocument"> | string
+    name?: StringFilter<"ProfileDocument"> | string
+    storageKey?: StringFilter<"ProfileDocument"> | string
+    mimeType?: StringFilter<"ProfileDocument"> | string
+    sizeBytes?: IntFilter<"ProfileDocument"> | number
+    status?: StringFilter<"ProfileDocument"> | string
+    uploadedAt?: DateTimeFilter<"ProfileDocument"> | Date | string
+    profile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type ProfileDocumentOrderByWithAggregationInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    storageKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    status?: SortOrder
+    uploadedAt?: SortOrder
+    _count?: ProfileDocumentCountOrderByAggregateInput
+    _avg?: ProfileDocumentAvgOrderByAggregateInput
+    _max?: ProfileDocumentMaxOrderByAggregateInput
+    _min?: ProfileDocumentMinOrderByAggregateInput
+    _sum?: ProfileDocumentSumOrderByAggregateInput
+  }
+
+  export type ProfileDocumentScalarWhereWithAggregatesInput = {
+    AND?: ProfileDocumentScalarWhereWithAggregatesInput | ProfileDocumentScalarWhereWithAggregatesInput[]
+    OR?: ProfileDocumentScalarWhereWithAggregatesInput[]
+    NOT?: ProfileDocumentScalarWhereWithAggregatesInput | ProfileDocumentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    profileId?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    type?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    name?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    storageKey?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    mimeType?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    sizeBytes?: IntWithAggregatesFilter<"ProfileDocument"> | number
+    status?: StringWithAggregatesFilter<"ProfileDocument"> | string
+    uploadedAt?: DateTimeWithAggregatesFilter<"ProfileDocument"> | Date | string
+  }
+
+  export type ProfileAuditLogWhereInput = {
+    AND?: ProfileAuditLogWhereInput | ProfileAuditLogWhereInput[]
+    OR?: ProfileAuditLogWhereInput[]
+    NOT?: ProfileAuditLogWhereInput | ProfileAuditLogWhereInput[]
+    id?: StringFilter<"ProfileAuditLog"> | string
+    profileId?: StringFilter<"ProfileAuditLog"> | string
+    userId?: StringFilter<"ProfileAuditLog"> | string
+    actorUserId?: StringFilter<"ProfileAuditLog"> | string
+    action?: StringFilter<"ProfileAuditLog"> | string
+    before?: JsonFilter<"ProfileAuditLog">
+    after?: JsonFilter<"ProfileAuditLog">
+    ipAddress?: StringNullableFilter<"ProfileAuditLog"> | string | null
+    userAgent?: StringNullableFilter<"ProfileAuditLog"> | string | null
+    createdAt?: DateTimeFilter<"ProfileAuditLog"> | Date | string
+    profile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type ProfileAuditLogOrderByWithRelationInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    userId?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    before?: SortOrder
+    after?: SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    profile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type ProfileAuditLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProfileAuditLogWhereInput | ProfileAuditLogWhereInput[]
+    OR?: ProfileAuditLogWhereInput[]
+    NOT?: ProfileAuditLogWhereInput | ProfileAuditLogWhereInput[]
+    profileId?: StringFilter<"ProfileAuditLog"> | string
+    userId?: StringFilter<"ProfileAuditLog"> | string
+    actorUserId?: StringFilter<"ProfileAuditLog"> | string
+    action?: StringFilter<"ProfileAuditLog"> | string
+    before?: JsonFilter<"ProfileAuditLog">
+    after?: JsonFilter<"ProfileAuditLog">
+    ipAddress?: StringNullableFilter<"ProfileAuditLog"> | string | null
+    userAgent?: StringNullableFilter<"ProfileAuditLog"> | string | null
+    createdAt?: DateTimeFilter<"ProfileAuditLog"> | Date | string
+    profile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type ProfileAuditLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    userId?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    before?: SortOrder
+    after?: SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ProfileAuditLogCountOrderByAggregateInput
+    _max?: ProfileAuditLogMaxOrderByAggregateInput
+    _min?: ProfileAuditLogMinOrderByAggregateInput
+  }
+
+  export type ProfileAuditLogScalarWhereWithAggregatesInput = {
+    AND?: ProfileAuditLogScalarWhereWithAggregatesInput | ProfileAuditLogScalarWhereWithAggregatesInput[]
+    OR?: ProfileAuditLogScalarWhereWithAggregatesInput[]
+    NOT?: ProfileAuditLogScalarWhereWithAggregatesInput | ProfileAuditLogScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProfileAuditLog"> | string
+    profileId?: StringWithAggregatesFilter<"ProfileAuditLog"> | string
+    userId?: StringWithAggregatesFilter<"ProfileAuditLog"> | string
+    actorUserId?: StringWithAggregatesFilter<"ProfileAuditLog"> | string
+    action?: StringWithAggregatesFilter<"ProfileAuditLog"> | string
+    before?: JsonWithAggregatesFilter<"ProfileAuditLog">
+    after?: JsonWithAggregatesFilter<"ProfileAuditLog">
+    ipAddress?: StringNullableWithAggregatesFilter<"ProfileAuditLog"> | string | null
+    userAgent?: StringNullableWithAggregatesFilter<"ProfileAuditLog"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProfileAuditLog"> | Date | string
   }
 
   export type ProfileLocationWhereInput = {
@@ -5504,59 +9341,126 @@ export namespace Prisma {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     locations?: ProfileLocationCreateNestedManyWithoutProfileInput
     education?: EducationRecordCreateNestedManyWithoutProfileInput
     workHistory?: WorkRecordCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileUncheckedCreateInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     locations?: ProfileLocationUncheckedCreateNestedManyWithoutProfileInput
     education?: EducationRecordUncheckedCreateNestedManyWithoutProfileInput
     workHistory?: WorkRecordUncheckedCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     locations?: ProfileLocationUpdateManyWithoutProfileNestedInput
     education?: EducationRecordUpdateManyWithoutProfileNestedInput
     workHistory?: WorkRecordUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     locations?: ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput
     education?: EducationRecordUncheckedUpdateManyWithoutProfileNestedInput
     workHistory?: WorkRecordUncheckedUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileCreateManyInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -5566,7 +9470,18 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -5576,10 +9491,277 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileVerificationCreateInput = {
+    id?: string
+    status: string
+    type: string
+    rejectedReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    profile: UserProfileCreateNestedOneWithoutVerificationsInput
+  }
+
+  export type ProfileVerificationUncheckedCreateInput = {
+    id?: string
+    profileId: string
+    status: string
+    type: string
+    rejectedReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProfileVerificationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    profile?: UserProfileUpdateOneRequiredWithoutVerificationsNestedInput
+  }
+
+  export type ProfileVerificationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    profileId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileVerificationCreateManyInput = {
+    id?: string
+    profileId: string
+    status: string
+    type: string
+    rejectedReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProfileVerificationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileVerificationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    profileId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileDocumentCreateInput = {
+    id?: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt?: Date | string
+    profile: UserProfileCreateNestedOneWithoutDocumentsInput
+  }
+
+  export type ProfileDocumentUncheckedCreateInput = {
+    id?: string
+    profileId: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt?: Date | string
+  }
+
+  export type ProfileDocumentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    profile?: UserProfileUpdateOneRequiredWithoutDocumentsNestedInput
+  }
+
+  export type ProfileDocumentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    profileId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileDocumentCreateManyInput = {
+    id?: string
+    profileId: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt?: Date | string
+  }
+
+  export type ProfileDocumentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileDocumentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    profileId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileAuditLogCreateInput = {
+    id?: string
+    userId: string
+    actorUserId: string
+    action: string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+    profile: UserProfileCreateNestedOneWithoutAuditLogsInput
+  }
+
+  export type ProfileAuditLogUncheckedCreateInput = {
+    id?: string
+    profileId: string
+    userId: string
+    actorUserId: string
+    action: string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProfileAuditLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    profile?: UserProfileUpdateOneRequiredWithoutAuditLogsNestedInput
+  }
+
+  export type ProfileAuditLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    profileId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileAuditLogCreateManyInput = {
+    id?: string
+    profileId: string
+    userId: string
+    actorUserId: string
+    action: string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProfileAuditLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileAuditLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    profileId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProfileLocationCreateInput = {
@@ -5895,6 +10077,24 @@ export namespace Prisma {
     none?: WorkRecordWhereInput
   }
 
+  export type ProfileVerificationListRelationFilter = {
+    every?: ProfileVerificationWhereInput
+    some?: ProfileVerificationWhereInput
+    none?: ProfileVerificationWhereInput
+  }
+
+  export type ProfileDocumentListRelationFilter = {
+    every?: ProfileDocumentWhereInput
+    some?: ProfileDocumentWhereInput
+    none?: ProfileDocumentWhereInput
+  }
+
+  export type ProfileAuditLogListRelationFilter = {
+    every?: ProfileAuditLogWhereInput
+    some?: ProfileAuditLogWhereInput
+    none?: ProfileAuditLogWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -5912,11 +10112,34 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type ProfileVerificationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProfileDocumentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProfileAuditLogOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type UserProfileCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
     displayName?: SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
+    phoneNumber?: SortOrder
+    phoneNumberVerifiedAt?: SortOrder
+    organisation?: SortOrder
     birthDate?: SortOrder
+    gender?: SortOrder
+    country?: SortOrder
+    address?: SortOrder
+    preferredLanguage?: SortOrder
+    completionStatus?: SortOrder
+    verifiedAt?: SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -5926,7 +10149,18 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     displayName?: SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
+    phoneNumber?: SortOrder
+    phoneNumberVerifiedAt?: SortOrder
+    organisation?: SortOrder
     birthDate?: SortOrder
+    gender?: SortOrder
+    country?: SortOrder
+    address?: SortOrder
+    preferredLanguage?: SortOrder
+    completionStatus?: SortOrder
+    verifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -5935,7 +10169,18 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     displayName?: SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
+    phoneNumber?: SortOrder
+    phoneNumberVerifiedAt?: SortOrder
+    organisation?: SortOrder
     birthDate?: SortOrder
+    gender?: SortOrder
+    country?: SortOrder
+    address?: SortOrder
+    preferredLanguage?: SortOrder
+    completionStatus?: SortOrder
+    verifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -6029,14 +10274,156 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type UserProfileRelationFilter = {
     is?: UserProfileWhereInput
     isNot?: UserProfileWhereInput
+  }
+
+  export type ProfileVerificationCountOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    status?: SortOrder
+    type?: SortOrder
+    rejectedReason?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProfileVerificationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    status?: SortOrder
+    type?: SortOrder
+    rejectedReason?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProfileVerificationMinOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    status?: SortOrder
+    type?: SortOrder
+    rejectedReason?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type ProfileDocumentCountOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    storageKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    status?: SortOrder
+    uploadedAt?: SortOrder
+  }
+
+  export type ProfileDocumentAvgOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+  }
+
+  export type ProfileDocumentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    storageKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    status?: SortOrder
+    uploadedAt?: SortOrder
+  }
+
+  export type ProfileDocumentMinOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    type?: SortOrder
+    name?: SortOrder
+    storageKey?: SortOrder
+    mimeType?: SortOrder
+    sizeBytes?: SortOrder
+    status?: SortOrder
+    uploadedAt?: SortOrder
+  }
+
+  export type ProfileDocumentSumOrderByAggregateInput = {
+    sizeBytes?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type ProfileAuditLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    userId?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    before?: SortOrder
+    after?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProfileAuditLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    userId?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProfileAuditLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    profileId?: SortOrder
+    userId?: SortOrder
+    actorUserId?: SortOrder
+    action?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type ProfileLocationCountOrderByAggregateInput = {
@@ -6160,6 +10547,27 @@ export namespace Prisma {
     connect?: WorkRecordWhereUniqueInput | WorkRecordWhereUniqueInput[]
   }
 
+  export type ProfileVerificationCreateNestedManyWithoutProfileInput = {
+    create?: XOR<ProfileVerificationCreateWithoutProfileInput, ProfileVerificationUncheckedCreateWithoutProfileInput> | ProfileVerificationCreateWithoutProfileInput[] | ProfileVerificationUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileVerificationCreateOrConnectWithoutProfileInput | ProfileVerificationCreateOrConnectWithoutProfileInput[]
+    createMany?: ProfileVerificationCreateManyProfileInputEnvelope
+    connect?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+  }
+
+  export type ProfileDocumentCreateNestedManyWithoutProfileInput = {
+    create?: XOR<ProfileDocumentCreateWithoutProfileInput, ProfileDocumentUncheckedCreateWithoutProfileInput> | ProfileDocumentCreateWithoutProfileInput[] | ProfileDocumentUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileDocumentCreateOrConnectWithoutProfileInput | ProfileDocumentCreateOrConnectWithoutProfileInput[]
+    createMany?: ProfileDocumentCreateManyProfileInputEnvelope
+    connect?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+  }
+
+  export type ProfileAuditLogCreateNestedManyWithoutProfileInput = {
+    create?: XOR<ProfileAuditLogCreateWithoutProfileInput, ProfileAuditLogUncheckedCreateWithoutProfileInput> | ProfileAuditLogCreateWithoutProfileInput[] | ProfileAuditLogUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileAuditLogCreateOrConnectWithoutProfileInput | ProfileAuditLogCreateOrConnectWithoutProfileInput[]
+    createMany?: ProfileAuditLogCreateManyProfileInputEnvelope
+    connect?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+  }
+
   export type ProfileLocationUncheckedCreateNestedManyWithoutProfileInput = {
     create?: XOR<ProfileLocationCreateWithoutProfileInput, ProfileLocationUncheckedCreateWithoutProfileInput> | ProfileLocationCreateWithoutProfileInput[] | ProfileLocationUncheckedCreateWithoutProfileInput[]
     connectOrCreate?: ProfileLocationCreateOrConnectWithoutProfileInput | ProfileLocationCreateOrConnectWithoutProfileInput[]
@@ -6179,6 +10587,27 @@ export namespace Prisma {
     connectOrCreate?: WorkRecordCreateOrConnectWithoutProfileInput | WorkRecordCreateOrConnectWithoutProfileInput[]
     createMany?: WorkRecordCreateManyProfileInputEnvelope
     connect?: WorkRecordWhereUniqueInput | WorkRecordWhereUniqueInput[]
+  }
+
+  export type ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput = {
+    create?: XOR<ProfileVerificationCreateWithoutProfileInput, ProfileVerificationUncheckedCreateWithoutProfileInput> | ProfileVerificationCreateWithoutProfileInput[] | ProfileVerificationUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileVerificationCreateOrConnectWithoutProfileInput | ProfileVerificationCreateOrConnectWithoutProfileInput[]
+    createMany?: ProfileVerificationCreateManyProfileInputEnvelope
+    connect?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+  }
+
+  export type ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput = {
+    create?: XOR<ProfileDocumentCreateWithoutProfileInput, ProfileDocumentUncheckedCreateWithoutProfileInput> | ProfileDocumentCreateWithoutProfileInput[] | ProfileDocumentUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileDocumentCreateOrConnectWithoutProfileInput | ProfileDocumentCreateOrConnectWithoutProfileInput[]
+    createMany?: ProfileDocumentCreateManyProfileInputEnvelope
+    connect?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+  }
+
+  export type ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput = {
+    create?: XOR<ProfileAuditLogCreateWithoutProfileInput, ProfileAuditLogUncheckedCreateWithoutProfileInput> | ProfileAuditLogCreateWithoutProfileInput[] | ProfileAuditLogUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileAuditLogCreateOrConnectWithoutProfileInput | ProfileAuditLogCreateOrConnectWithoutProfileInput[]
+    createMany?: ProfileAuditLogCreateManyProfileInputEnvelope
+    connect?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -6239,6 +10668,48 @@ export namespace Prisma {
     deleteMany?: WorkRecordScalarWhereInput | WorkRecordScalarWhereInput[]
   }
 
+  export type ProfileVerificationUpdateManyWithoutProfileNestedInput = {
+    create?: XOR<ProfileVerificationCreateWithoutProfileInput, ProfileVerificationUncheckedCreateWithoutProfileInput> | ProfileVerificationCreateWithoutProfileInput[] | ProfileVerificationUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileVerificationCreateOrConnectWithoutProfileInput | ProfileVerificationCreateOrConnectWithoutProfileInput[]
+    upsert?: ProfileVerificationUpsertWithWhereUniqueWithoutProfileInput | ProfileVerificationUpsertWithWhereUniqueWithoutProfileInput[]
+    createMany?: ProfileVerificationCreateManyProfileInputEnvelope
+    set?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    disconnect?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    delete?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    connect?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    update?: ProfileVerificationUpdateWithWhereUniqueWithoutProfileInput | ProfileVerificationUpdateWithWhereUniqueWithoutProfileInput[]
+    updateMany?: ProfileVerificationUpdateManyWithWhereWithoutProfileInput | ProfileVerificationUpdateManyWithWhereWithoutProfileInput[]
+    deleteMany?: ProfileVerificationScalarWhereInput | ProfileVerificationScalarWhereInput[]
+  }
+
+  export type ProfileDocumentUpdateManyWithoutProfileNestedInput = {
+    create?: XOR<ProfileDocumentCreateWithoutProfileInput, ProfileDocumentUncheckedCreateWithoutProfileInput> | ProfileDocumentCreateWithoutProfileInput[] | ProfileDocumentUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileDocumentCreateOrConnectWithoutProfileInput | ProfileDocumentCreateOrConnectWithoutProfileInput[]
+    upsert?: ProfileDocumentUpsertWithWhereUniqueWithoutProfileInput | ProfileDocumentUpsertWithWhereUniqueWithoutProfileInput[]
+    createMany?: ProfileDocumentCreateManyProfileInputEnvelope
+    set?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    disconnect?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    delete?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    connect?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    update?: ProfileDocumentUpdateWithWhereUniqueWithoutProfileInput | ProfileDocumentUpdateWithWhereUniqueWithoutProfileInput[]
+    updateMany?: ProfileDocumentUpdateManyWithWhereWithoutProfileInput | ProfileDocumentUpdateManyWithWhereWithoutProfileInput[]
+    deleteMany?: ProfileDocumentScalarWhereInput | ProfileDocumentScalarWhereInput[]
+  }
+
+  export type ProfileAuditLogUpdateManyWithoutProfileNestedInput = {
+    create?: XOR<ProfileAuditLogCreateWithoutProfileInput, ProfileAuditLogUncheckedCreateWithoutProfileInput> | ProfileAuditLogCreateWithoutProfileInput[] | ProfileAuditLogUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileAuditLogCreateOrConnectWithoutProfileInput | ProfileAuditLogCreateOrConnectWithoutProfileInput[]
+    upsert?: ProfileAuditLogUpsertWithWhereUniqueWithoutProfileInput | ProfileAuditLogUpsertWithWhereUniqueWithoutProfileInput[]
+    createMany?: ProfileAuditLogCreateManyProfileInputEnvelope
+    set?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    disconnect?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    delete?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    connect?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    update?: ProfileAuditLogUpdateWithWhereUniqueWithoutProfileInput | ProfileAuditLogUpdateWithWhereUniqueWithoutProfileInput[]
+    updateMany?: ProfileAuditLogUpdateManyWithWhereWithoutProfileInput | ProfileAuditLogUpdateManyWithWhereWithoutProfileInput[]
+    deleteMany?: ProfileAuditLogScalarWhereInput | ProfileAuditLogScalarWhereInput[]
+  }
+
   export type ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput = {
     create?: XOR<ProfileLocationCreateWithoutProfileInput, ProfileLocationUncheckedCreateWithoutProfileInput> | ProfileLocationCreateWithoutProfileInput[] | ProfileLocationUncheckedCreateWithoutProfileInput[]
     connectOrCreate?: ProfileLocationCreateOrConnectWithoutProfileInput | ProfileLocationCreateOrConnectWithoutProfileInput[]
@@ -6279,6 +10750,98 @@ export namespace Prisma {
     update?: WorkRecordUpdateWithWhereUniqueWithoutProfileInput | WorkRecordUpdateWithWhereUniqueWithoutProfileInput[]
     updateMany?: WorkRecordUpdateManyWithWhereWithoutProfileInput | WorkRecordUpdateManyWithWhereWithoutProfileInput[]
     deleteMany?: WorkRecordScalarWhereInput | WorkRecordScalarWhereInput[]
+  }
+
+  export type ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput = {
+    create?: XOR<ProfileVerificationCreateWithoutProfileInput, ProfileVerificationUncheckedCreateWithoutProfileInput> | ProfileVerificationCreateWithoutProfileInput[] | ProfileVerificationUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileVerificationCreateOrConnectWithoutProfileInput | ProfileVerificationCreateOrConnectWithoutProfileInput[]
+    upsert?: ProfileVerificationUpsertWithWhereUniqueWithoutProfileInput | ProfileVerificationUpsertWithWhereUniqueWithoutProfileInput[]
+    createMany?: ProfileVerificationCreateManyProfileInputEnvelope
+    set?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    disconnect?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    delete?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    connect?: ProfileVerificationWhereUniqueInput | ProfileVerificationWhereUniqueInput[]
+    update?: ProfileVerificationUpdateWithWhereUniqueWithoutProfileInput | ProfileVerificationUpdateWithWhereUniqueWithoutProfileInput[]
+    updateMany?: ProfileVerificationUpdateManyWithWhereWithoutProfileInput | ProfileVerificationUpdateManyWithWhereWithoutProfileInput[]
+    deleteMany?: ProfileVerificationScalarWhereInput | ProfileVerificationScalarWhereInput[]
+  }
+
+  export type ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput = {
+    create?: XOR<ProfileDocumentCreateWithoutProfileInput, ProfileDocumentUncheckedCreateWithoutProfileInput> | ProfileDocumentCreateWithoutProfileInput[] | ProfileDocumentUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileDocumentCreateOrConnectWithoutProfileInput | ProfileDocumentCreateOrConnectWithoutProfileInput[]
+    upsert?: ProfileDocumentUpsertWithWhereUniqueWithoutProfileInput | ProfileDocumentUpsertWithWhereUniqueWithoutProfileInput[]
+    createMany?: ProfileDocumentCreateManyProfileInputEnvelope
+    set?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    disconnect?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    delete?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    connect?: ProfileDocumentWhereUniqueInput | ProfileDocumentWhereUniqueInput[]
+    update?: ProfileDocumentUpdateWithWhereUniqueWithoutProfileInput | ProfileDocumentUpdateWithWhereUniqueWithoutProfileInput[]
+    updateMany?: ProfileDocumentUpdateManyWithWhereWithoutProfileInput | ProfileDocumentUpdateManyWithWhereWithoutProfileInput[]
+    deleteMany?: ProfileDocumentScalarWhereInput | ProfileDocumentScalarWhereInput[]
+  }
+
+  export type ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput = {
+    create?: XOR<ProfileAuditLogCreateWithoutProfileInput, ProfileAuditLogUncheckedCreateWithoutProfileInput> | ProfileAuditLogCreateWithoutProfileInput[] | ProfileAuditLogUncheckedCreateWithoutProfileInput[]
+    connectOrCreate?: ProfileAuditLogCreateOrConnectWithoutProfileInput | ProfileAuditLogCreateOrConnectWithoutProfileInput[]
+    upsert?: ProfileAuditLogUpsertWithWhereUniqueWithoutProfileInput | ProfileAuditLogUpsertWithWhereUniqueWithoutProfileInput[]
+    createMany?: ProfileAuditLogCreateManyProfileInputEnvelope
+    set?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    disconnect?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    delete?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    connect?: ProfileAuditLogWhereUniqueInput | ProfileAuditLogWhereUniqueInput[]
+    update?: ProfileAuditLogUpdateWithWhereUniqueWithoutProfileInput | ProfileAuditLogUpdateWithWhereUniqueWithoutProfileInput[]
+    updateMany?: ProfileAuditLogUpdateManyWithWhereWithoutProfileInput | ProfileAuditLogUpdateManyWithWhereWithoutProfileInput[]
+    deleteMany?: ProfileAuditLogScalarWhereInput | ProfileAuditLogScalarWhereInput[]
+  }
+
+  export type UserProfileCreateNestedOneWithoutVerificationsInput = {
+    create?: XOR<UserProfileCreateWithoutVerificationsInput, UserProfileUncheckedCreateWithoutVerificationsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutVerificationsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutVerificationsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutVerificationsInput, UserProfileUncheckedCreateWithoutVerificationsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutVerificationsInput
+    upsert?: UserProfileUpsertWithoutVerificationsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutVerificationsInput, UserProfileUpdateWithoutVerificationsInput>, UserProfileUncheckedUpdateWithoutVerificationsInput>
+  }
+
+  export type UserProfileCreateNestedOneWithoutDocumentsInput = {
+    create?: XOR<UserProfileCreateWithoutDocumentsInput, UserProfileUncheckedCreateWithoutDocumentsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutDocumentsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutDocumentsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutDocumentsInput, UserProfileUncheckedCreateWithoutDocumentsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutDocumentsInput
+    upsert?: UserProfileUpsertWithoutDocumentsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutDocumentsInput, UserProfileUpdateWithoutDocumentsInput>, UserProfileUncheckedUpdateWithoutDocumentsInput>
+  }
+
+  export type UserProfileCreateNestedOneWithoutAuditLogsInput = {
+    create?: XOR<UserProfileCreateWithoutAuditLogsInput, UserProfileUncheckedCreateWithoutAuditLogsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutAuditLogsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutAuditLogsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutAuditLogsInput, UserProfileUncheckedCreateWithoutAuditLogsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutAuditLogsInput
+    upsert?: UserProfileUpsertWithoutAuditLogsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutAuditLogsInput, UserProfileUpdateWithoutAuditLogsInput>, UserProfileUncheckedUpdateWithoutAuditLogsInput>
   }
 
   export type UserProfileCreateNestedOneWithoutLocationsInput = {
@@ -6483,6 +11046,33 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
@@ -6584,6 +11174,104 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProfileVerificationCreateWithoutProfileInput = {
+    id?: string
+    status: string
+    type: string
+    rejectedReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProfileVerificationUncheckedCreateWithoutProfileInput = {
+    id?: string
+    status: string
+    type: string
+    rejectedReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProfileVerificationCreateOrConnectWithoutProfileInput = {
+    where: ProfileVerificationWhereUniqueInput
+    create: XOR<ProfileVerificationCreateWithoutProfileInput, ProfileVerificationUncheckedCreateWithoutProfileInput>
+  }
+
+  export type ProfileVerificationCreateManyProfileInputEnvelope = {
+    data: ProfileVerificationCreateManyProfileInput | ProfileVerificationCreateManyProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProfileDocumentCreateWithoutProfileInput = {
+    id?: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt?: Date | string
+  }
+
+  export type ProfileDocumentUncheckedCreateWithoutProfileInput = {
+    id?: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt?: Date | string
+  }
+
+  export type ProfileDocumentCreateOrConnectWithoutProfileInput = {
+    where: ProfileDocumentWhereUniqueInput
+    create: XOR<ProfileDocumentCreateWithoutProfileInput, ProfileDocumentUncheckedCreateWithoutProfileInput>
+  }
+
+  export type ProfileDocumentCreateManyProfileInputEnvelope = {
+    data: ProfileDocumentCreateManyProfileInput | ProfileDocumentCreateManyProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProfileAuditLogCreateWithoutProfileInput = {
+    id?: string
+    userId: string
+    actorUserId: string
+    action: string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProfileAuditLogUncheckedCreateWithoutProfileInput = {
+    id?: string
+    userId: string
+    actorUserId: string
+    action: string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProfileAuditLogCreateOrConnectWithoutProfileInput = {
+    where: ProfileAuditLogWhereUniqueInput
+    create: XOR<ProfileAuditLogCreateWithoutProfileInput, ProfileAuditLogUncheckedCreateWithoutProfileInput>
+  }
+
+  export type ProfileAuditLogCreateManyProfileInputEnvelope = {
+    data: ProfileAuditLogCreateManyProfileInput | ProfileAuditLogCreateManyProfileInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProfileLocationUpsertWithWhereUniqueWithoutProfileInput = {
     where: ProfileLocationWhereUniqueInput
     update: XOR<ProfileLocationUpdateWithoutProfileInput, ProfileLocationUncheckedUpdateWithoutProfileInput>
@@ -6673,28 +11361,510 @@ export namespace Prisma {
     metadata?: JsonFilter<"WorkRecord">
   }
 
+  export type ProfileVerificationUpsertWithWhereUniqueWithoutProfileInput = {
+    where: ProfileVerificationWhereUniqueInput
+    update: XOR<ProfileVerificationUpdateWithoutProfileInput, ProfileVerificationUncheckedUpdateWithoutProfileInput>
+    create: XOR<ProfileVerificationCreateWithoutProfileInput, ProfileVerificationUncheckedCreateWithoutProfileInput>
+  }
+
+  export type ProfileVerificationUpdateWithWhereUniqueWithoutProfileInput = {
+    where: ProfileVerificationWhereUniqueInput
+    data: XOR<ProfileVerificationUpdateWithoutProfileInput, ProfileVerificationUncheckedUpdateWithoutProfileInput>
+  }
+
+  export type ProfileVerificationUpdateManyWithWhereWithoutProfileInput = {
+    where: ProfileVerificationScalarWhereInput
+    data: XOR<ProfileVerificationUpdateManyMutationInput, ProfileVerificationUncheckedUpdateManyWithoutProfileInput>
+  }
+
+  export type ProfileVerificationScalarWhereInput = {
+    AND?: ProfileVerificationScalarWhereInput | ProfileVerificationScalarWhereInput[]
+    OR?: ProfileVerificationScalarWhereInput[]
+    NOT?: ProfileVerificationScalarWhereInput | ProfileVerificationScalarWhereInput[]
+    id?: StringFilter<"ProfileVerification"> | string
+    profileId?: StringFilter<"ProfileVerification"> | string
+    status?: StringFilter<"ProfileVerification"> | string
+    type?: StringFilter<"ProfileVerification"> | string
+    rejectedReason?: StringNullableFilter<"ProfileVerification"> | string | null
+    reviewedBy?: StringNullableFilter<"ProfileVerification"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"ProfileVerification"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProfileVerification"> | Date | string
+    updatedAt?: DateTimeFilter<"ProfileVerification"> | Date | string
+  }
+
+  export type ProfileDocumentUpsertWithWhereUniqueWithoutProfileInput = {
+    where: ProfileDocumentWhereUniqueInput
+    update: XOR<ProfileDocumentUpdateWithoutProfileInput, ProfileDocumentUncheckedUpdateWithoutProfileInput>
+    create: XOR<ProfileDocumentCreateWithoutProfileInput, ProfileDocumentUncheckedCreateWithoutProfileInput>
+  }
+
+  export type ProfileDocumentUpdateWithWhereUniqueWithoutProfileInput = {
+    where: ProfileDocumentWhereUniqueInput
+    data: XOR<ProfileDocumentUpdateWithoutProfileInput, ProfileDocumentUncheckedUpdateWithoutProfileInput>
+  }
+
+  export type ProfileDocumentUpdateManyWithWhereWithoutProfileInput = {
+    where: ProfileDocumentScalarWhereInput
+    data: XOR<ProfileDocumentUpdateManyMutationInput, ProfileDocumentUncheckedUpdateManyWithoutProfileInput>
+  }
+
+  export type ProfileDocumentScalarWhereInput = {
+    AND?: ProfileDocumentScalarWhereInput | ProfileDocumentScalarWhereInput[]
+    OR?: ProfileDocumentScalarWhereInput[]
+    NOT?: ProfileDocumentScalarWhereInput | ProfileDocumentScalarWhereInput[]
+    id?: StringFilter<"ProfileDocument"> | string
+    profileId?: StringFilter<"ProfileDocument"> | string
+    type?: StringFilter<"ProfileDocument"> | string
+    name?: StringFilter<"ProfileDocument"> | string
+    storageKey?: StringFilter<"ProfileDocument"> | string
+    mimeType?: StringFilter<"ProfileDocument"> | string
+    sizeBytes?: IntFilter<"ProfileDocument"> | number
+    status?: StringFilter<"ProfileDocument"> | string
+    uploadedAt?: DateTimeFilter<"ProfileDocument"> | Date | string
+  }
+
+  export type ProfileAuditLogUpsertWithWhereUniqueWithoutProfileInput = {
+    where: ProfileAuditLogWhereUniqueInput
+    update: XOR<ProfileAuditLogUpdateWithoutProfileInput, ProfileAuditLogUncheckedUpdateWithoutProfileInput>
+    create: XOR<ProfileAuditLogCreateWithoutProfileInput, ProfileAuditLogUncheckedCreateWithoutProfileInput>
+  }
+
+  export type ProfileAuditLogUpdateWithWhereUniqueWithoutProfileInput = {
+    where: ProfileAuditLogWhereUniqueInput
+    data: XOR<ProfileAuditLogUpdateWithoutProfileInput, ProfileAuditLogUncheckedUpdateWithoutProfileInput>
+  }
+
+  export type ProfileAuditLogUpdateManyWithWhereWithoutProfileInput = {
+    where: ProfileAuditLogScalarWhereInput
+    data: XOR<ProfileAuditLogUpdateManyMutationInput, ProfileAuditLogUncheckedUpdateManyWithoutProfileInput>
+  }
+
+  export type ProfileAuditLogScalarWhereInput = {
+    AND?: ProfileAuditLogScalarWhereInput | ProfileAuditLogScalarWhereInput[]
+    OR?: ProfileAuditLogScalarWhereInput[]
+    NOT?: ProfileAuditLogScalarWhereInput | ProfileAuditLogScalarWhereInput[]
+    id?: StringFilter<"ProfileAuditLog"> | string
+    profileId?: StringFilter<"ProfileAuditLog"> | string
+    userId?: StringFilter<"ProfileAuditLog"> | string
+    actorUserId?: StringFilter<"ProfileAuditLog"> | string
+    action?: StringFilter<"ProfileAuditLog"> | string
+    before?: JsonFilter<"ProfileAuditLog">
+    after?: JsonFilter<"ProfileAuditLog">
+    ipAddress?: StringNullableFilter<"ProfileAuditLog"> | string | null
+    userAgent?: StringNullableFilter<"ProfileAuditLog"> | string | null
+    createdAt?: DateTimeFilter<"ProfileAuditLog"> | Date | string
+  }
+
+  export type UserProfileCreateWithoutVerificationsInput = {
+    id?: string
+    userId: string
+    displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
+    birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    locations?: ProfileLocationCreateNestedManyWithoutProfileInput
+    education?: EducationRecordCreateNestedManyWithoutProfileInput
+    workHistory?: WorkRecordCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogCreateNestedManyWithoutProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutVerificationsInput = {
+    id?: string
+    userId: string
+    displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
+    birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    locations?: ProfileLocationUncheckedCreateNestedManyWithoutProfileInput
+    education?: EducationRecordUncheckedCreateNestedManyWithoutProfileInput
+    workHistory?: WorkRecordUncheckedCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutVerificationsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutVerificationsInput, UserProfileUncheckedCreateWithoutVerificationsInput>
+  }
+
+  export type UserProfileUpsertWithoutVerificationsInput = {
+    update: XOR<UserProfileUpdateWithoutVerificationsInput, UserProfileUncheckedUpdateWithoutVerificationsInput>
+    create: XOR<UserProfileCreateWithoutVerificationsInput, UserProfileUncheckedCreateWithoutVerificationsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutVerificationsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutVerificationsInput, UserProfileUncheckedUpdateWithoutVerificationsInput>
+  }
+
+  export type UserProfileUpdateWithoutVerificationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    locations?: ProfileLocationUpdateManyWithoutProfileNestedInput
+    education?: EducationRecordUpdateManyWithoutProfileNestedInput
+    workHistory?: WorkRecordUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUpdateManyWithoutProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutVerificationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    locations?: ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput
+    education?: EducationRecordUncheckedUpdateManyWithoutProfileNestedInput
+    workHistory?: WorkRecordUncheckedUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput
+  }
+
+  export type UserProfileCreateWithoutDocumentsInput = {
+    id?: string
+    userId: string
+    displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
+    birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    locations?: ProfileLocationCreateNestedManyWithoutProfileInput
+    education?: EducationRecordCreateNestedManyWithoutProfileInput
+    workHistory?: WorkRecordCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogCreateNestedManyWithoutProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutDocumentsInput = {
+    id?: string
+    userId: string
+    displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
+    birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    locations?: ProfileLocationUncheckedCreateNestedManyWithoutProfileInput
+    education?: EducationRecordUncheckedCreateNestedManyWithoutProfileInput
+    workHistory?: WorkRecordUncheckedCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutDocumentsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutDocumentsInput, UserProfileUncheckedCreateWithoutDocumentsInput>
+  }
+
+  export type UserProfileUpsertWithoutDocumentsInput = {
+    update: XOR<UserProfileUpdateWithoutDocumentsInput, UserProfileUncheckedUpdateWithoutDocumentsInput>
+    create: XOR<UserProfileCreateWithoutDocumentsInput, UserProfileUncheckedCreateWithoutDocumentsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutDocumentsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutDocumentsInput, UserProfileUncheckedUpdateWithoutDocumentsInput>
+  }
+
+  export type UserProfileUpdateWithoutDocumentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    locations?: ProfileLocationUpdateManyWithoutProfileNestedInput
+    education?: EducationRecordUpdateManyWithoutProfileNestedInput
+    workHistory?: WorkRecordUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUpdateManyWithoutProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutDocumentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    locations?: ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput
+    education?: EducationRecordUncheckedUpdateManyWithoutProfileNestedInput
+    workHistory?: WorkRecordUncheckedUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput
+  }
+
+  export type UserProfileCreateWithoutAuditLogsInput = {
+    id?: string
+    userId: string
+    displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
+    birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    locations?: ProfileLocationCreateNestedManyWithoutProfileInput
+    education?: EducationRecordCreateNestedManyWithoutProfileInput
+    workHistory?: WorkRecordCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentCreateNestedManyWithoutProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutAuditLogsInput = {
+    id?: string
+    userId: string
+    displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
+    birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    locations?: ProfileLocationUncheckedCreateNestedManyWithoutProfileInput
+    education?: EducationRecordUncheckedCreateNestedManyWithoutProfileInput
+    workHistory?: WorkRecordUncheckedCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutAuditLogsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutAuditLogsInput, UserProfileUncheckedCreateWithoutAuditLogsInput>
+  }
+
+  export type UserProfileUpsertWithoutAuditLogsInput = {
+    update: XOR<UserProfileUpdateWithoutAuditLogsInput, UserProfileUncheckedUpdateWithoutAuditLogsInput>
+    create: XOR<UserProfileCreateWithoutAuditLogsInput, UserProfileUncheckedCreateWithoutAuditLogsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutAuditLogsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutAuditLogsInput, UserProfileUncheckedUpdateWithoutAuditLogsInput>
+  }
+
+  export type UserProfileUpdateWithoutAuditLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    locations?: ProfileLocationUpdateManyWithoutProfileNestedInput
+    education?: EducationRecordUpdateManyWithoutProfileNestedInput
+    workHistory?: WorkRecordUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUpdateManyWithoutProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutAuditLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
+    birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    locations?: ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput
+    education?: EducationRecordUncheckedUpdateManyWithoutProfileNestedInput
+    workHistory?: WorkRecordUncheckedUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput
+  }
+
   export type UserProfileCreateWithoutLocationsInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     education?: EducationRecordCreateNestedManyWithoutProfileInput
     workHistory?: WorkRecordCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutLocationsInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     education?: EducationRecordUncheckedCreateNestedManyWithoutProfileInput
     workHistory?: WorkRecordUncheckedCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutLocationsInput = {
@@ -6717,48 +11887,104 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     education?: EducationRecordUpdateManyWithoutProfileNestedInput
     workHistory?: WorkRecordUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutLocationsInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     education?: EducationRecordUncheckedUpdateManyWithoutProfileNestedInput
     workHistory?: WorkRecordUncheckedUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileCreateWithoutEducationInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     locations?: ProfileLocationCreateNestedManyWithoutProfileInput
     workHistory?: WorkRecordCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutEducationInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     locations?: ProfileLocationUncheckedCreateNestedManyWithoutProfileInput
     workHistory?: WorkRecordUncheckedCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutEducationInput = {
@@ -6781,48 +12007,104 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     locations?: ProfileLocationUpdateManyWithoutProfileNestedInput
     workHistory?: WorkRecordUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutEducationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     locations?: ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput
     workHistory?: WorkRecordUncheckedUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileCreateWithoutWorkHistoryInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     locations?: ProfileLocationCreateNestedManyWithoutProfileInput
     education?: EducationRecordCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutWorkHistoryInput = {
     id?: string
     userId: string
     displayName?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    phoneNumber?: string | null
+    phoneNumberVerifiedAt?: Date | string | null
+    organisation?: string | null
     birthDate?: Date | string | null
+    gender?: string | null
+    country?: string | null
+    address?: string | null
+    preferredLanguage?: string | null
+    completionStatus?: string | null
+    verifiedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     locations?: ProfileLocationUncheckedCreateNestedManyWithoutProfileInput
     education?: EducationRecordUncheckedCreateNestedManyWithoutProfileInput
+    verifications?: ProfileVerificationUncheckedCreateNestedManyWithoutProfileInput
+    documents?: ProfileDocumentUncheckedCreateNestedManyWithoutProfileInput
+    auditLogs?: ProfileAuditLogUncheckedCreateNestedManyWithoutProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutWorkHistoryInput = {
@@ -6845,24 +12127,52 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     locations?: ProfileLocationUpdateManyWithoutProfileNestedInput
     education?: EducationRecordUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUpdateManyWithoutProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutWorkHistoryInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     displayName?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumberVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    organisation?: NullableStringFieldUpdateOperationsInput | string | null
     birthDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gender?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    completionStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     locations?: ProfileLocationUncheckedUpdateManyWithoutProfileNestedInput
     education?: EducationRecordUncheckedUpdateManyWithoutProfileNestedInput
+    verifications?: ProfileVerificationUncheckedUpdateManyWithoutProfileNestedInput
+    documents?: ProfileDocumentUncheckedUpdateManyWithoutProfileNestedInput
+    auditLogs?: ProfileAuditLogUncheckedUpdateManyWithoutProfileNestedInput
   }
 
   export type ProfileLocationCreateManyProfileInput = {
@@ -6892,6 +12202,40 @@ export namespace Prisma {
     startedAt?: Date | string | null
     endedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type ProfileVerificationCreateManyProfileInput = {
+    id?: string
+    status: string
+    type: string
+    rejectedReason?: string | null
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProfileDocumentCreateManyProfileInput = {
+    id?: string
+    type: string
+    name: string
+    storageKey: string
+    mimeType: string
+    sizeBytes: number
+    status: string
+    uploadedAt?: Date | string
+  }
+
+  export type ProfileAuditLogCreateManyProfileInput = {
+    id?: string
+    userId: string
+    actorUserId: string
+    action: string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
   }
 
   export type ProfileLocationUpdateWithoutProfileInput = {
@@ -6981,6 +12325,108 @@ export namespace Prisma {
     metadata?: JsonNullValueInput | InputJsonValue
   }
 
+  export type ProfileVerificationUpdateWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileVerificationUncheckedUpdateWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileVerificationUncheckedUpdateManyWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    rejectedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileDocumentUpdateWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileDocumentUncheckedUpdateWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileDocumentUncheckedUpdateManyWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    storageKey?: StringFieldUpdateOperationsInput | string
+    mimeType?: StringFieldUpdateOperationsInput | string
+    sizeBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    uploadedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileAuditLogUpdateWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileAuditLogUncheckedUpdateWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProfileAuditLogUncheckedUpdateManyWithoutProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    before?: JsonNullValueInput | InputJsonValue
+    after?: JsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -6994,6 +12440,18 @@ export namespace Prisma {
      * @deprecated Use UserProfileDefaultArgs instead
      */
     export type UserProfileArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserProfileDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ProfileVerificationDefaultArgs instead
+     */
+    export type ProfileVerificationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ProfileVerificationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ProfileDocumentDefaultArgs instead
+     */
+    export type ProfileDocumentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ProfileDocumentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ProfileAuditLogDefaultArgs instead
+     */
+    export type ProfileAuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ProfileAuditLogDefaultArgs<ExtArgs>
     /**
      * @deprecated Use ProfileLocationDefaultArgs instead
      */

@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function main() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && process.env.RUN_SEED !== "true") {
     console.error("CRITICAL ERROR: Seeding is disabled in production mode!");
     process.exit(1);
   }
@@ -67,11 +67,13 @@ async function main() {
       where: { email },
       update: { 
         status: "ACTIVE",
+        isEmailVerified: true,
         phoneNumber: acc.phoneNumber,
         isPhoneVerified: true
       },
       create: {
         email,
+        isEmailVerified: true,
         phoneNumber: acc.phoneNumber,
         isPhoneVerified: true,
         status: "ACTIVE",

@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { AuthService } from "./auth.service";
 import { PrismaService } from "./prisma.service";
 import { BadRequestException, UnauthorizedException } from "@nestjs/common";
+import { EmailDeliveryService } from "./email-delivery.service";
 
 describe("AuthService Unit Tests", () => {
   let service: AuthService;
@@ -12,19 +13,32 @@ describe("AuthService Unit Tests", () => {
     userAccount: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
     credential: {
       create: jest.fn(),
     },
     session: {
       create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     refreshToken: {
       create: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
+    },
+    emailVerificationToken: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    role: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
     },
     securityEvent: {
       create: jest.fn(),
@@ -35,12 +49,17 @@ describe("AuthService Unit Tests", () => {
     signAsync: jest.fn(),
   };
 
+  const mockEmailDelivery = {
+    send: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
+        { provide: EmailDeliveryService, useValue: mockEmailDelivery },
       ],
     }).compile();
 
@@ -81,7 +100,15 @@ describe("AuthService Unit Tests", () => {
       mockPrisma.userAccount.create.mockResolvedValue({
         id: "user-1",
         email: "test@seek.mn",
-        status: "ACTIVE",
+        status: "PENDING_EMAIL_VERIFICATION",
+        roles: [{ role: { name: "CANDIDATE" } }],
+      });
+      mockPrisma.role.findUnique.mockResolvedValue({
+        id: "role-candidate",
+        name: "CANDIDATE",
+      });
+      mockPrisma.emailVerificationToken.create.mockResolvedValue({
+        id: "email-token-1",
       });
 
       const res = await service.register({
@@ -89,7 +116,15 @@ describe("AuthService Unit Tests", () => {
         password: "password123",
       });
       expect(res.id).toBe("user-1");
-      expect(res.status).toBe("ACTIVE");
+      expect(res.status).toBe("PENDING_EMAIL_VERIFICATION");
+      expect(res.emailVerificationRequired).toBe(true);
+      expect(mockEmailDelivery.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@seek.mn",
+          subject: expect.stringContaining("seek.mn"),
+          text: expect.stringContaining("/verify-email?token="),
+        }),
+      );
     });
 
     it("should fail registration if email exists", async () => {
@@ -112,7 +147,9 @@ describe("AuthService Unit Tests", () => {
         id: "user-1",
         email: "user@seek.mn",
         status: "ACTIVE",
+        isEmailVerified: true,
         credentials: [{ type: "PASSWORD", value: hashedPassword }],
+        roles: [{ role: { name: "CANDIDATE" } }],
       });
       mockPrisma.session.create.mockResolvedValue({ id: "session-1" });
       mockPrisma.refreshToken.create.mockResolvedValue({ id: "token-1" });
@@ -141,6 +178,124 @@ describe("AuthService Unit Tests", () => {
         service.login({ email: "user@seek.mn", password: "password123" }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it("should block login before email is verified", async () => {
+      const hashedPassword = await service.hashPassword("password123");
+      mockPrisma.userAccount.findUnique.mockResolvedValue({
+        id: "user-1",
+        email: "user@seek.mn",
+        status: "PENDING_EMAIL_VERIFICATION",
+        isEmailVerified: false,
+        credentials: [{ type: "PASSWORD", value: hashedPassword }],
+        roles: [{ role: { name: "CANDIDATE" } }],
+      });
+
+      await expect(
+        service.login({ email: "user@seek.mn", password: "password123" }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe("Email Verification", () => {
+    it("should verify a valid email verification token", async () => {
+      mockPrisma.emailVerificationToken.findUnique.mockResolvedValue({
+        id: "email-token-1",
+        userAccountId: "user-1",
+        tokenHash: "hash",
+        expiresAt: new Date(Date.now() + 60 * 1000),
+        consumedAt: null,
+        userAccount: {
+          id: "user-1",
+          status: "PENDING_EMAIL_VERIFICATION",
+        },
+      });
+      mockPrisma.emailVerificationToken.update.mockResolvedValue({});
+      mockPrisma.userAccount.update.mockResolvedValue({});
+
+      const res = await service.verifyEmail("raw-token");
+      expect(res.success).toBe(true);
+      expect(mockPrisma.userAccount.update).toHaveBeenCalledWith({
+        where: { id: "user-1" },
+        data: {
+          isEmailVerified: true,
+          status: "ACTIVE",
+        },
+      });
+    });
+  });
+
+  describe("Session Management", () => {
+    it("should list sessions for a user", async () => {
+      const now = new Date();
+      mockPrisma.session.findMany.mockResolvedValue([
+        {
+          id: "session-1",
+          userAgentSummary: "browser",
+          ipAddressSummary: "127.0.0.1",
+          createdAt: now,
+          lastUsedAt: now,
+          expiresAt: now,
+          revokedAt: null,
+          revocationReason: null,
+        },
+      ]);
+
+      const res = await service.listSessions("user-1");
+      expect(res.sessions).toHaveLength(1);
+      expect(res.sessions[0].id).toBe("session-1");
+      expect(mockPrisma.session.findMany).toHaveBeenCalledWith({
+        where: { userAccountId: "user-1" },
+        orderBy: { lastUsedAt: "desc" },
+        take: 50,
+      });
+    });
+
+    it("should revoke a session owned by the user", async () => {
+      mockPrisma.session.findFirst.mockResolvedValue({
+        id: "session-1",
+        userAccountId: "user-1",
+      });
+      mockPrisma.session.update.mockResolvedValue({});
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({});
+
+      await service.revokeSession("user-1", "session-1");
+      expect(mockPrisma.session.update).toHaveBeenCalledWith({
+        where: { id: "session-1" },
+        data: {
+          revokedAt: expect.any(Date),
+          revocationReason: "USER_REVOKED",
+        },
+      });
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { sessionId: "session-1" },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it("should revoke all active sessions for a user", async () => {
+      mockPrisma.session.findMany.mockResolvedValue([
+        { id: "session-1" },
+        { id: "session-2" },
+      ]);
+      mockPrisma.session.updateMany.mockResolvedValue({});
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({});
+
+      await service.logoutAll("user-1");
+      expect(mockPrisma.session.updateMany).toHaveBeenCalledWith({
+        where: {
+          userAccountId: "user-1",
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: expect.any(Date),
+          revocationReason: "LOGOUT_ALL",
+        },
+      });
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { sessionId: { in: ["session-1", "session-2"] } },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
   });
 
   describe("Token Refresh & Reuse Detection", () => {
@@ -156,6 +311,7 @@ describe("AuthService Unit Tests", () => {
             id: "user-1",
             email: "user@seek.mn",
             status: "ACTIVE",
+            roles: [{ role: { name: "CANDIDATE" } }],
           },
         },
       });

@@ -9,6 +9,180 @@ export interface LoginRequest {
   password?: string;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  id: string;
+  email: string;
+  status: string;
+  emailVerificationRequired: boolean;
+}
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface VerifyEmailResponse {
+  success: boolean;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ResendVerificationResponse {
+  success: boolean;
+}
+
+export interface SessionSummary {
+  id: string;
+  userAgentSummary?: string | null;
+  ipAddressSummary?: string | null;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+}
+
+export interface SessionsResponse {
+  sessions: SessionSummary[];
+}
+
+export type ProfileMissingField =
+  | "displayName"
+  | "phoneNumber"
+  | "country"
+  | "preferredLanguage";
+
+export interface CandidateProfileResponse {
+  userId: string;
+  displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phoneNumber: string | null;
+  phoneNumberVerifiedAt: string | null;
+  organisation: string | null;
+  birthDate: string | null;
+  gender: string | null;
+  country: string | null;
+  address: string | null;
+  preferredLanguage: string | null;
+  completionStatus: string | null;
+  verifiedAt: string | null;
+  metadata: Record<string, any>;
+  isComplete: boolean;
+  missingFields: ProfileMissingField[];
+  recommendedFields: string[];
+}
+
+export interface UpdateCandidateProfileRequest {
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  organisation?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
+  country?: string | null;
+  address?: string | null;
+  preferredLanguage?: string | null;
+  metadata?: Record<string, any> | null;
+}
+
+export interface ProfileCompletionStatus {
+  isComplete: boolean;
+  missingFields: ProfileMissingField[];
+  recommendedFields: string[];
+  nextAction: "COMPLETE_PROFILE" | "CONTINUE";
+  blockingReasons?: string[];
+}
+
+export type ProfileVerificationStatus =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "SUBMITTED"
+  | "VERIFIED"
+  | "REJECTED"
+  | "EXPIRED";
+
+export interface ProfileVerificationResponse {
+  id: string;
+  profileId: string;
+  status: ProfileVerificationStatus;
+  type: string;
+  rejectedReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfileDocumentResponse {
+  id: string;
+  profileId: string;
+  type: string;
+  name: string;
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: string;
+  uploadedAt: string;
+}
+
+export interface ProfileAuditLogResponse {
+  id: string;
+  profileId: string;
+  userId: string;
+  actorUserId: string;
+  action: string;
+  before: Record<string, any>;
+  after: Record<string, any>;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface ApproveVerificationRequest {
+  reviewerId?: string;
+}
+
+export interface RejectVerificationRequest {
+  rejectedReason: string;
+  reviewerId?: string;
+}
+
+export type AssessmentGateBlockedReason =
+  | "EMAIL_NOT_VERIFIED"
+  | "PROFILE_INCOMPLETE"
+  | "NOT_ENROLLED"
+  | "PAYMENT_REQUIRED"
+  | "ASSESSMENT_NOT_OPEN"
+  | "ALREADY_ATTEMPTED";
+
+export type AssessmentGateRequiredAction =
+  | "VERIFY_EMAIL"
+  | "COMPLETE_PROFILE"
+  | "ENROLL"
+  | "PAY"
+  | "WAIT"
+  | "VIEW_RESULT"
+  | "START";
+
+export interface AssessmentEnrollmentGateResponse {
+  assessmentId: string;
+  allowed: boolean;
+  blockedReason?: AssessmentGateBlockedReason;
+  requiredAction: AssessmentGateRequiredAction;
+  enrollmentId?: string;
+  orderId?: string;
+  attemptId?: string;
+  missingProfileFields?: ProfileMissingField[];
+}
+
 export interface LoginResponse {
   accessToken: string;
   user: {
@@ -26,6 +200,7 @@ export interface CurrentUserResponse {
   id: string;
   email: string;
   status: string;
+  roles?: string[];
 }
 
 export interface AuthenticationError {
@@ -33,6 +208,17 @@ export interface AuthenticationError {
   message: string;
   error: string;
 }
+
+export const SEEK_ROLES = [
+  "SUPER_ADMIN",
+  "ORGANIZATION_ADMIN",
+  "ASSESSOR",
+  "VIEWER",
+  "TESTER",
+  "CANDIDATE",
+] as const;
+
+export type SeekRole = (typeof SEEK_ROLES)[number];
 
 export type AssessmentQuestionType =
   | "single_choice"

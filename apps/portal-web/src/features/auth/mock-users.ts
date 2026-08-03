@@ -23,9 +23,9 @@ interface MockCredential {
 }
 
 export const roleHomePaths: Record<PortalRole, string> = {
-  super_admin: "/admin",
-  organisation_admin: "/organisations",
-  assessor: "/assessments",
+  super_admin: "/superadmin/dashboard",
+  organisation_admin: "/admin/dashboard",
+  assessor: "/assessor/dashboard",
   candidate: "/catalog",
   reviewer_hr: "/results",
 };
@@ -124,7 +124,12 @@ export function findMockUser(email: string, password: string) {
   );
 }
 
-export function enrichUserWithMockRole(user: { email: string; id?: string }) {
+export function enrichUserWithMockRole(user: {
+  email: string;
+  id?: string;
+  roles?: string[];
+  role?: string;
+}) {
   const normalizedEmail = user.email.trim().toLowerCase();
   const mockUser = mockCredentials.find(
     (credential) => credential.user.email === normalizedEmail,
@@ -138,14 +143,35 @@ export function enrichUserWithMockRole(user: { email: string; id?: string }) {
     };
   }
 
+  let mappedRole: PortalRole = "candidate";
+  let roleLabel = "Candidate";
+
+  const userRoles = user.roles || [];
+  if (userRoles.includes("SUPER_ADMIN")) {
+    mappedRole = "super_admin";
+    roleLabel = "Super Admin";
+  } else if (userRoles.includes("ORGANIZATION_ADMIN")) {
+    mappedRole = "organisation_admin";
+    roleLabel = "Organisation Admin";
+  } else if (userRoles.includes("ASSESSOR")) {
+    mappedRole = "assessor";
+    roleLabel = "Assessor";
+  } else if (userRoles.includes("CANDIDATE")) {
+    mappedRole = "candidate";
+    roleLabel = "Candidate";
+  } else if (user.role) {
+    mappedRole = user.role as PortalRole;
+    roleLabel = user.role;
+  }
+
   return {
     ...user,
     name: user.email,
     status: "ACTIVE" as const,
-    role: "assessor" as const,
-    roleLabel: "Assessor",
+    role: mappedRole,
+    roleLabel,
     organisation: "Demo Organisation",
-    homePath: roleHomePaths.assessor,
+    homePath: roleHomePaths[mappedRole] || "/catalog",
     mockUser: false,
   };
 }

@@ -1,1 +1,4 @@
 [01/Aug/2026:15:51:56 +0000] - 200 200 - HEAD http verify-api.seek.mn "/health" [Client 172.19.0.1] [Length 0] [Gzip -] [Sent-to verification] "curl/8.18.0" "-"
+[03/Aug/2026:04:22:18 +0000] - - 499 - GET https verify-api.seek.mn "/" [Client 172.20.0.1] [Length 0] [Gzip -] [Sent-to verification] "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36" "http://localhost:81/"
+[03/Aug/2026:04:22:19 +0000] - - 301 - GET http verify-api.seek.mn "/" [Client 172.20.0.1] [Length 166] [Gzip -] [Sent-to verification] "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36" "http://localhost:81/"
+[03/Aug/2026:04:22:42 +0000] - - 499 - GET https verify-api.seek.mn "/" [Client 172.20.0.1] [Length 0] [Gzip -] [Sent-to verification] "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36" "http://localhost:81/"

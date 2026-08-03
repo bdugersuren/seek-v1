@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Card,
   Stack,
@@ -15,9 +14,12 @@ import {
   Alert,
 } from "@seek/ui";
 import { useI18n } from "@/i18n/use-t";
+import {
+  registerAccount,
+  resendVerificationEmail,
+} from "@/lib/auth-client";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { t } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,8 +27,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,33 +54,81 @@ export default function RegisterPage() {
     setSuccessMsg(null);
 
     try {
-      // Gateway-ийн /api/v1/auth/register руу илгээнэ.
-      const res = await fetch("/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-          phoneNumber,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Бүртгэл амжилтгүй боллоо.");
-      }
-
-      setSuccessMsg("Бүртгэл амжилттай үүслээ! Нэвтрэх хуудас руу шилжиж байна...");
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+      await registerAccount(email, password);
+      setSubmittedEmail(email.trim().toLowerCase());
     } catch (err: any) {
       setErrorMsg(err.message || "Бүртгэл амжилтгүй боллоо.");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    if (!submittedEmail) return;
+
+    setResending(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      await resendVerificationEmail(submittedEmail);
+      setSuccessMsg(t("register.resendSuccess" as any));
+    } catch (err: any) {
+      setErrorMsg(err.message || t("register.resendFailed" as any));
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (submittedEmail) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-seek-4 sm:p-seek-6">
+        <Card className="w-full max-w-lg shadow-seek-lg">
+          <Stack gap={6}>
+            <Stack gap={2} className="text-center">
+              <Heading level={1} className="text-2xl font-bold">
+                {t("register.confirmTitle" as any)}
+              </Heading>
+              <Text variant="muted">
+                {t("register.confirmDescription" as any)}
+              </Text>
+              <Text className="font-medium">{submittedEmail}</Text>
+            </Stack>
+
+            {errorMsg && (
+              <Alert type="danger" title={t("login.errorTitle")}>
+                {errorMsg}
+              </Alert>
+            )}
+
+            {successMsg && (
+              <Alert type="success" title="OK">
+                {successMsg}
+              </Alert>
+            )}
+
+            <Stack gap={3}>
+              <Button
+                type="button"
+                variant="primary"
+                className="w-full"
+                disabled={resending}
+                onClick={handleResend}
+              >
+                {resending ? t("login.loading") : t("register.resend" as any)}
+              </Button>
+              <Link
+                href="/login"
+                className="text-center text-sm font-medium text-primary hover:underline"
+              >
+                {t("register.backToLogin")}
+              </Link>
+            </Stack>
+          </Stack>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-seek-4 sm:p-seek-6">
@@ -148,7 +200,7 @@ export default function RegisterPage() {
                 />
               </FieldWrapper>
 
-              <Button
+                <Button
                 type="submit"
                 variant="primary"
                 className="w-full mt-seek-2"

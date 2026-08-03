@@ -84,7 +84,7 @@ npx prisma migrate deploy
 ## 7. Expected Local URLs (Холбогдох хаягууд)
 
 - **Portal Web**: `http://localhost:3001`
-- **Gateway**: `http://localhost:3000`
+- **Gateway**: `http://localhost:3010`
 - **Auth Service (Internal/Debug)**: `http://localhost:3010`
 - **PostgreSQL (Local bind)**: `127.0.0.1:5432`
 
@@ -145,8 +145,8 @@ graph TD
 ### Нарийвчилсан алдааны жагсаалт:
 
 - **Symptom: Port already in use**
-  - _Cause_: Порт 3000 эсвэл 3001-ийг арын систем ашиглаж байна.
-  - _Verification command_: `lsof -i :3000` эсвэл `netstat -ano | findstr 3000` (Windows)
+  - _Cause_: Порт 3010 эсвэл 3001-ийг арын систем ашиглаж байна.
+  - _Verification command_: `lsof -i :3010` эсвэл `netstat -ano | findstr 3010` (Windows)
   - _Resolution_: Уг портыг чөлөөлөх эсвэл холбогдох процессыг зогсоох.
 - **Symptom: PostgreSQL unhealthy**
   - _Cause_: Өгөгдлийн сангийн өмнөх тохиргоо зөрчилдсөн.

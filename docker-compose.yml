@@ -78,45 +78,45 @@ services:
   # =========================================================================
   # Core Business Services (Profile-less)
   # =========================================================================
-  auth-migrate:
-    profiles:
-      - auth-test
-    build:
-      context: .
-      dockerfile: services/auth/Dockerfile
-    container_name: seek-auth-migrate
-    working_dir: /app/services/auth
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
-    entrypoint: ["npx", "prisma", "migrate", "deploy"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - shared-net
-
-  auth-seed:
-    profiles:
-      - auth-test
-    build:
-      context: .
-      dockerfile: services/auth/Dockerfile
-    container_name: seek-auth-seed
-    working_dir: /app/services/auth
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
-      NODE_ENV: development
-    entrypoint:
-      [
-        "sh",
-        "-c",
-        "npx prisma generate --schema=prisma/schema.prisma && npx ts-node prisma/seed.ts",
-      ]
-    depends_on:
-      auth-migrate:
-        condition: service_completed_successfully
-    networks:
-      - shared-net
+#  auth-migrate:
+#    profiles:
+#      - auth-test
+#    build:
+#      context: .
+#      dockerfile: services/auth/Dockerfile
+#    container_name: seek-auth-migrate
+#    working_dir: /app/services/auth
+#    environment:
+#      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
+#    entrypoint: ["npx", "prisma", "migrate", "deploy"]
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - shared-net
+#
+#  auth-seed:
+#    profiles:
+#      - auth-test
+#    build:
+#      context: .
+#      dockerfile: services/auth/Dockerfile
+#    container_name: seek-auth-seed
+#    working_dir: /app/services/auth
+#    environment:
+#      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
+#      NODE_ENV: development
+#    entrypoint:
+#      [
+#        "sh",
+#        "-c",
+#        "npx prisma generate --schema=prisma/schema.prisma && npx ts-node prisma/seed.ts",
+#      ]
+#    depends_on:
+#      auth-migrate:
+#        condition: service_completed_successfully
+#    networks:
+#      - shared-net
 
   auth:
     profiles:
@@ -138,13 +138,26 @@ services:
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
       AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
       AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
+      AUTH_PUBLIC_APP_URL: ${AUTH_PUBLIC_APP_URL:-http://localhost:3001}
+      AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-no-reply@seek.mn}
+      AUTH_EMAIL_VERIFICATION_TTL_HOURS: ${AUTH_EMAIL_VERIFICATION_TTL_HOURS:-24}
+      AUTH_EMAIL_DELIVERY_MODE: ${AUTH_EMAIL_DELIVERY_MODE:-log}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-10}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_HELO_DOMAIN: ${SMTP_HELO_DOMAIN:-seek.mn}
+      RUN_SEED: "true"
+      TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}'
     networks:
       - shared-net
     depends_on:
       postgres:
         condition: service_healthy
-      auth-seed:
-        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -180,7 +193,8 @@ services:
       FILE_SERVICE_URL: http://file:3140
       NOTIFICATION_SERVICE_URL: http://notification:3170
       REPORTING_SERVICE_URL: http://reporting:3150
-      AUTH_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:8082,http://127.0.0.1:8081,http://127.0.0.1:8082,http://portal.seek.mn,http://quiz.seek.mn,http://quiz-api.seek.mn
+      AUTH_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:8082,http://127.0.0.1:8081,http://127.0.0.1:8082,http://portal.seek.mn,http://quiz.seek.mn,http://quiz-api.seek.mn,https://portal.seek.mn,https://quiz.seek.mn,https://quiz-api.seek.mn
+      AUTH_CSRF_ALLOW_MISSING_ORIGIN: ${AUTH_CSRF_ALLOW_MISSING_ORIGIN:-false}
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
       AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
       AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
@@ -224,6 +238,7 @@ services:
       - NODE_ENV=development
       - INTERNAL_API_URL=http://gateway:3010/api
       - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+      - NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
     command: sh -c "npm install -g pnpm && cd /app && CI=true pnpm install --frozen-lockfile && pnpm --filter @seek/portal-web dev"
     networks:
       - shared-net

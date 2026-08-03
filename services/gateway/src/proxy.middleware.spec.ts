@@ -48,6 +48,7 @@ describe("ProxyMiddleware Unit Tests", () => {
     const payload = {
       sub: "user-123",
       session_id: "session-456",
+      roles: ["CANDIDATE", "ASSESSOR"],
       iss: "seek.mn",
       aud: "seek.mn",
     };
@@ -65,6 +66,7 @@ describe("ProxyMiddleware Unit Tests", () => {
 
     expect(mockRequest.headers["x-user-id"]).toBe("user-123");
     expect(mockRequest.headers["x-session-id"]).toBe("session-456");
+    expect(mockRequest.headers["x-user-roles"]).toBe("CANDIDATE,ASSESSOR");
     expect(nextFunction).toHaveBeenCalled();
   });
 
@@ -103,10 +105,143 @@ describe("ProxyMiddleware Unit Tests", () => {
       ...mockRequest,
       path: "/",
       url: "/",
-      originalUrl: "/api/v1/profile/me",
+      originalUrl: "/api/v1/unsupported-service",
     };
 
     expect((middleware as any).isAuthProxyRequest(mockRequest)).toBe(false);
+  });
+
+  it("should resolve authenticated profile proxy paths", () => {
+    mockRequest = {
+      ...mockRequest,
+      path: "/",
+      url: "/",
+      originalUrl: "/api/v1/profile/me/completion",
+    };
+
+    expect((middleware as any).isProfileProxyRequest(mockRequest)).toBe(true);
+    expect((middleware as any).resolveProfileProxyPath(mockRequest)).toBe(
+      "/profile/me/completion",
+    );
+
+    mockRequest.originalUrl = "/api/v1/profile/admin/verifications";
+    expect((middleware as any).isProfileProxyRequest(mockRequest)).toBe(true);
+    expect((middleware as any).resolveProfileProxyPath(mockRequest)).toBe(
+      "/profile/admin/verifications",
+    );
+  });
+
+  describe("Profile Service Gateway Protection and RBAC", () => {
+    it("should allow /api/v1/profile/me request if x-user-id is present", () => {
+      const token = jwt.sign(
+        { sub: "user-123", session_id: "session-456", roles: ["CANDIDATE"] },
+        jwtSecret,
+        { issuer: "seek.mn", audience: "seek.mn" }
+      );
+      mockRequest = {
+        method: "GET",
+        originalUrl: "/api/v1/profile/me",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+
+    it("should return 401 for /api/v1/profile/me request if x-user-id is missing", () => {
+      mockRequest = {
+        method: "GET",
+        originalUrl: "/api/v1/profile/me",
+        headers: {},
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+    });
+
+    it("should return 401 for /api/v1/profile/admin request if x-user-id is missing", () => {
+      mockRequest = {
+        method: "GET",
+        originalUrl: "/api/v1/profile/admin/verifications",
+        headers: {},
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+    });
+
+    it("should return 403 for /api/v1/profile/admin request if x-user-roles is missing or user is not admin", () => {
+      const token = jwt.sign(
+        { sub: "user-123", session_id: "session-456", roles: ["CANDIDATE"] },
+        jwtSecret,
+        { issuer: "seek.mn", audience: "seek.mn" }
+      );
+      mockRequest = {
+        method: "GET",
+        originalUrl: "/api/v1/profile/admin/verifications",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+    });
+
+    it("should allow /api/v1/profile/admin request if user is admin/assessor", () => {
+      const token = jwt.sign(
+        { sub: "user-123", session_id: "session-456", roles: ["ASSESSOR"] },
+        jwtSecret,
+        { issuer: "seek.mn", audience: "seek.mn" }
+      );
+      mockRequest = {
+        method: "GET",
+        originalUrl: "/api/v1/profile/admin/verifications",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
   });
 
   it("should resolve bounded-context health proxy targets", () => {
@@ -168,6 +303,38 @@ describe("ProxyMiddleware Unit Tests", () => {
 
       expect(nextFunction).not.toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(403);
+    });
+
+    it("should deny mutating cookie request with missing origin", () => {
+      mockRequest.method = "POST";
+      mockRequest.headers = { cookie: "refresh_token=value" };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+    });
+
+    it("should allow missing origin for non-cookie mutating requests", () => {
+      mockRequest.method = "POST";
+      mockRequest.headers = {};
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(nextFunction).toHaveBeenCalled();
+      expect(mockResponse.status).not.toHaveBeenCalled();
     });
 
     it("should allow safe request (GET) regardless of origin", () => {

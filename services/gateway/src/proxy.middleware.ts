@@ -9,6 +9,8 @@ export class ProxyMiddleware implements NestMiddleware {
     process.env.AUTH_JWT_SECRET || "seek_jwt_secret_key_placeholder";
   private readonly authServiceUrl =
     process.env.AUTH_SERVICE_URL || "http://localhost:3020";
+  private readonly profileServiceUrl =
+    process.env.PROFILE_SERVICE_URL || "http://localhost:3030";
   private readonly executionServiceUrl =
     process.env.EXECUTION_SERVICE_URL || "http://localhost:3090";
   private readonly healthProxyTargets: Record<string, string> = {
@@ -41,6 +43,14 @@ export class ProxyMiddleware implements NestMiddleware {
 
   private resolveExecutionProxyPath(req: Request): string {
     return this.getRequestUrl(req).replace(/^\/api\/v1\/execution/, "/execution");
+  }
+
+  private isProfileProxyRequest(req: Request): boolean {
+    return this.getRequestUrl(req).startsWith("/api/v1/profile");
+  }
+
+  private resolveProfileProxyPath(req: Request): string {
+    return this.getRequestUrl(req).replace(/^\/api\/v1\/profile/, "/profile");
   }
 
   private getHealthProxyTarget(req: Request): { url: string; service: string } | null {
@@ -80,6 +90,18 @@ export class ProxyMiddleware implements NestMiddleware {
     }
 
     if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
+      const hasCookie = Boolean(req.headers["cookie"]);
+      const allowMissingOrigin =
+        process.env.AUTH_CSRF_ALLOW_MISSING_ORIGIN === "true";
+      if (!clientOrigin && hasCookie && !allowMissingOrigin) {
+        res.status(403).json({
+          statusCode: 403,
+          message: "Missing Origin (CSRF Prevention)",
+          error: "Forbidden",
+        });
+        return;
+      }
+
       if (clientOrigin && !allowedOrigins.includes(clientOrigin)) {
         res.status(403).json({
           statusCode: 403,
@@ -94,6 +116,7 @@ export class ProxyMiddleware implements NestMiddleware {
     const headersToStrip = [
       "x-user-id",
       "x-session-id",
+      "x-user-roles",
       "x-authenticated-subject",
       "x-authenticated-user",
       "x-auth-context",
@@ -121,6 +144,11 @@ export class ProxyMiddleware implements NestMiddleware {
         if (decoded && decoded.sub && decoded.session_id) {
           req.headers["x-user-id"] = decoded.sub;
           req.headers["x-session-id"] = decoded.session_id;
+          if (Array.isArray(decoded.roles)) {
+            req.headers["x-user-roles"] = decoded.roles
+              .filter((role: unknown) => typeof role === "string")
+              .join(",");
+          }
         }
       } catch (err) {
         // Хэрэв токен буруу эсвэл хугацаа дууссан бол дотоод сүлжээнд зөвшөөрөхгүй
@@ -153,7 +181,64 @@ export class ProxyMiddleware implements NestMiddleware {
       return proxyMiddleware(req, res, next);
     }
 
-    // 5. Initial phase: expose only health proxy routes for bounded-context services.
+    // 5. /api/v1/profile чиглэлийн хүсэлтийг authenticated profile service рүү proxy хийх
+    if (this.isProfileProxyRequest(req)) {
+      const url = this.getRequestUrl(req);
+      
+      // Candidate routes check
+      if (url.startsWith("/api/v1/profile/me")) {
+        if (!req.headers["x-user-id"]) {
+          res.status(401).json({
+            statusCode: 401,
+            message: "Нэвтрэх эрхгүй байна.",
+            error: "Unauthorized",
+          });
+          return;
+        }
+      } 
+      // Admin routes check
+      else if (url.startsWith("/api/v1/profile/admin")) {
+        const userId = req.headers["x-user-id"];
+        const rolesHeader = req.headers["x-user-roles"];
+        
+        if (!userId) {
+          res.status(401).json({
+            statusCode: 401,
+            message: "Нэвтрэх эрхгүй байна.",
+            error: "Unauthorized",
+          });
+          return;
+        }
+
+        const roles = typeof rolesHeader === "string" ? rolesHeader.split(",") : [];
+        const allowedAdminRoles = [
+          "SUPER_ADMIN",
+          "ORGANIZATION_ADMIN",
+          "ASSESSOR",
+          "VIEWER",
+          "TESTER",
+        ];
+        const hasAdminRole = roles.some(role => allowedAdminRoles.includes(role));
+
+        if (!rolesHeader || !hasAdminRole) {
+          res.status(403).json({
+            statusCode: 403,
+            message: "Уг үйлдлийг хийх эрх хүрэлцэхгүй байна.",
+            error: "Forbidden",
+          });
+          return;
+        }
+      }
+
+      const proxyMiddleware = proxy(this.profileServiceUrl, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveProfileProxyPath(proxyReq);
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 6. Initial phase: expose only health proxy routes for bounded-context services.
     const healthProxyTarget = this.getHealthProxyTarget(req);
     if (healthProxyTarget) {
       const proxyMiddleware = proxy(healthProxyTarget.url, {

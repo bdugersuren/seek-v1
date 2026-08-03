@@ -30,6 +30,10 @@ import {
 } from "@seek/ui";
 import { locales, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/use-t";
+import {
+  loginWithPassword,
+  resendVerificationEmail,
+} from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,7 +44,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+  const [canResendVerification, setCanResendVerification] = useState(false);
 
   const fillCredentials = (
     nextEmail: string,
@@ -51,6 +58,8 @@ export default function LoginPage() {
     setPassword(nextPassword);
     setSelectedRole(roleLabel);
     setErrorMsg(null);
+    setResendMsg(null);
+    setCanResendVerification(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -62,6 +71,8 @@ export default function LoginPage() {
 
     setLoading(true);
     setErrorMsg(null);
+    setResendMsg(null);
+    setCanResendVerification(false);
 
     try {
 
@@ -81,46 +92,40 @@ export default function LoginPage() {
         }
       }
 
-      // Gateway-ийн /api/v1/auth/login руу илгээнэ. Local-д proxy-гээр дамжина.
-      const res = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || t("login.failed"));
-      }
-
-      const data = await res.json();
+      const data = await loginWithPassword(email, password);
       const portalUser = enrichUserWithMockRole(data.user);
       setAccessToken(data.accessToken);
       dispatch(loginSuccess(portalUser));
 
-      if (enableMock) {
-        router.push(portalUser.homePath);
-      } else {
-        const userRoles = data.user.roles || [];
-        if (userRoles.includes("SUPER_ADMIN")) {
-          router.push("/admin");
-        } else if (userRoles.includes("ORGANIZATION_ADMIN")) {
-          router.push("/organisations");
-        } else if (userRoles.includes("ASSESSOR")) {
-          router.push("/assessments");
-        } else if (userRoles.includes("CANDIDATE")) {
-          router.push("/catalog");
-        } else if (userRoles.includes("VIEWER")) {
-          router.push("/results");
-        } else {
-          router.push("/catalog");
-        }
-      }
+      router.push(portalUser.homePath);
     } catch (err: any) {
-      setErrorMsg(err.message || t("login.failed"));
+      const message = err.message || t("login.failed");
+      setErrorMsg(message);
+      setCanResendVerification(
+        !enableMock &&
+          email.includes("@") &&
+          (message.includes("баталгаажуул") ||
+            message.toLowerCase().includes("verify")),
+      );
       dispatch(loginFailure(err.message || "Error"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+
+    setResending(true);
+    setResendMsg(null);
+
+    try {
+      await resendVerificationEmail(email);
+      setResendMsg(t("login.resendSuccess" as any));
+    } catch (err: any) {
+      setErrorMsg(err.message || t("login.resendFailed" as any));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -165,6 +170,12 @@ export default function LoginPage() {
                 </Alert>
               )}
 
+              {resendMsg && (
+                <Alert type="success" title="OK">
+                  {resendMsg}
+                </Alert>
+              )}
+
               <Stack gap={4}>
                 <FieldWrapper
                   id="login-email"
@@ -197,6 +208,19 @@ export default function LoginPage() {
                 >
                   {loading ? t("login.loading") : t("login.submit")}
                 </Button>
+                {canResendVerification && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    disabled={resending}
+                    onClick={handleResendVerification}
+                  >
+                    {resending
+                      ? t("login.loading")
+                      : t("login.resendVerification" as any)}
+                  </Button>
+                )}
                 <Text variant="muted" className="text-xs">
                   {t("login.prototypeHint")}
                 </Text>

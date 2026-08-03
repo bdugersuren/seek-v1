@@ -12,13 +12,20 @@ import {
   LoginResponse,
   RefreshResponse,
   CurrentUserResponse,
+  RegisterRequest,
+  RegisterResponse,
+  ResendVerificationResponse,
+  SessionsResponse,
+  VerifyEmailResponse,
 } from "@seek/contracts";
+import { EmailDeliveryService } from "./email-delivery.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly emailDelivery: EmailDeliveryService,
   ) {}
 
   // Нууц үг шалгах, шифрлэх
@@ -36,8 +43,12 @@ export class AuthService {
     return bcrypt.compare(password, hash);
   }
 
-  // Бүртгүүлэх (Спринт 4-ийн хүрээнд mock бүртгэлийг db-д үүсгэнэ)
-  async register(dto: LoginRequest): Promise<CurrentUserResponse> {
+  // Бүртгүүлэх: email баталгаажуулсны дараа ACTIVE болно.
+  async register(
+    dto: RegisterRequest,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<RegisterResponse> {
     const canonicalEmail = dto.email.toLowerCase().trim();
     const existing = await this.prisma.userAccount.findUnique({
       where: { email: canonicalEmail },
@@ -48,9 +59,7 @@ export class AuthService {
       );
     }
 
-    const hashedPassword = await this.hashPassword(
-      dto.password || "default_secure_pass",
-    );
+    const hashedPassword = await this.hashPassword(dto.password);
 
     // CANDIDATE дүрийг олох
     let candidateRole = await this.prisma.role.findUnique({
@@ -67,10 +76,11 @@ export class AuthService {
       });
     }
 
-    const user = await this.prisma.userAccount.create({
+    const user = await (this.prisma.userAccount as any).create({
       data: {
         email: canonicalEmail,
-        status: "ACTIVE",
+        status: "PENDING_EMAIL_VERIFICATION",
+        isEmailVerified: false,
         credentials: {
           create: {
             value: hashedPassword,
@@ -89,22 +99,26 @@ export class AuthService {
       }
     });
 
+    const rawVerificationToken = await this.createEmailVerificationToken(
+      user.id,
+    );
+
     await this.logEvent(
       user.id,
       "ACCOUNT_CREATED",
-      null,
-      null,
+      ip || null,
+      userAgent || null,
       `Email: ${canonicalEmail}`,
     );
 
-    const roleNames = user.roles.map((r: any) => r.role.name);
+    await this.sendVerificationEmail(canonicalEmail, rawVerificationToken);
 
     return {
       id: user.id,
       email: user.email,
       status: user.status,
-      roles: roleNames,
-    } as any;
+      emailVerificationRequired: true,
+    };
   }
 
   // Нэвтрэх (Login)
@@ -114,7 +128,7 @@ export class AuthService {
     userAgent?: string,
   ): Promise<{ response: LoginResponse; refreshToken: string }> {
     const canonicalEmail = dto.email.toLowerCase().trim();
-    const user = await this.prisma.userAccount.findUnique({
+    const user = (await this.prisma.userAccount.findUnique({
       where: { email: canonicalEmail },
       include: { 
         credentials: true,
@@ -122,19 +136,43 @@ export class AuthService {
           include: { role: true }
         }
       },
-    });
+    })) as any;
 
     const genericError = new UnauthorizedException(
       "Имэйл эсвэл нууц үг буруу байна.",
     );
 
-    if (!user || user.status !== "ACTIVE") {
+    if (!user) {
       await this.logEvent(
-        user?.id || null,
+        null,
         "LOGIN_FAILED",
         ip,
         userAgent,
         `Email: ${canonicalEmail}`,
+      );
+      throw genericError;
+    }
+
+    if (!user.isEmailVerified || user.status === "PENDING_EMAIL_VERIFICATION") {
+      await this.logEvent(
+        user.id,
+        "LOGIN_BLOCKED_EMAIL_UNVERIFIED",
+        ip,
+        userAgent,
+        `Email: ${canonicalEmail}`,
+      );
+      throw new UnauthorizedException(
+        "Имэйл хаягаа баталгаажуулсны дараа нэвтэрнэ үү.",
+      );
+    }
+
+    if (user.status !== "ACTIVE") {
+      await this.logEvent(
+        user.id,
+        "LOGIN_FAILED",
+        ip,
+        userAgent,
+        `Inactive account Email: ${canonicalEmail}`,
       );
       throw genericError;
     }
@@ -216,6 +254,102 @@ export class AuthService {
       },
       refreshToken: rawRefreshToken,
     };
+  }
+
+  async verifyEmail(
+    rawToken: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<VerifyEmailResponse> {
+    if (!rawToken) {
+      throw new BadRequestException("Баталгаажуулах токен шаардлагатай.");
+    }
+
+    const incomingHash = this.hashOpaqueToken(rawToken);
+
+    await this.prisma.$transaction(async (tx) => {
+      const db = tx as any;
+      const storedToken = await db.emailVerificationToken.findUnique({
+        where: { tokenHash: incomingHash },
+        include: { userAccount: true },
+      });
+
+      if (
+        !storedToken ||
+        storedToken.consumedAt ||
+        new Date() > storedToken.expiresAt
+      ) {
+        await tx.securityEvent.create({
+          data: {
+            userAccountId: storedToken?.userAccountId || null,
+            eventType: "EMAIL_VERIFICATION_FAILED",
+            ipAddress: ip || null,
+            userAgent: userAgent || null,
+            payload: storedToken ? `TokenId: ${storedToken.id}` : "Unknown token",
+          },
+        });
+        throw new BadRequestException(
+          "Баталгаажуулах холбоос хүчингүй эсвэл хугацаа дууссан байна.",
+        );
+      }
+
+      await db.emailVerificationToken.update({
+        where: { id: storedToken.id },
+        data: { consumedAt: new Date() },
+      });
+
+      await db.userAccount.update({
+        where: { id: storedToken.userAccountId },
+        data: {
+          isEmailVerified: true,
+          status:
+            storedToken.userAccount.status === "PENDING_EMAIL_VERIFICATION"
+              ? "ACTIVE"
+              : storedToken.userAccount.status,
+        },
+      });
+
+      await tx.securityEvent.create({
+        data: {
+          userAccountId: storedToken.userAccountId,
+          eventType: "EMAIL_VERIFIED",
+          ipAddress: ip || null,
+          userAgent: userAgent || null,
+          payload: `TokenId: ${storedToken.id}`,
+        },
+      });
+    });
+
+    return { success: true };
+  }
+
+  async resendVerification(
+    email: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<ResendVerificationResponse> {
+    const canonicalEmail = email.toLowerCase().trim();
+    const user = await (this.prisma.userAccount as any).findUnique({
+      where: { email: canonicalEmail },
+    });
+
+    // Enumeration-оос хамгаалж үргэлж success буцаана.
+    if (!user || user.isEmailVerified) {
+      return { success: true };
+    }
+
+    const rawVerificationToken = await this.createEmailVerificationToken(user.id);
+    await this.sendVerificationEmail(canonicalEmail, rawVerificationToken);
+
+    await this.logEvent(
+      user.id,
+      "EMAIL_VERIFICATION_RESENT",
+      ip || null,
+      userAgent || null,
+      `Email: ${canonicalEmail}`,
+    );
+
+    return { success: true };
   }
 
   // Токен шинэчлэх (Refresh with Rotation and Reuse Detection)
@@ -382,6 +516,107 @@ export class AuthService {
     }
   }
 
+  async listSessions(userId: string): Promise<SessionsResponse> {
+    const sessions = await this.prisma.session.findMany({
+      where: { userAccountId: userId },
+      orderBy: { lastUsedAt: "desc" },
+      take: 50,
+    });
+
+    return {
+      sessions: sessions.map((session) => ({
+        id: session.id,
+        userAgentSummary: session.userAgentSummary,
+        ipAddressSummary: session.ipAddressSummary,
+        createdAt: session.createdAt.toISOString(),
+        lastUsedAt: session.lastUsedAt.toISOString(),
+        expiresAt: session.expiresAt.toISOString(),
+        revokedAt: session.revokedAt?.toISOString() || null,
+        revocationReason: session.revocationReason,
+      })),
+    };
+  }
+
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    reason = "USER_REVOKED",
+  ): Promise<void> {
+    const session = await this.prisma.session.findFirst({
+      where: {
+        id: sessionId,
+        userAccountId: userId,
+      },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException("Сесс олдсонгүй.");
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.session.update({
+        where: { id: sessionId },
+        data: {
+          revokedAt: new Date(),
+          revocationReason: reason,
+        },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { sessionId },
+        data: { revokedAt: new Date() },
+      });
+
+      await tx.securityEvent.create({
+        data: {
+          userAccountId: userId,
+          eventType: "SESSION_REVOKED",
+          payload: `Session: ${sessionId}, Reason: ${reason}`,
+        },
+      });
+    });
+  }
+
+  async logoutAll(userId: string, reason = "LOGOUT_ALL"): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const sessions = await tx.session.findMany({
+        where: {
+          userAccountId: userId,
+          revokedAt: null,
+        },
+        select: { id: true },
+      });
+
+      const sessionIds = sessions.map((session) => session.id);
+
+      await tx.session.updateMany({
+        where: {
+          userAccountId: userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+          revocationReason: reason,
+        },
+      });
+
+      if (sessionIds.length > 0) {
+        await tx.refreshToken.updateMany({
+          where: { sessionId: { in: sessionIds } },
+          data: { revokedAt: new Date() },
+        });
+      }
+
+      await tx.securityEvent.create({
+        data: {
+          userAccountId: userId,
+          eventType: "LOGOUT_ALL_COMPLETED",
+          payload: `Sessions: ${sessionIds.length}`,
+        },
+      });
+    });
+  }
+
   // Одоогийн хэрэглэгч
   async getCurrentUser(userId: string): Promise<CurrentUserResponse> {
     const user = await this.prisma.userAccount.findUnique({
@@ -424,5 +659,50 @@ export class AuthService {
     } catch (e) {
       console.error("Failed to log security event", e);
     }
+  }
+
+  private hashOpaqueToken(rawToken: string): string {
+    return crypto.createHash("sha256").update(rawToken).digest("hex");
+  }
+
+  private async createEmailVerificationToken(userId: string): Promise<string> {
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = this.hashOpaqueToken(rawToken);
+    const ttlHours = parseInt(
+      process.env.AUTH_EMAIL_VERIFICATION_TTL_HOURS || "24",
+      10,
+    );
+    const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
+    await (this.prisma as any).emailVerificationToken.create({
+      data: {
+        userAccountId: userId,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    return rawToken;
+  }
+
+  private async sendVerificationEmail(
+    email: string,
+    token: string,
+  ): Promise<void> {
+    const publicAppUrl =
+      process.env.AUTH_PUBLIC_APP_URL || "http://localhost:3001";
+    const verificationUrl = `${publicAppUrl.replace(/\/$/, "")}/verify-email?token=${token}`;
+
+    await this.emailDelivery.send({
+      to: email,
+      subject: "seek.mn email баталгаажуулалт",
+      text: [
+        "seek.mn бүртгэлээ баталгаажуулна уу.",
+        "",
+        `Баталгаажуулах холбоос: ${verificationUrl}`,
+        "",
+        "Хэрэв та энэ бүртгэлийг үүсгээгүй бол энэ имэйлийг үл тооно уу.",
+      ].join("\n"),
+    });
   }
 }

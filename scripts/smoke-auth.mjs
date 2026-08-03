@@ -1,6 +1,7 @@
 import assert from "assert";
 
-const gatewayUrl = process.env.GATEWAY_URL || "http://localhost:3000";
+const gatewayUrl = process.env.GATEWAY_URL || "http://localhost:3010";
+const origin = process.env.AUTH_TEST_ORIGIN || "http://localhost:8081";
 const email = process.env.AUTH_TEST_EMAIL || "tester@seek.local";
 const password = process.env.AUTH_TEST_PASSWORD || "TestPassword123!";
 
@@ -17,7 +18,7 @@ async function run() {
   console.log(`Attempting login for: ${email}`);
   const loginRes = await fetch(`${gatewayUrl}/api/v1/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Origin: origin },
     body: JSON.stringify({ email, password }),
   });
 
@@ -45,7 +46,7 @@ async function run() {
   console.log("Attempting token refresh...");
   const refreshRes = await fetch(`${gatewayUrl}/api/v1/auth/refresh`, {
     method: "POST",
-    headers: { Cookie: cookieVal },
+    headers: { Cookie: cookieVal, Origin: origin },
   });
   assert.strictEqual(
     refreshRes.status,
@@ -70,7 +71,7 @@ async function run() {
   console.log("Attempting logout...");
   const logoutRes = await fetch(`${gatewayUrl}/api/v1/auth/logout`, {
     method: "POST",
-    headers: { Cookie: newCookieVal },
+    headers: { Cookie: newCookieVal, Origin: origin },
   });
   assert.strictEqual(
     logoutRes.status,
@@ -83,7 +84,7 @@ async function run() {
   console.log("Confirming token family is invalidated after logout...");
   const failedRefreshRes = await fetch(`${gatewayUrl}/api/v1/auth/refresh`, {
     method: "POST",
-    headers: { Cookie: newCookieVal },
+    headers: { Cookie: newCookieVal, Origin: origin },
   });
   assert.strictEqual(
     failedRefreshRes.status,

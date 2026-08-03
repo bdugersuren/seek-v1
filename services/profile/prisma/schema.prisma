@@ -9,19 +9,79 @@ datasource db {
 }
 
 model UserProfile {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  displayName String?
-  birthDate   DateTime?
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String    @id @default(uuid())
+  userId                String    @unique
+  displayName           String?
+  firstName             String?
+  lastName              String?
+  phoneNumber           String?
+  phoneNumberVerifiedAt DateTime?
+  organisation          String?
+  birthDate             DateTime?
+  gender                String?
+  country               String?
+  address               String?
+  preferredLanguage     String?
+  completionStatus      String?
+  verifiedAt            DateTime?
+  metadata              Json      @default("{}")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  locations   ProfileLocation[]
-  education   EducationRecord[]
-  workHistory WorkRecord[]
+  locations     ProfileLocation[]
+  education     EducationRecord[]
+  workHistory   WorkRecord[]
+  verifications ProfileVerification[]
+  documents     ProfileDocument[]
+  auditLogs     ProfileAuditLog[]
 
   @@map("user_profile")
+}
+
+model ProfileVerification {
+  id             String    @id @default(uuid())
+  profileId      String
+  status         String    // NOT_STARTED, IN_PROGRESS, SUBMITTED, VERIFIED, REJECTED, EXPIRED
+  type           String    // IDENTITY, EDUCATION, EMPLOYMENT, ORGANISATION, ASSESSOR etc.
+  rejectedReason String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  profile        UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_verification")
+}
+
+model ProfileDocument {
+  id         String   @id @default(uuid())
+  profileId  String
+  type       String   // IDENTITY, EDUCATION, etc.
+  name       String
+  storageKey String
+  mimeType   String
+  sizeBytes  Int
+  status     String   // UPLOADED, VERIFIED, REJECTED
+  uploadedAt DateTime @default(now())
+  profile    UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_document")
+}
+
+model ProfileAuditLog {
+  id          String   @id @default(uuid())
+  profileId   String
+  userId      String
+  actorUserId String
+  action      String   // PROFILE_CREATED, PROFILE_UPDATED, PROFILE_COMPLETION_CHANGED, VERIFICATION_SUBMITTED, VERIFICATION_APPROVED, VERIFICATION_REJECTED, DOCUMENT_ADDED, DOCUMENT_REMOVED
+  before      Json     @default("{}")
+  after       Json     @default("{}")
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  profile     UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_audit_log")
 }
 
 model ProfileLocation {

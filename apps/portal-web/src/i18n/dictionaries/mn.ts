@@ -41,6 +41,9 @@ export const mn = {
   "login.errorTitle": "Алдаа",
   "login.failed": "Нэвтрэх үйлдэл амжилтгүй боллоо.",
   "login.mockPasswordWrong": "Mock хэрэглэгчийн нууц үг буруу байна.",
+  "login.resendVerification": "Баталгаажуулах имэйл дахин илгээх",
+  "login.resendSuccess": "Баталгаажуулах имэйл дахин илгээгдлээ.",
+  "login.resendFailed": "Баталгаажуулах имэйл дахин илгээж чадсангүй.",
   "login.prototypeHint":
     "Prototype roles: superadmin, orgadmin, assessor, candidate, reviewer @lms.local / TestPassword123!",
   "login.rolePanelTitle": "Role demo accounts",
@@ -55,10 +58,24 @@ export const mn = {
   "login.forgotPasswordLink": "Нууц үг мартсан?",
   "register.title": "Бүртгүүлэх",
   "register.subtitle":
-    "Prototype шатанд шинэ хэрэглэгчийг байгууллагын урилга эсвэл админ зөвшөөрлөөр бүртгэнэ.",
+    "Акаунт үүсгээд имэйл хаягаа баталгаажуулна уу.",
   "register.description":
-    "Энэ хуудас нь frontend route болон UX boundary-г баталгаажуулах placeholder. Backend registration API дараагийн auth workflow task дээр тодорхойлогдоно.",
+    "Бүртгүүлсний дараа баталгаажуулах холбоос таны имэйл рүү илгээгдэнэ.",
   "register.backToLogin": "Нэвтрэх рүү буцах",
+  "register.confirmTitle": "Имэйлээ шалгана уу",
+  "register.confirmDescription":
+    "Баталгаажуулах холбоос илгээгдлээ. Имэйлээ баталгаажуулсны дараа нэвтэрнэ үү.",
+  "register.resend": "Дахин илгээх",
+  "register.resendSuccess": "Баталгаажуулах имэйл дахин илгээгдлээ.",
+  "register.resendFailed": "Баталгаажуулах имэйл дахин илгээж чадсангүй.",
+  "verify.title": "Имэйл баталгаажуулалт",
+  "verify.loading": "Баталгаажуулж байна...",
+  "verify.successTitle": "Имэйл баталгаажлаа",
+  "verify.successDescription": "Одоо акаунтаараа нэвтрэх боломжтой.",
+  "verify.errorTitle": "Холбоос хүчингүй байна",
+  "verify.errorDescription":
+    "Баталгаажуулах холбоос хүчингүй эсвэл хугацаа нь дууссан байж магадгүй.",
+  "verify.missingToken": "Баталгаажуулах токен олдсонгүй.",
   "forgot.title": "Нууц үг сэргээх",
   "forgot.subtitle":
     "Бүртгэлтэй имэйл хаягаа оруулж сэргээх холбоос авах урсгал энд байрлана.",
