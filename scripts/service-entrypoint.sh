@@ -17,6 +17,13 @@ if [ -f "$PRISMA_SCHEMA" ]; then
 
     /app/node_modules/.bin/prisma generate --schema="$PRISMA_SCHEMA"
 
+    if [ -d "${SERVICE_DIR}/generated" ]; then
+      mkdir -p "${SERVICE_DIR}/dist"
+      rm -rf "${SERVICE_DIR}/dist/generated"
+      cp -r "${SERVICE_DIR}/generated" "${SERVICE_DIR}/dist/generated"
+      echo "Copied generated clients to dist/generated successfully."
+    fi
+
     if [ -d "${SERVICE_DIR}/prisma/migrations" ] && [ "$(find "${SERVICE_DIR}/prisma/migrations" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)" -gt 0 ]; then
       /app/node_modules/.bin/prisma migrate deploy --schema="$PRISMA_SCHEMA"
     else

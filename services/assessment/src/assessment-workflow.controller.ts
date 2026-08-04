@@ -6,7 +6,7 @@ export class AssessmentWorkflowController {
   constructor(private readonly workflowService: AssessmentWorkflowService) {}
 
   @Post("questions/:questionId/workflow")
-  questionWorkflow(
+  async questionWorkflow(
     @Param("questionId") questionId: string,
     @Body()
     body: {
@@ -17,16 +17,16 @@ export class AssessmentWorkflowController {
       metadata?: Record<string, unknown>;
     }
   ) {
-    return this.workflowService.transition("question", questionId, body);
+    return await this.workflowService.transition("question", questionId, body);
   }
 
   @Get("questions/:questionId/workflow")
-  questionWorkflowEvents(@Param("questionId") questionId: string) {
-    return this.workflowService.listEvents("question", questionId);
+  async questionWorkflowEvents(@Param("questionId") questionId: string) {
+    return await this.workflowService.listEvents("question", questionId);
   }
 
   @Post("blueprints/:blueprintId/workflow")
-  blueprintWorkflow(
+  async blueprintWorkflow(
     @Param("blueprintId") blueprintId: string,
     @Body()
     body: {
@@ -37,11 +37,11 @@ export class AssessmentWorkflowController {
       metadata?: Record<string, unknown>;
     }
   ) {
-    return this.workflowService.transition("blueprint", blueprintId, body);
+    return await this.workflowService.transition("blueprint", blueprintId, body);
   }
 
   @Post("quizzes/:quizId/workflow")
-  quizWorkflow(
+  async quizWorkflow(
     @Param("quizId") quizId: string,
     @Body()
     body: {
@@ -52,19 +52,20 @@ export class AssessmentWorkflowController {
       metadata?: Record<string, unknown>;
     }
   ) {
-    return this.workflowService.transition("quiz", quizId, body);
+    return await this.workflowService.transition("quiz", quizId, body);
   }
 
   @Post("schedules/:scheduleId/publish")
-  publishSchedule(
+  async publishSchedule(
     @Param("scheduleId") scheduleId: string,
     @Body() body: { actorUserId: string; publishedRevisionHash?: string }
   ) {
-    return this.workflowService.publishSchedule(scheduleId, body);
+    return await this.workflowService.publishSchedule(scheduleId, body);
   }
 
   @Get("schedules/:scheduleId/publication")
-  getSchedulePublication(@Param("scheduleId") scheduleId: string) {
-    return this.workflowService.getSchedulePublication(scheduleId);
+  async getSchedulePublication(@Param("scheduleId") scheduleId: string) {
+    return await this.workflowService.getSchedulePublication(scheduleId);
   }
 }
+

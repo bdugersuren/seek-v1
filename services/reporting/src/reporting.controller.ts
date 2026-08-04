@@ -6,26 +6,26 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Post("events/assessment-result-finalized")
-  projectAssessmentResultFinalized(
+  async projectAssessmentResultFinalized(
     @Body()
     event: Omit<ReportingAttemptFact, "createdAt" | "status"> & { status?: string }
   ) {
-    return this.reportingService.projectAssessmentResultFinalized(event);
+    return await this.reportingService.projectAssessmentResultFinalized(event);
   }
 
   @Get("attempt-facts/:attemptId")
-  getAttemptFact(@Param("attemptId") attemptId: string) {
-    return this.reportingService.getAttemptFact(attemptId);
+  async getAttemptFact(@Param("attemptId") attemptId: string) {
+    return await this.reportingService.getAttemptFact(attemptId);
   }
 
   @Get("attempt-facts")
-  listAttemptFacts(
+  async listAttemptFacts(
     @Query("scheduleId") scheduleId?: string,
     @Query("regionId") regionId?: string,
     @Query("districtId") districtId?: string,
     @Query("schoolId") schoolId?: string
   ) {
-    return this.reportingService.listAttemptFacts({
+    return await this.reportingService.listAttemptFacts({
       scheduleId,
       regionId,
       districtId,
@@ -33,3 +33,4 @@ export class ReportingController {
     });
   }
 }
+

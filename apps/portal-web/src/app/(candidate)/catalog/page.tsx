@@ -153,10 +153,16 @@ export default function CatalogPage() {
         setStartingAssessmentId(null);
 
         if (gate.blockedReason === "PROFILE_INCOMPLETE") {
-          showToast("Үнэлгээ эхлүүлэхийн өмнө профайлаа гүйцээнэ үү.", "warning");
-          window.location.href = `/onboarding?redirect=${encodeURIComponent(
-            "/catalog",
-          )}`;
+          const needsPhoneVerification = gate.missingProfileFields?.includes("phoneNumberVerified");
+          showToast(
+            needsPhoneVerification
+              ? "Үнэлгээ эхлүүлэхийн өмнө утасны дугаараа баталгаажуулна уу."
+              : "Үнэлгээ эхлүүлэхийн өмнө профайлаа гүйцээнэ үү.",
+            "warning",
+          );
+          window.location.href = needsPhoneVerification
+            ? "/profile"
+            : `/onboarding?redirect=${encodeURIComponent("/catalog")}`;
           return;
         }
 
@@ -164,6 +170,32 @@ export default function CatalogPage() {
           addToCart(assessment);
           setCheckoutOpen(true);
           showToast("Төлбөр төлсний дараа үнэлгээнд орох боломжтой.", "info");
+          return;
+        }
+
+        if (gate.blockedReason === "EMAIL_NOT_VERIFIED") {
+          showToast("Үнэлгээ эхлүүлэхийн өмнө имэйл хаягаа баталгаажуулна уу.", "warning");
+          window.location.href = "/verify-email";
+          return;
+        }
+
+        if (gate.blockedReason === "NOT_ENROLLED") {
+          showToast("Энэ үнэлгээнд эхлээд бүртгүүлэх шаардлагатай.", "info");
+          setScheduleDetail(assessment);
+          return;
+        }
+
+        if (gate.blockedReason === "ASSESSMENT_NOT_OPEN") {
+          showToast("Энэ үнэлгээний орох хугацаа хараахан нээгдээгүй байна.", "info");
+          setScheduleDetail(assessment);
+          return;
+        }
+
+        if (gate.blockedReason === "ALREADY_ATTEMPTED") {
+          showToast("Та энэ үнэлгээг аль хэдийн гүйцэтгэсэн байна.", "info");
+          window.location.href = gate.attemptId
+            ? `/take/${encodeURIComponent(gate.attemptId)}`
+            : "/my-assessments";
           return;
         }
 

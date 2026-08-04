@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { createHash } from "crypto";
+import Redis from "ioredis";
 import {
   AssessmentAnswerSnapshot,
   AssessmentAutosaveRequest,
@@ -32,7 +33,9 @@ export class ExecutionService {
     private readonly stateStore: AttemptStateStore,
     @Inject("AttemptEventPublisher")
     private readonly eventPublisher: AttemptEventPublisher,
-    private readonly sseService: SseService
+    private readonly sseService: SseService,
+    @Inject("REDIS_CLIENT")
+    private readonly redis: Redis | null
   ) {}
 
   private createEventId(prefix: string): string {
@@ -402,7 +405,7 @@ export class ExecutionService {
 
   async startAttempt(
     attemptId: string,
-    body?: { idempotencyKey?: string; clientNow?: string }
+    body?: { idempotencyKey?: string; clientNow?: string; deviceFingerprint?: string }
   ): Promise<StartAssessmentAttemptResponse> {
     const session = await this.stateStore.getSession(attemptId);
     if (!session) {
@@ -412,6 +415,10 @@ export class ExecutionService {
     const scheduledStartsAt = session.scheduledStartsAt || session.startsAt;
     if (Date.now() < new Date(scheduledStartsAt).getTime()) {
       throw new BadRequestException("Attempt is not ready to start yet");
+    }
+
+    if (body?.deviceFingerprint) {
+      (session as any).deviceFingerprintHash = body.deviceFingerprint;
     }
 
     if (!["submitted", "expired", "locked"].includes(session.status)) {
@@ -436,6 +443,12 @@ export class ExecutionService {
     }
 
     const unlockKey = this.createUnlockKey(attemptId);
+
+    if (this.redis) {
+      const ttl = session.durationSeconds + 1800; // duration + 30 mins
+      await this.redis.set(`unlock:${attemptId}`, unlockKey, "EX", ttl);
+    }
+
     this.sseService.emitUnlock(attemptId, unlockKey);
     await this.appendAuditEvent(
       attemptId,

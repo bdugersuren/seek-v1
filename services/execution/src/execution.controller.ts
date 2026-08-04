@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Sse, Res } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Sse, Res, UseGuards } from "@nestjs/common";
 import { Observable } from "rxjs";
 import {
   AssessmentAutosaveRequest,
@@ -15,6 +15,7 @@ import {
 import { ExecutionService } from "./execution.service";
 import { RuntimeAttempt } from "./interfaces/runtime-attempt.interface";
 import { SseService, SseMessageEvent } from "./infrastructure/sse.service";
+import { SignatureGuard } from "./infrastructure/guards/signature.guard";
 
 @Controller("execution")
 export class ExecutionController {
@@ -77,7 +78,7 @@ export class ExecutionController {
   @Post("start/:attemptId")
   async startAttempt(
     @Param("attemptId") attemptId: string,
-    @Body() body: { idempotencyKey?: string; clientNow?: string }
+    @Body() body: { idempotencyKey?: string; clientNow?: string; deviceFingerprint?: string }
   ): Promise<StartAssessmentAttemptResponse> {
     return this.executionService.startAttempt(attemptId, body);
   }
@@ -85,7 +86,7 @@ export class ExecutionController {
   @Post("runtime/attempts/:attemptId/start")
   async runtimeStartAttempt(
     @Param("attemptId") attemptId: string,
-    @Body() body: { idempotencyKey?: string; clientNow?: string }
+    @Body() body: { idempotencyKey?: string; clientNow?: string; deviceFingerprint?: string }
   ): Promise<StartAssessmentAttemptResponse> {
     return this.executionService.startAttempt(attemptId, body);
   }
@@ -106,6 +107,7 @@ export class ExecutionController {
   }
 
   @Post("autosave")
+  @UseGuards(SignatureGuard)
   async autosave(
     @Body() request: AssessmentAutosaveRequest
   ): Promise<AssessmentAutosaveResponse> {
@@ -113,6 +115,7 @@ export class ExecutionController {
   }
 
   @Post("runtime/attempts/:attemptId/answers:autosave")
+  @UseGuards(SignatureGuard)
   async runtimeAutosave(
     @Param("attemptId") attemptId: string,
     @Body() request: Omit<AssessmentAutosaveRequest, "attemptId">
@@ -138,6 +141,7 @@ export class ExecutionController {
   }
 
   @Post("submit")
+  @UseGuards(SignatureGuard)
   async submit(
     @Body() request: AssessmentSubmitRequest
   ): Promise<AssessmentSubmitResponse> {
@@ -145,6 +149,7 @@ export class ExecutionController {
   }
 
   @Post("runtime/attempts/:attemptId/submit")
+  @UseGuards(SignatureGuard)
   async runtimeSubmit(
     @Param("attemptId") attemptId: string,
     @Body() request: Omit<AssessmentSubmitRequest, "attemptId">
@@ -153,6 +158,7 @@ export class ExecutionController {
   }
 
   @Post("violation")
+  @UseGuards(SignatureGuard)
   async recordViolation(
     @Body() violation: AssessmentRuntimeViolation
   ): Promise<{ accepted: boolean }> {
@@ -160,6 +166,7 @@ export class ExecutionController {
   }
 
   @Post("runtime/attempts/:attemptId/violations")
+  @UseGuards(SignatureGuard)
   async runtimeRecordViolation(
     @Param("attemptId") attemptId: string,
     @Body() violation: Omit<AssessmentRuntimeViolation, "attemptId">

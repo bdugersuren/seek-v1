@@ -55,8 +55,15 @@ export interface SessionsResponse {
 export type ProfileMissingField =
   | "displayName"
   | "phoneNumber"
+  | "phoneNumberVerified"
   | "country"
   | "preferredLanguage";
+
+export const PROFILE_LANGUAGES = ["mn", "en"] as const;
+export type ProfileLanguage = (typeof PROFILE_LANGUAGES)[number];
+
+export const PROFILE_GENDERS = ["Эрэгтэй", "Эмэгтэй", "Бусад"] as const;
+export type ProfileGender = (typeof PROFILE_GENDERS)[number];
 
 export interface CandidateProfileResponse {
   userId: string;
@@ -74,6 +81,8 @@ export interface CandidateProfileResponse {
   completionStatus: string | null;
   verifiedAt: string | null;
   metadata: Record<string, any>;
+  basicComplete: boolean;
+  trustedComplete: boolean;
   isComplete: boolean;
   missingFields: ProfileMissingField[];
   recommendedFields: string[];
@@ -94,6 +103,8 @@ export interface UpdateCandidateProfileRequest {
 }
 
 export interface ProfileCompletionStatus {
+  basicComplete: boolean;
+  trustedComplete: boolean;
   isComplete: boolean;
   missingFields: ProfileMissingField[];
   recommendedFields: string[];
@@ -109,11 +120,29 @@ export type ProfileVerificationStatus =
   | "REJECTED"
   | "EXPIRED";
 
+export const PROFILE_VERIFICATION_TYPES = [
+  "IDENTITY",
+  "EMPLOYMENT",
+  "ORGANISATION",
+  "EDUCATION",
+  "ASSESSOR",
+] as const;
+export type ProfileVerificationType = (typeof PROFILE_VERIFICATION_TYPES)[number];
+
+export const PROFILE_VERIFICATION_STATUSES = [
+  "NOT_STARTED",
+  "IN_PROGRESS",
+  "SUBMITTED",
+  "VERIFIED",
+  "REJECTED",
+  "EXPIRED",
+] as const satisfies readonly ProfileVerificationStatus[];
+
 export interface ProfileVerificationResponse {
   id: string;
   profileId: string;
   status: ProfileVerificationStatus;
-  type: string;
+  type: ProfileVerificationType;
   rejectedReason: string | null;
   reviewedBy: string | null;
   reviewedAt: string | null;
@@ -124,14 +153,21 @@ export interface ProfileVerificationResponse {
 export interface ProfileDocumentResponse {
   id: string;
   profileId: string;
-  type: string;
+  type: ProfileVerificationType;
   name: string;
   storageKey: string;
   mimeType: string;
   sizeBytes: number;
-  status: string;
+  status: ProfileDocumentStatus;
   uploadedAt: string;
 }
+
+export const PROFILE_DOCUMENT_STATUSES = [
+  "UPLOADED",
+  "VERIFIED",
+  "REJECTED",
+] as const;
+export type ProfileDocumentStatus = (typeof PROFILE_DOCUMENT_STATUSES)[number];
 
 export interface ProfileAuditLogResponse {
   id: string;
@@ -452,4 +488,47 @@ export interface AssessmentSubmitResponse {
   serverSubmittedAt: string;
   answeredCount: number;
   totalQuestions: number;
+}
+
+// =========================================================================
+// Integration Service Contracts (OTP, Presigned Upload, KYC)
+// =========================================================================
+
+export interface SendOtpRequest {
+  phoneNumber: string;
+}
+
+export interface SendOtpResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface VerifyOtpRequest {
+  phoneNumber: string;
+  code: string;
+}
+
+export interface VerifyOtpResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface PresignedUploadRequest {
+  name: string;
+  type: string;
+}
+
+export interface PresignedUploadResponse {
+  uploadUrl: string;
+  storageKey: string;
+}
+
+export interface VerifyIdentityRequest {
+  registryNumber: string;
+  fullName: string;
+}
+
+export interface VerifyIdentityResponse {
+  verified: boolean;
+  reason?: string | null;
 }

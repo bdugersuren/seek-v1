@@ -13,6 +13,11 @@ export class ProxyMiddleware implements NestMiddleware {
     process.env.PROFILE_SERVICE_URL || "http://localhost:3030";
   private readonly executionServiceUrl =
     process.env.EXECUTION_SERVICE_URL || "http://localhost:3090";
+  private readonly fileServiceUrl =
+    process.env.FILE_SERVICE_URL || "http://localhost:3140";
+  private readonly integrationServiceUrl =
+    process.env.INTEGRATION_SERVICE_URL || "http://localhost:3130";
+
   private readonly healthProxyTargets: Record<string, string> = {
     profile: process.env.PROFILE_SERVICE_URL || "http://localhost:3030",
     organisation:
@@ -20,6 +25,7 @@ export class ProxyMiddleware implements NestMiddleware {
     assessment: process.env.ASSESSMENT_SERVICE_URL || "http://localhost:3070",
     commerce: process.env.COMMERCE_SERVICE_URL || "http://localhost:3080",
     file: process.env.FILE_SERVICE_URL || "http://localhost:3140",
+    integration: process.env.INTEGRATION_SERVICE_URL || "http://localhost:3130",
     notification:
       process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3170",
     reporting: process.env.REPORTING_SERVICE_URL || "http://localhost:3150",
@@ -53,9 +59,25 @@ export class ProxyMiddleware implements NestMiddleware {
     return this.getRequestUrl(req).replace(/^\/api\/v1\/profile/, "/profile");
   }
 
+  private isFileProxyRequest(req: Request): boolean {
+    return this.getRequestUrl(req).startsWith("/api/v1/file");
+  }
+
+  private resolveFileProxyPath(req: Request): string {
+    return this.getRequestUrl(req).replace(/^\/api\/v1\/file/, "/file");
+  }
+
+  private isIntegrationProxyRequest(req: Request): boolean {
+    return this.getRequestUrl(req).startsWith("/api/v1/integration");
+  }
+
+  private resolveIntegrationProxyPath(req: Request): string {
+    return this.getRequestUrl(req).replace(/^\/api\/v1\/integration/, "/integration");
+  }
+
   private getHealthProxyTarget(req: Request): { url: string; service: string } | null {
     const match = this.getRequestUrl(req).match(
-      /^\/api\/v1\/(profile|organisation|assessment|commerce|file|notification|reporting)\/health(?:\/(live|ready))?$/,
+      /^\/api\/v1\/(profile|organisation|assessment|commerce|file|integration|notification|reporting)\/health(?:\/(live|ready))?$/,
     );
     if (!match) return null;
 
@@ -156,7 +178,19 @@ export class ProxyMiddleware implements NestMiddleware {
       }
     }
 
-    // 3. /api/v1/auth чиглэлийн хүсэлтийг auth үйлчилгээ рүү proxy хийх
+    // 3. Expose health proxy routes for bounded-context services before
+    // generic service proxy rules rewrite the path.
+    const healthProxyTarget = this.getHealthProxyTarget(req);
+    if (healthProxyTarget) {
+      const proxyMiddleware = proxy(healthProxyTarget.url, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveHealthProxyPath(proxyReq, healthProxyTarget.service);
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 4. /api/v1/auth чиглэлийн хүсэлтийг auth үйлчилгээ рүү proxy хийх
     if (this.isAuthProxyRequest(req)) {
       const proxyMiddleware = proxy(this.authServiceUrl, {
         proxyReqPathResolver: (proxyReq) => {
@@ -167,7 +201,7 @@ export class ProxyMiddleware implements NestMiddleware {
       return proxyMiddleware(req, res, next);
     }
 
-    // 4. /api/v1/execution чиглэлийн хүсэлтийг execution үйлчилгээ рүү proxy хийх
+    // 5. /api/v1/execution чиглэлийн хүсэлтийг execution үйлчилгээ рүү proxy хийх
     if (this.isExecutionProxyRequest(req)) {
       const proxyMiddleware = proxy(this.executionServiceUrl, {
         proxyReqPathResolver: (proxyReq) => {
@@ -181,7 +215,7 @@ export class ProxyMiddleware implements NestMiddleware {
       return proxyMiddleware(req, res, next);
     }
 
-    // 5. /api/v1/profile чиглэлийн хүсэлтийг authenticated profile service рүү proxy хийх
+    // 6. /api/v1/profile чиглэлийн хүсэлтийг authenticated profile service рүү proxy хийх
     if (this.isProfileProxyRequest(req)) {
       const url = this.getRequestUrl(req);
       
@@ -238,12 +272,40 @@ export class ProxyMiddleware implements NestMiddleware {
       return proxyMiddleware(req, res, next);
     }
 
-    // 6. Initial phase: expose only health proxy routes for bounded-context services.
-    const healthProxyTarget = this.getHealthProxyTarget(req);
-    if (healthProxyTarget) {
-      const proxyMiddleware = proxy(healthProxyTarget.url, {
+    // 6.5. File proxy requests (Requires authentication)
+    if (this.isFileProxyRequest(req)) {
+      if (!req.headers["x-user-id"]) {
+        res.status(401).json({
+          statusCode: 401,
+          message: "Нэвтрэх эрхгүй байна.",
+          error: "Unauthorized",
+        });
+        return;
+      }
+
+      const proxyMiddleware = proxy(this.fileServiceUrl, {
+        parseReqBody: false,
         proxyReqPathResolver: (proxyReq) => {
-          return this.resolveHealthProxyPath(proxyReq, healthProxyTarget.service);
+          return this.resolveFileProxyPath(proxyReq);
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 6.6. Integration proxy requests (Requires authentication)
+    if (this.isIntegrationProxyRequest(req)) {
+      if (!req.headers["x-user-id"]) {
+        res.status(401).json({
+          statusCode: 401,
+          message: "Нэвтрэх эрхгүй байна.",
+          error: "Unauthorized",
+        });
+        return;
+      }
+
+      const proxyMiddleware = proxy(this.integrationServiceUrl, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveIntegrationProxyPath(proxyReq);
         },
       });
       return proxyMiddleware(req, res, next);

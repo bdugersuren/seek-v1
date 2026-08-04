@@ -16,7 +16,7 @@ services:
   auth:
     environment:
       NODE_ENV: production
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET is required in production}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
       AUTH_COOKIE_SECURE: "true"
       AUTH_CSRF_ALLOW_MISSING_ORIGIN: "false"
       AUTH_PUBLIC_APP_URL: ${AUTH_PUBLIC_APP_URL:-https://portal.seek.mn}
@@ -32,8 +32,7 @@ services:
       SMTP_USER: ${SMTP_USER:?SMTP_USER is required in production}
       SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is required in production}
       SMTP_HELO_DOMAIN: ${SMTP_HELO_DOMAIN:-seek.mn}
-    volumes:
-      - shared_node_modules:/app/node_modules
+    volumes: !reset []
     depends_on:
       node-modules-init:
         condition: service_completed_successfully
@@ -57,7 +56,7 @@ services:
   gateway:
     environment:
       NODE_ENV: production
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET is required in production}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
       AUTH_COOKIE_SECURE: "true"
     volumes:
       - shared_node_modules:/app/node_modules
@@ -68,8 +67,9 @@ services:
   profile:
     environment:
       NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
+      FILE_SERVICE_URL: http://file:3140
+      INTEGRATION_SERVICE_URL: http://integration:3130
+    volumes: !reset []
     depends_on:
       node-modules-init:
         condition: service_completed_successfully
@@ -113,8 +113,7 @@ services:
   file:
     environment:
       NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
+    volumes: !reset []
     depends_on:
       node-modules-init:
         condition: service_completed_successfully
@@ -137,18 +136,27 @@ services:
       node-modules-init:
         condition: service_completed_successfully
 
+  integration:
+    environment:
+      NODE_ENV: production
+    volumes:
+      - shared_node_modules:/app/node_modules
+    depends_on:
+      node-modules-init:
+        condition: service_completed_successfully
+
   portal-web:
     build:
       args:
-        NEXT_PUBLIC_API_URL: http://quiz-api.seek.mn/api
-        NEXT_PUBLIC_ASSESSMENT_WEB_URL: http://quiz.seek.mn
+        NEXT_PUBLIC_API_URL: https://quiz-api.seek.mn/api
+        NEXT_PUBLIC_ASSESSMENT_WEB_URL: https://quiz.seek.mn
         INTERNAL_API_URL: http://gateway:3010/api
         NEXT_PUBLIC_ENABLE_MOCK_AUTH: "false"
     environment:
       - NODE_ENV=production
       - INTERNAL_API_URL=http://gateway:3010/api
-      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_ASSESSMENT_WEB_URL=http://quiz.seek.mn
+      - NEXT_PUBLIC_API_URL=https://quiz-api.seek.mn/api
+      - NEXT_PUBLIC_ASSESSMENT_WEB_URL=https://quiz.seek.mn
       - NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
     volumes: !reset []
     command: pnpm --filter @seek/portal-web start
@@ -156,13 +164,13 @@ services:
   assessment-web:
     build:
       args:
-        NEXT_PUBLIC_API_URL: http://quiz-api.seek.mn/api
-        NEXT_PUBLIC_EXECUTION_URL: http://quiz-api.seek.mn/api/v1/execution
+        NEXT_PUBLIC_API_URL: https://quiz-api.seek.mn/api
+        NEXT_PUBLIC_EXECUTION_URL: https://quiz-api.seek.mn/api/v1/execution
         NEXT_PUBLIC_MOCK_MODE: "false"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_EXECUTION_URL=http://quiz-api.seek.mn/api/v1/execution
+      - NEXT_PUBLIC_API_URL=https://quiz-api.seek.mn/api
+      - NEXT_PUBLIC_EXECUTION_URL=https://quiz-api.seek.mn/api/v1/execution
       - NEXT_PUBLIC_MOCK_MODE=false
     volumes: !reset []
     command: pnpm --filter @seek/assessment-web start

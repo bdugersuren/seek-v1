@@ -18,11 +18,15 @@ import {
   getDocuments,
   addDocument,
   deleteDocument,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  uploadDocumentFile,
 } from "@/features/profile/api";
 import type {
   CandidateProfileResponse,
   ProfileVerificationResponse,
   ProfileDocumentResponse,
+  ProfileVerificationType,
 } from "@seek/contracts";
 
 type ProfileTab =
@@ -63,7 +67,7 @@ const verificationTypes = [
   { id: "ORGANISATION", title: "Байгууллагын харьяалал", description: "Ажиллаж буй байгууллагаа баталгаажуулах" },
   { id: "EDUCATION", title: "Боловсролын зэрэг", description: "Диплом, зэрэг, сургуулийг баталгаажуулах" },
   { id: "ASSESSOR", title: "Мэргэжлийн үнэлгээ", description: "Мэргэжлийн үнэлэгчээр баталгаажуулах" },
-];
+] as const satisfies Array<{ id: ProfileVerificationType; title: string; description: string }>;
 
 export default function ProfilePage() {
   const { showDialog } = useDialog();
@@ -92,22 +96,67 @@ export default function ProfilePage() {
   // Add Document Form State
   const [isDocOpen, setIsDocOpen] = useState(false);
   const [docName, setDocName] = useState("");
-  const [docType, setDocType] = useState("IDENTITY");
+  const [docType, setDocType] = useState<ProfileVerificationType>("IDENTITY");
+  const [docFile, setDocFile] = useState<File | null>(null);
   const [savingDoc, setSavingDoc] = useState(false);
 
+  // OTP Verification Form State
+  const [isOtpOpen, setIsOtpOpen] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpTimer, setOtpTimer] = useState(60);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+
+  // Identity verification form state
+  const [isIdentityOpen, setIsIdentityOpen] = useState(false);
+  const [identityTitle, setIdentityTitle] = useState("Хувийн мэдээлэл");
+  const [registryNumber, setRegistryNumber] = useState("");
+  const [submittingIdentity, setSubmittingIdentity] = useState(false);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isOtpOpen && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isOtpOpen, otpTimer]);
+
   const loadData = async () => {
+    let failed = false;
     try {
       setLoading(true);
-      const [profData, verData, docData] = await Promise.all([
-        getCandidateProfile(),
+      try {
+        const profData = await getCandidateProfile();
+        setProfile(profData);
+      } catch (err) {
+        failed = true;
+        setProfile(null);
+      }
+
+      const [verResult, docResult] = await Promise.allSettled([
         getVerifications(),
         getDocuments(),
       ]);
-      setProfile(profData);
-      setVerifications(verData);
-      setDocuments(docData);
-    } catch (err) {
-      showToast("Мэдээлэл уншихад алдаа гарлаа.", "danger");
+
+      if (verResult.status === "fulfilled") {
+        setVerifications(verResult.value);
+      } else {
+        failed = true;
+        setVerifications([]);
+      }
+
+      if (docResult.status === "fulfilled") {
+        setDocuments(docResult.value);
+      } else {
+        failed = true;
+        setDocuments([]);
+      }
+
+      if (failed) {
+        showToast("Зарим профайл мэдээлэл уншигдсангүй. Дахин ачаална уу.", "warning");
+      }
     } finally {
       setLoading(false);
     }
@@ -137,15 +186,15 @@ export default function ProfilePage() {
     setSavingProfile(true);
     try {
       const updated = await updateCandidateProfile({
-        displayName: editDisplayName,
-        firstName: editFirstName,
-        lastName: editLastName,
-        phoneNumber: editPhoneNumber,
-        organisation: editOrganisation,
-        birthDate: editBirthDate || null,
+        displayName: editDisplayName.trim() || null,
+        firstName: editFirstName.trim() || null,
+        lastName: editLastName.trim() || null,
+        phoneNumber: editPhoneNumber.trim() || null,
+        organisation: editOrganisation.trim() || null,
+        birthDate: editBirthDate.trim() || null,
         gender: editGender,
-        country: editCountry,
-        address: editAddress,
+        country: editCountry.trim() || null,
+        address: editAddress.trim() || null,
         preferredLanguage: editPreferredLanguage,
       });
       setProfile(updated);
@@ -162,23 +211,35 @@ export default function ProfilePage() {
 
   const handleAddDocument = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!docFile) {
+      showToast("Файлаа сонгоно уу.", "warning");
+      return;
+    }
     if (!docName.trim()) {
       showToast("Баримтын нэрийг оруулна уу.", "warning");
       return;
     }
     setSavingDoc(true);
     try {
+      const formattedName = docName.endsWith(".pdf") ? docName : `${docName}.pdf`;
+      const upload = await uploadDocumentFile(
+        new File([docFile], formattedName, { type: docFile.type || "application/pdf" }),
+        docType,
+      );
+
       const newDoc = await addDocument({
         type: docType,
-        name: docName.endsWith(".pdf") ? docName : `${docName}.pdf`,
-        storageKey: `docs/${Date.now()}_${docName}`,
-        mimeType: "application/pdf",
-        sizeBytes: 1024 * 1024 * 2, // 2MB placeholder
+        name: formattedName,
+        storageKey: upload.storageKey,
+        mimeType: upload.mimeType,
+        sizeBytes: upload.sizeBytes,
       });
+
       setDocuments(prev => [newDoc, ...prev]);
-      showToast("Бичиг баримт нэмэгдлээ (Metadata).", "success");
+      showToast("Бичиг баримт амжилттай хуулагдаж, хадгалагдлаа.", "success");
       setIsDocOpen(false);
       setDocName("");
+      setDocFile(null);
     } catch (err: any) {
       showToast(err.message || "Файл нэмэхэд алдаа гарлаа.", "danger");
     } finally {
@@ -204,22 +265,92 @@ export default function ProfilePage() {
     });
   };
 
-  const handleRequestVerification = (typeId: string, title: string) => {
-    showDialog({
-      title: `${title} баталгаажуулах уу?`,
-      description: "Баталгаажуулах хүсэлтийг хянагч нар руу илгээнэ үү.",
-      confirmLabel: "Хүсэлт илгээх",
-      cancelLabel: "Буцах",
-      onConfirm: async () => {
-        try {
-          const res = await submitVerification(typeId);
-          setVerifications(prev => [res, ...prev]);
-          showToast(`${title} хүсэлт амжилттай илгээгдлээ.`, "success");
-        } catch (err: any) {
-          showToast(err.message || "Хүсэлт илгээхэд алдаа гарлаа.", "danger");
-        }
-      },
-    });
+  const handleRequestVerification = (typeId: ProfileVerificationType, title: string) => {
+    if (typeId === "IDENTITY") {
+      setIdentityTitle(title);
+      setRegistryNumber("");
+      setIsIdentityOpen(true);
+    } else {
+      showDialog({
+        title: `${title} баталгаажуулах уу?`,
+        description: "Баталгаажуулах хүсэлтийг хянагч нар руу илгээнэ үү.",
+        confirmLabel: "Хүсэлт илгээх",
+        cancelLabel: "Буцах",
+        onConfirm: async () => {
+          try {
+            const res = await submitVerification(typeId);
+            setVerifications(prev => [res, ...prev]);
+            showToast(`${title} хүсэлт амжилттай илгээгдлээ.`, "success");
+            loadData();
+          } catch (err: any) {
+            showToast(err.message || "Хүсэлт илгээхэд алдаа гарлаа.", "danger");
+          }
+        },
+      });
+    }
+  };
+
+  const handleSubmitIdentity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const regNum = registryNumber.trim();
+    if (!regNum) {
+      showToast("Регистрийн дугаар оруулна уу.", "warning");
+      return;
+    }
+    setSubmittingIdentity(true);
+    try {
+      const res = await submitVerification("IDENTITY", regNum);
+      setVerifications(prev => [res, ...prev]);
+      showToast(
+        `${identityTitle} хүсэлт илгээгдлээ. Төлөв: ${statusLabels[res.status]}`,
+        res.status === "VERIFIED" ? "success" : "warning",
+      );
+      setIsIdentityOpen(false);
+      setRegistryNumber("");
+      loadData();
+    } catch (err: any) {
+      showToast(err.message || "Хүсэлт илгээхэд алдаа гарлаа.", "danger");
+    } finally {
+      setSubmittingIdentity(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!profile?.phoneNumber) {
+      showToast("Эхлээд утасны дугаараа оруулж хадгална уу.", "warning");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      await sendPhoneOtp(profile.phoneNumber);
+      showToast("Баталгаажуулах код амжилттай илгээгдлээ.", "success");
+      setOtpTimer(60);
+      setIsOtpOpen(true);
+    } catch (err: any) {
+      showToast(err.message || "OTP код илгээхэд алдаа гарлаа.", "danger");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim()) {
+      showToast("Кодоо оруулна уу.", "warning");
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      await verifyPhoneOtp(otpCode);
+      showToast("Утасны дугаар амжилттай баталгаажлаа.", "success");
+      setIsOtpOpen(false);
+      setOtpCode("");
+      loadData();
+    } catch (err: any) {
+      showToast(err.message || "Код баталгаажуулахад алдаа гарлаа.", "danger");
+    } finally {
+      setVerifyingOtp(false);
+    }
   };
 
   const getVerificationStatus = (typeId: string) => {
@@ -230,6 +361,11 @@ export default function ProfilePage() {
   const getVerificationReason = (typeId: string) => {
     const v = verifications.find(req => req.type === typeId);
     return v?.rejectedReason || null;
+  };
+
+  const hasEvidenceForVerification = (typeId: ProfileVerificationType) => {
+    if (typeId === "IDENTITY") return true;
+    return documents.some((doc) => doc.type === typeId && ["UPLOADED", "VERIFIED"].includes(doc.status));
   };
 
   const completionLevel = useMemo(() => {
@@ -252,8 +388,18 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <PageContainer className="py-12 text-center">
-        <Text className="text-danger">Профайл мэдээлэл олдсонгүй.</Text>
+      <PageContainer className="max-w-2xl py-12 text-center">
+        <h1 className="font-sans text-2xl font-bold text-foreground">
+          Профайл ачаалахад алдаа гарлаа
+        </h1>
+        <Text variant="muted" className="mt-seek-2">
+          Сүлжээ эсвэл нэвтрэлтийн төлөвийг шалгаад дахин оролдоно уу.
+        </Text>
+        <div className="mt-seek-5">
+          <Button type="button" onClick={loadData}>
+            Дахин ачаалах
+          </Button>
+        </div>
       </PageContainer>
     );
   }
@@ -327,6 +473,8 @@ export default function ProfilePage() {
                       label="Утасны дугаар"
                       value={profile.phoneNumber || "-"}
                       status={profile.phoneNumberVerifiedAt ? "VERIFIED" : "NOT_STARTED"}
+                      onAction={(!profile.phoneNumberVerifiedAt && profile.phoneNumber) ? handleSendOtp : undefined}
+                      actionLabel="Баталгаажуулах"
                     />
                     <InfoTile
                       label="Байгууллага"
@@ -421,6 +569,7 @@ export default function ProfilePage() {
               {verificationTypes.map((item) => {
                 const status = getVerificationStatus(item.id);
                 const reason = getVerificationReason(item.id);
+                const hasEvidence = hasEvidenceForVerification(item.id);
                 return (
                   <div
                     key={item.id}
@@ -438,6 +587,11 @@ export default function ProfilePage() {
                           Татгалзсан шалтгаан: {reason}
                         </p>
                       )}
+                      {!hasEvidence && status === "NOT_STARTED" && (
+                        <p className="mt-seek-1 text-xs text-warning">
+                          Эхлээд энэ төрлийн баримт бичиг оруулна уу.
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-seek-3">
                       <Badge variant={statusVariant[status]}>
@@ -447,7 +601,7 @@ export default function ProfilePage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        disabled={status === "VERIFIED" || status === "SUBMITTED"}
+                        disabled={status === "VERIFIED" || status === "SUBMITTED" || !hasEvidence}
                         onClick={() => handleRequestVerification(item.id, item.title)}
                       >
                         Хүсэлт илгээх
@@ -615,12 +769,9 @@ export default function ProfilePage() {
       {isDocOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-seek-lg border border-border bg-surface p-seek-6 shadow-seek-lg">
-            <h3 className="font-sans text-xl font-bold text-foreground mb-seek-2">
+            <h3 className="font-sans text-xl font-bold text-foreground mb-seek-4">
               Бичиг баримт оруулах
             </h3>
-            <Text variant="muted" className="text-xs mb-seek-4">
-              Файл хадгалах сан ажиллахгүй байна (Metadata ашиглаж байна)
-            </Text>
             <form onSubmit={handleAddDocument} className="space-y-seek-4">
               <label className="block space-y-seek-1">
                 <span className="text-xs font-semibold text-foreground">Баримтын нэр*</span>
@@ -631,7 +782,7 @@ export default function ProfilePage() {
                 <select
                   value={docType}
                   className="flex h-10 w-full rounded-seek-md border border-input border-border bg-surface px-seek-3 py-seek-2 text-sm text-foreground focus:outline-none"
-                  onChange={e => setDocType(e.target.value)}
+                  onChange={e => setDocType(e.target.value as ProfileVerificationType)}
                 >
                   <option value="IDENTITY">Хувийн мэдээлэл (Identity)</option>
                   <option value="EMPLOYMENT">Албан тушаал (Employment)</option>
@@ -640,12 +791,106 @@ export default function ProfilePage() {
                   <option value="ASSESSOR">Мэргэжлийн үнэлгээ (Assessor)</option>
                 </select>
               </label>
+              <label className="block space-y-seek-1">
+                <span className="text-xs font-semibold text-foreground">Файл сонгох (PDF)*</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  required
+                  className="flex h-10 w-full rounded-seek-md border border-input border-border bg-surface px-seek-3 py-seek-2 text-sm text-foreground focus:outline-none"
+                  onChange={e => setDocFile(e.target.files?.[0] || null)}
+                />
+              </label>
               <div className="flex justify-end gap-seek-2 mt-seek-6">
-                <Button type="button" variant="outline" disabled={savingDoc} onClick={() => setIsDocOpen(false)}>
+                <Button type="button" variant="outline" disabled={savingDoc} onClick={() => { setIsDocOpen(false); setDocFile(null); }}>
                   Болих
                 </Button>
                 <Button type="submit" disabled={savingDoc}>
-                  {savingDoc ? "Нэмж байна..." : "Файл нэмэх"}
+                  {savingDoc ? "Хуулж байна..." : "Файл нэмэх"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Identity Verification Modal */}
+      {isIdentityOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-seek-lg border border-border bg-surface p-seek-6 shadow-seek-lg">
+            <h3 className="font-sans text-xl font-bold text-foreground mb-seek-2">
+              {identityTitle} баталгаажуулах
+            </h3>
+            <Text variant="muted" className="text-xs mb-seek-4">
+              Регистрийн дугаараа оруулж баталгаажуулах хүсэлт илгээнэ үү.
+            </Text>
+            <form onSubmit={handleSubmitIdentity} className="space-y-seek-4">
+              <label className="block space-y-seek-1">
+                <span className="text-xs font-semibold text-foreground">Регистрийн дугаар*</span>
+                <Input
+                  value={registryNumber}
+                  required
+                  placeholder="Жишээ: УБ90051532"
+                  onChange={e => setRegistryNumber(e.target.value)}
+                />
+              </label>
+              <div className="flex justify-end gap-seek-2 mt-seek-6">
+                <Button type="button" variant="outline" disabled={submittingIdentity} onClick={() => setIsIdentityOpen(false)}>
+                  Болих
+                </Button>
+                <Button type="submit" disabled={submittingIdentity}>
+                  {submittingIdentity ? "Илгээж байна..." : "Хүсэлт илгээх"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* OTP Verification Modal */}
+      {isOtpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-seek-lg border border-border bg-surface p-seek-6 shadow-seek-lg">
+            <h3 className="font-sans text-xl font-bold text-foreground mb-seek-2">
+              Утас баталгаажуулах код оруулах
+            </h3>
+            <Text variant="muted" className="text-xs mb-seek-4">
+              Таны {profile.phoneNumber} дугаар руу илгээсэн 6 оронтой кодыг оруулна уу.
+            </Text>
+            <form onSubmit={handleVerifyOtp} className="space-y-seek-4">
+              <label className="block space-y-seek-1">
+                <span className="text-xs font-semibold text-foreground">Баталгаажуулах код*</span>
+                <Input
+                  value={otpCode}
+                  required
+                  maxLength={6}
+                  placeholder="------"
+                  className="text-center font-mono text-2xl tracking-widest"
+                  onChange={e => setOtpCode(e.target.value)}
+                />
+              </label>
+
+              <div className="flex items-center justify-between text-xs">
+                {otpTimer > 0 ? (
+                  <span className="text-muted-foreground">
+                    Дахин код илгээх хугацаа: {Math.floor(otpTimer / 60)}:{String(otpTimer % 60).padStart(2, "0")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={sendingOtp}
+                    className="text-primary font-semibold hover:underline"
+                    onClick={handleSendOtp}
+                  >
+                    {sendingOtp ? "Илгээж байна..." : "Код дахин илгээх"}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-seek-2 mt-seek-6">
+                <Button type="button" variant="outline" disabled={verifyingOtp} onClick={() => { setIsOtpOpen(false); setOtpCode(""); }}>
+                  Болих
+                </Button>
+                <Button type="submit" disabled={verifyingOtp}>
+                  {verifyingOtp ? "Шалгаж байна..." : "Баталгаажуулах"}
                 </Button>
               </div>
             </form>
@@ -660,24 +905,37 @@ function InfoTile({
   label,
   value,
   status,
+  onAction,
+  actionLabel,
 }: {
   label: string;
   value: string;
   status?: string;
+  onAction?: () => void;
+  actionLabel?: string;
 }) {
   return (
-    <div className="rounded-seek-md border border-border bg-muted-background p-seek-3">
-      <Text variant="muted" className="text-xs">
-        {label}
-      </Text>
-      <p className="mt-seek-1 break-words font-sans text-sm font-semibold text-foreground">
-        {value}
-      </p>
-      {status && (
-        <Badge variant={statusVariant[status]} className="mt-seek-2">
-          {statusLabels[status]}
-        </Badge>
-      )}
+    <div className="rounded-seek-md border border-border bg-muted-background p-seek-3 flex flex-col justify-between">
+      <div>
+        <Text variant="muted" className="text-xs">
+          {label}
+        </Text>
+        <p className="mt-seek-1 break-words font-sans text-sm font-semibold text-foreground">
+          {value}
+        </p>
+      </div>
+      <div className="mt-seek-2 flex items-center justify-between gap-seek-2">
+        {status && (
+          <Badge variant={statusVariant[status]}>
+            {statusLabels[status]}
+          </Badge>
+        )}
+        {onAction && actionLabel && (
+          <Button type="button" variant="outline" size="sm" onClick={onAction}>
+            {actionLabel}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

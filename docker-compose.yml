@@ -12,6 +12,7 @@ services:
       dockerfile: services/postgres/Dockerfile
     container_name: seek-postgres
     restart: unless-stopped
+    command: postgres -c max_connections=300 -c shared_buffers=128MB
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-seek_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-seek_postgres_pass}
@@ -135,7 +136,7 @@ services:
       PORT: 3020
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@auth-postgres:5432/auth_db
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
       AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
       AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
       AUTH_PUBLIC_APP_URL: ${AUTH_PUBLIC_APP_URL:-http://localhost:3001}
@@ -195,7 +196,7 @@ services:
       REPORTING_SERVICE_URL: http://reporting:3150
       AUTH_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:8082,http://127.0.0.1:8081,http://127.0.0.1:8082,http://portal.seek.mn,http://quiz.seek.mn,http://quiz-api.seek.mn,https://portal.seek.mn,https://quiz.seek.mn,https://quiz-api.seek.mn
       AUTH_CSRF_ALLOW_MISSING_ORIGIN: ${AUTH_CSRF_ALLOW_MISSING_ORIGIN:-false}
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_secret_key_placeholder}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
       AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
       AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
     networks:
@@ -300,7 +301,9 @@ services:
       - "3030"
     environment:
       PORT: 3030
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/profile_db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/profile_db?connection_limit=5
+      FILE_SERVICE_URL: http://file:3140
+      INTEGRATION_SERVICE_URL: http://integration:3130
     networks:
       - shared-net
     depends_on:
@@ -320,7 +323,7 @@ services:
       - "3040"
     environment:
       PORT: 3040
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/organisation_db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/organisation_db?connection_limit=5
     networks:
       - shared-net
     depends_on:
@@ -372,7 +375,7 @@ services:
       - "3070"
     environment:
       PORT: 3070
-      ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/assessment_db
+      ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/assessment_db?connection_limit=5
     networks:
       - shared-net
     depends_on:
@@ -392,7 +395,7 @@ services:
       - "3080"
     environment:
       PORT: 3080
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/commerce_db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/commerce_db?connection_limit=5
     networks:
       - shared-net
     depends_on:
@@ -414,7 +417,7 @@ services:
       PORT: 3090
       USE_REDIS: "true"
       USE_RABBITMQ: "true"
-      EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/execution_db
+      EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/execution_db?connection_limit=5
       REDIS_URL: redis://:seek_redis_pass@redis:6379
       RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
     networks:
@@ -472,7 +475,7 @@ services:
       - "3150"
     environment:
       PORT: 3150
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/reporting_db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/reporting_db?connection_limit=5
     networks:
       - shared-net
     depends_on:
@@ -492,8 +495,9 @@ services:
       - "3140"
     environment:
       PORT: 3140
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/file_db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/file_db?connection_limit=5
       MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-https://files.seek.mn}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-seek_minio_admin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-seek_minio_pass}
       MINIO_BUCKET: seek-files
@@ -518,7 +522,7 @@ services:
       - "3170"
     environment:
       PORT: 3170
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/notification_db
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/notification_db?connection_limit=5
       RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
     networks:
       - shared-net

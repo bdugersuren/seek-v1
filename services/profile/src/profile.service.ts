@@ -1,4 +1,10 @@
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  PROFILE_LANGUAGES,
+  PROFILE_VERIFICATION_STATUSES,
+  PROFILE_VERIFICATION_TYPES,
+} from "@seek/contracts";
 import type {
   AssessmentEnrollmentGateResponse,
   CandidateProfileResponse,
@@ -8,9 +14,66 @@ import type {
   ProfileVerificationResponse,
   ProfileDocumentResponse,
   ProfileVerificationStatus,
+  ProfileVerificationType,
 } from "@seek/contracts";
 import { PrismaService } from "./prisma.service";
 import { evaluateProfileCompletion } from "./completion-policy";
+
+const INTEGRATION_URL = process.env.INTEGRATION_SERVICE_URL || "http://localhost:3130";
+const FILE_SERVICE_URL = process.env.FILE_SERVICE_URL || "http://localhost:3140";
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_LOCK_MS = 15 * 60 * 1000;
+const OTP_HOURLY_SEND_LIMIT = 5;
+const ALLOWED_LANGUAGES = new Set<string>(PROFILE_LANGUAGES);
+const ALLOWED_VERIFICATION_TYPES = new Set<string>(PROFILE_VERIFICATION_TYPES);
+const ALLOWED_VERIFICATION_STATUSES = new Set<string>(PROFILE_VERIFICATION_STATUSES);
+const ALLOWED_DOCUMENT_TYPES = ALLOWED_VERIFICATION_TYPES;
+const ALLOWED_DOCUMENT_MIME_TYPES = new Set(["application/pdf"]);
+const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024;
+
+async function callIntegrationApi<T>(path: string, body: any): Promise<T> {
+  try {
+    const res = await fetch(`${INTEGRATION_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`Integration API failed with status ${res.status}`);
+    }
+    return await res.json() as T;
+  } catch (err: any) {
+    console.error(`[Integration Call Error] Path: ${path}, Err:`, err.message);
+    throw new Error(`Интеграцийн үйлчилгээтэй холбогдож чадсангүй.`);
+  }
+}
+
+async function callFileApi<T>(
+  userId: string,
+  path: string,
+  body: any,
+  method = "POST",
+): Promise<T> {
+  try {
+    const res = await fetch(`${FILE_SERVICE_URL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-id": userId,
+      },
+      body: JSON.stringify(body),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(payload.message || `File API failed with status ${res.status}`);
+    }
+    return payload as T;
+  } catch (err: any) {
+    throw new BadRequestException(err.message || "Файл үйлчилгээтэй холбогдож чадсангүй.");
+  }
+}
 
 @Injectable()
 export class ProfileService {
@@ -32,47 +95,12 @@ export class ProfileService {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<CandidateProfileResponse> {
-    // Basic Input Validation
-    const displayName = normalizeOptional(dto.displayName, 100);
-    const firstName = normalizeOptional(dto.firstName, 50);
-    const lastName = normalizeOptional(dto.lastName, 50);
-    const phoneNumber = normalizeOptional(dto.phoneNumber, 20);
-    const organisation = normalizeOptional(dto.organisation, 100);
-    const gender = normalizeOptional(dto.gender, 20);
-    const country = normalizeOptional(dto.country, 50);
-    const address = normalizeOptional(dto.address, 250);
-    const preferredLanguage = normalizeOptional(dto.preferredLanguage, 10);
-
-    let birthDate: Date | null = null;
-    if (dto.birthDate) {
-      const parsedDate = new Date(dto.birthDate);
-      if (isNaN(parsedDate.getTime())) {
-        throw new BadRequestException("Төрсөн огноо буруу форматтай байна.");
-      }
-      birthDate = parsedDate;
-    }
-
-    // Get previous state for audit log
     const beforeProfile = await this.prisma.userProfile.findUnique({
       where: { userId },
     });
 
     const beforeStateJson = beforeProfile ? JSON.parse(JSON.stringify(beforeProfile)) : {};
-
-    // Prevent candidate updating admin-only fields in payload if any (Prisma schema protects these but we enforce here)
-    const updateData: any = {
-      displayName,
-      firstName,
-      lastName,
-      phoneNumber,
-      organisation,
-      birthDate,
-      gender,
-      country,
-      address,
-      preferredLanguage,
-      metadata: dto.metadata || beforeProfile?.metadata || {},
-    };
+    const updateData = buildProfileUpdateData(dto, beforeProfile);
 
     const profile = await this.prisma.userProfile.upsert({
       where: { userId },
@@ -127,10 +155,27 @@ export class ProfileService {
   async getAssessmentEnrollmentGate(
     userId: string,
     assessmentId: string,
-    input: { price?: number; accessType?: string },
+    input: {
+      price?: number;
+      accessType?: string;
+      emailVerified?: boolean;
+      enrolled?: boolean;
+      assessmentOpen?: boolean;
+      alreadyAttempted?: boolean;
+      attemptId?: string;
+    },
   ): Promise<AssessmentEnrollmentGateResponse> {
     const profile = await this.getCandidateProfile(userId);
     const completion = evaluateProfileCompletion(profile);
+
+    if (input.emailVerified === false) {
+      return {
+        assessmentId,
+        allowed: false,
+        blockedReason: "EMAIL_NOT_VERIFIED",
+        requiredAction: "VERIFY_EMAIL",
+      };
+    }
 
     if (!completion.isComplete) {
       return {
@@ -139,6 +184,34 @@ export class ProfileService {
         blockedReason: "PROFILE_INCOMPLETE",
         requiredAction: "COMPLETE_PROFILE",
         missingProfileFields: completion.missingFields,
+      };
+    }
+
+    if (input.alreadyAttempted === true) {
+      return {
+        assessmentId,
+        allowed: false,
+        blockedReason: "ALREADY_ATTEMPTED",
+        requiredAction: "VIEW_RESULT",
+        attemptId: input.attemptId,
+      };
+    }
+
+    if (input.assessmentOpen === false) {
+      return {
+        assessmentId,
+        allowed: false,
+        blockedReason: "ASSESSMENT_NOT_OPEN",
+        requiredAction: "WAIT",
+      };
+    }
+
+    if (input.enrolled === false) {
+      return {
+        assessmentId,
+        allowed: false,
+        blockedReason: "NOT_ENROLLED",
+        requiredAction: "ENROLL",
       };
     }
 
@@ -158,13 +231,191 @@ export class ProfileService {
     };
   }
 
-  // 5. Verification Workflow - Candidate Submit
+  // 5. Send SMS OTP
+  async sendPhoneOtp(
+    userId: string,
+    phoneNumber: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    if (!phoneNumber || !phoneNumber.trim()) {
+      throw new BadRequestException("Утасны дугаар оруулна уу.");
+    }
+    
+    const cleanPhone = phoneNumber.trim();
+    const now = Date.now();
+    const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const currentMetadata = readMetadata(profile?.metadata);
+    const lockedUntil = parseOptionalDate(currentMetadata.phoneOtpLockedUntil);
+    if (lockedUntil && lockedUntil.getTime() > now) {
+      throw new BadRequestException("OTP түр түгжигдсэн байна. Дараа дахин оролдоно уу.");
+    }
+
+    const lastSentAt = parseOptionalDate(currentMetadata.phoneOtpSentAt);
+    if (lastSentAt && now - lastSentAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+      throw new BadRequestException("OTP код дахин илгээхээс өмнө түр хүлээнэ үү.");
+    }
+
+    const sendWindowStartedAt = parseOptionalDate(currentMetadata.phoneOtpSendWindowStartedAt);
+    const isSameWindow = Boolean(sendWindowStartedAt && now - sendWindowStartedAt.getTime() < 60 * 60 * 1000);
+    const sendCount = isSameWindow ? Number(currentMetadata.phoneOtpSendCount || 0) : 0;
+    if (sendCount >= OTP_HOURLY_SEND_LIMIT) {
+      throw new BadRequestException("OTP код илгээх хязгаар түр хэтэрсэн байна.");
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpSalt = randomBytes(16).toString("hex");
+    const expiresAt = new Date(now + OTP_TTL_MS);
+
+    // Call mock SMS provider via integration service
+    await callIntegrationApi("/integration/sms/send-otp", { phoneNumber: cleanPhone });
+
+    const newMetadata: Record<string, any> = {
+      ...currentMetadata,
+      phoneNumber: cleanPhone,
+      phoneOtpHash: hashOtp(otpCode, otpSalt),
+      phoneOtpSalt: otpSalt,
+      phoneOtpExpiresAt: expiresAt.toISOString(),
+      phoneOtpSentAt: new Date(now).toISOString(),
+      phoneOtpAttemptCount: 0,
+      phoneOtpSendWindowStartedAt: isSameWindow
+        ? sendWindowStartedAt?.toISOString()
+        : new Date(now).toISOString(),
+      phoneOtpSendCount: sendCount + 1,
+    };
+    delete newMetadata.phoneOtpCode;
+    delete newMetadata.phoneOtpLockedUntil;
+
+    const updatedProfile = await this.prisma.userProfile.upsert({
+      where: { userId },
+      update: {
+        phoneNumber: cleanPhone,
+        metadata: newMetadata,
+      },
+      create: {
+        userId,
+        phoneNumber: cleanPhone,
+        metadata: newMetadata,
+      },
+    });
+    await this.writeAuditLog({
+      profileId: updatedProfile.id,
+      userId,
+      actorUserId: userId,
+      action: "OTP_SENT_LOG",
+      before: {},
+      after: { expiresAt },
+      ipAddress,
+      userAgent,
+    });
+
+    return {
+      success: true,
+      message: `Таны ${cleanPhone} дугаар руу баталгаажуулах код илгээгдлээ.`,
+    };
+  }
+
+  // 6. Verify SMS OTP
+  async verifyPhoneOtp(
+    userId: string,
+    code: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    if (!code || !code.trim()) {
+      throw new BadRequestException("Баталгаажуулах код оруулна уу.");
+    }
+
+    const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException("Профайл олдсонгүй.");
+    }
+
+    const metadata = readMetadata(profile.metadata);
+    const savedHash = metadata.phoneOtpHash;
+    const savedSalt = metadata.phoneOtpSalt;
+    const legacySavedCode = metadata.phoneOtpCode;
+    const expiresAtStr = metadata.phoneOtpExpiresAt;
+    const lockedUntil = parseOptionalDate(metadata.phoneOtpLockedUntil);
+
+    if (lockedUntil && lockedUntil.getTime() > Date.now()) {
+      throw new BadRequestException("OTP түр түгжигдсэн байна. Дараа дахин оролдоно уу.");
+    }
+
+    if ((!savedHash || !savedSalt) && !legacySavedCode || !expiresAtStr) {
+      throw new BadRequestException("Идэвхтэй баталгаажуулах код олдсонгүй. Дахин илгээнэ үү.");
+    }
+
+    const expiresAt = new Date(expiresAtStr);
+    if (Date.now() > expiresAt.getTime()) {
+      throw new BadRequestException("Баталгаажуулах кодын хугацаа дууссан байна.");
+    }
+
+    const trimmedCode = code.trim();
+    const matchesSavedCode = savedHash && savedSalt
+      ? verifyOtp(trimmedCode, String(savedSalt), String(savedHash))
+      : trimmedCode === legacySavedCode;
+    const matchesDevBypass = isDevOtpBypassEnabled() && trimmedCode === "123456";
+
+    if (!matchesSavedCode && !matchesDevBypass) {
+      const attemptCount = Number(metadata.phoneOtpAttemptCount || 0) + 1;
+      const nextMetadata = {
+        ...metadata,
+        phoneOtpAttemptCount: attemptCount,
+        ...(attemptCount >= OTP_MAX_ATTEMPTS
+          ? { phoneOtpLockedUntil: new Date(Date.now() + OTP_LOCK_MS).toISOString() }
+          : {}),
+      };
+      await this.prisma.userProfile.update({
+        where: { userId },
+        data: { metadata: nextMetadata },
+      });
+      throw new BadRequestException("Баталгаажуулах код буруу байна.");
+    }
+
+    const cleanMetadata = { ...metadata };
+    delete cleanMetadata.phoneOtpCode;
+    delete cleanMetadata.phoneOtpHash;
+    delete cleanMetadata.phoneOtpSalt;
+    delete cleanMetadata.phoneOtpExpiresAt;
+    delete cleanMetadata.phoneOtpSentAt;
+    delete cleanMetadata.phoneOtpAttemptCount;
+    delete cleanMetadata.phoneOtpLockedUntil;
+
+    await this.prisma.userProfile.update({
+      where: { userId },
+      data: {
+        phoneNumberVerifiedAt: new Date(),
+        metadata: cleanMetadata,
+      },
+    });
+
+    await this.writeAuditLog({
+      profileId: profile.id,
+      userId,
+      actorUserId: userId,
+      action: "PROFILE_UPDATED",
+      before: { phoneNumberVerifiedAt: profile.phoneNumberVerifiedAt },
+      after: { phoneNumberVerifiedAt: new Date() },
+      ipAddress,
+      userAgent,
+    });
+
+    return {
+      success: true,
+      message: "Утасны дугаар амжилттай баталгаажлаа.",
+    };
+  }
+
+  // 7. Verification Workflow - Candidate Submit (with auto-KYC check)
   async submitVerificationRequest(
     userId: string,
     type: string,
+    registryNumber?: string,
     ipAddress?: string,
     userAgent?: string,
   ): Promise<ProfileVerificationResponse> {
+    validateVerificationType(type);
     const profile = await this.prisma.userProfile.findUnique({
       where: { userId },
     });
@@ -188,11 +439,64 @@ export class ProfileService {
       );
     }
 
+    if (type !== "IDENTITY") {
+      await this.assertVerificationEvidence(profile.id, type);
+    }
+
+    let status = "SUBMITTED";
+    let rejectedReason: string | null = null;
+    let auditAction = "VERIFICATION_SUBMITTED";
+
+    if (registryNumber) {
+      validateRegistryNumber(registryNumber);
+      const currentMetadata = readMetadata(profile.metadata);
+      await this.prisma.userProfile.update({
+        where: { id: profile.id },
+        data: {
+          metadata: {
+            ...currentMetadata,
+            registryNumber: registryNumber.trim(),
+          },
+        },
+      });
+    }
+
+    // Auto KYC check for IDENTITY
+    if (type === "IDENTITY") {
+      const regNum = registryNumber || readMetadata(profile.metadata).registryNumber || "";
+      validateRegistryNumber(regNum);
+      try {
+        const kycResult = await callIntegrationApi<{ verified: boolean; reason?: string | null }>(
+          "/integration/kyc/verify-identity",
+          {
+            registryNumber: regNum,
+            fullName: profile.displayName || "",
+          }
+        );
+
+        if (kycResult.verified) {
+          status = "VERIFIED";
+          auditAction = "VERIFICATION_AUTO_APPROVED";
+          await this.prisma.userProfile.update({
+            where: { id: profile.id },
+            data: { verifiedAt: new Date() },
+          });
+        } else {
+          status = "REJECTED";
+          auditAction = "VERIFICATION_AUTO_REJECTED";
+          rejectedReason = kycResult.reason || "KYC баталгаажуулалт амжилтгүй.";
+        }
+      } catch (err: any) {
+        console.warn(`[KYC Auto Check Failed] Falling back to manual review: ${err.message}`);
+      }
+    }
+
     const verification = await this.prisma.profileVerification.create({
       data: {
         profileId: profile.id,
         type,
-        status: "SUBMITTED",
+        status,
+        rejectedReason,
       },
     });
 
@@ -200,7 +504,7 @@ export class ProfileService {
       profileId: profile.id,
       userId,
       actorUserId: userId,
-      action: "VERIFICATION_SUBMITTED",
+      action: auditAction,
       before: {},
       after: JSON.parse(JSON.stringify(verification)),
       ipAddress,
@@ -210,7 +514,7 @@ export class ProfileService {
     return this.toVerificationResponse(verification);
   }
 
-  // 6. Verification Workflow - Candidate Get
+  // 8. Verification Workflow - Candidate Get
   async getVerificationRequests(userId: string): Promise<ProfileVerificationResponse[]> {
     const profile = await this.prisma.userProfile.findUnique({
       where: { userId },
@@ -228,8 +532,25 @@ export class ProfileService {
     return list.map(v => this.toVerificationResponse(v));
   }
 
-  // 7. Verification Workflow - Admin List
+  private async assertVerificationEvidence(profileId: string, type: string): Promise<void> {
+    const document = await this.prisma.profileDocument.findFirst({
+      where: {
+        profileId,
+        type,
+        status: { in: ["UPLOADED", "VERIFIED"] },
+      },
+    });
+
+    if (!document) {
+      throw new BadRequestException("Баталгаажуулах хүсэлт илгээхээс өмнө холбогдох баримт бичгээ оруулна уу.");
+    }
+  }
+
+  // 9. Verification Workflow - Admin List
   async getAdminVerifications(status?: string): Promise<ProfileVerificationResponse[]> {
+    if (status) {
+      validateVerificationStatus(status);
+    }
     const list = await this.prisma.profileVerification.findMany({
       where: status ? { status } : undefined,
       orderBy: { createdAt: "desc" },
@@ -238,7 +559,7 @@ export class ProfileService {
     return list.map(v => this.toVerificationResponse(v));
   }
 
-  // 8. Verification Workflow - Admin Approve
+  // 10. Verification Workflow - Admin Approve
   async approveVerification(
     id: string,
     reviewerId: string,
@@ -267,7 +588,6 @@ export class ProfileService {
       },
     });
 
-    // If verification type is IDENTITY, update main profile verifiedAt
     if (verification.type === "IDENTITY") {
       await this.prisma.userProfile.update({
         where: { id: verification.profileId },
@@ -289,7 +609,7 @@ export class ProfileService {
     return this.toVerificationResponse(updated);
   }
 
-  // 9. Verification Workflow - Admin Reject
+  // 11. Verification Workflow - Admin Reject
   async rejectVerification(
     id: string,
     reviewerId: string,
@@ -338,7 +658,7 @@ export class ProfileService {
     return this.toVerificationResponse(updated);
   }
 
-  // 10. Document Metadata API - List
+  // 12. Document Metadata API - List
   async getDocuments(userId: string): Promise<ProfileDocumentResponse[]> {
     const profile = await this.prisma.userProfile.findUnique({
       where: { userId },
@@ -356,7 +676,7 @@ export class ProfileService {
     return list.map(d => this.toDocumentResponse(d));
   }
 
-  // 11. Document Metadata API - Create
+  // 13. Document Metadata API - Create
   async addDocument(
     userId: string,
     dto: { type: string; name: string; storageKey: string; mimeType: string; sizeBytes: number },
@@ -374,6 +694,12 @@ export class ProfileService {
     if (!dto.name || !dto.storageKey || !dto.type) {
       throw new BadRequestException("Шаардлагатай баримт бичгийн талбарууд дутуу байна.");
     }
+    validateDocumentInput(userId, dto);
+    await callFileApi(userId, "/file/objects/verify", {
+      storageKey: dto.storageKey,
+      mimeType: dto.mimeType,
+      sizeBytes: dto.sizeBytes,
+    });
 
     const document = await this.prisma.profileDocument.create({
       data: {
@@ -401,7 +727,7 @@ export class ProfileService {
     return this.toDocumentResponse(document);
   }
 
-  // 12. Document Metadata API - Delete
+  // 14. Document Metadata API - Delete
   async deleteDocument(
     userId: string,
     documentId: string,
@@ -432,6 +758,10 @@ export class ProfileService {
       where: { id: documentId },
     });
 
+    await callFileApi(userId, "/file/objects", {
+      storageKey: document.storageKey,
+    }, "DELETE");
+
     await this.writeAuditLog({
       profileId: profile.id,
       userId,
@@ -444,7 +774,7 @@ export class ProfileService {
     });
   }
 
-  // Helper: Write Audit Log (Immutable database records, avoid dumping PII to console)
+  // Helper: Write Audit Log
   private async writeAuditLog(params: {
     profileId: string;
     userId: string;
@@ -455,7 +785,6 @@ export class ProfileService {
     ipAddress?: string;
     userAgent?: string;
   }) {
-    // Avoid logging PII details in application stdout
     console.log(`[AuditLog] Action: ${params.action}, ProfileID: ${params.profileId}, ActorUserID: ${params.actorUserId}`);
 
     await this.prisma.profileAuditLog.create({
@@ -479,7 +808,6 @@ export class ProfileService {
   ): CandidateProfileResponse {
     const metadata = readMetadata(profile?.metadata);
 
-    // Fallback logic: database column-оос олохгүй бол metadata дотроос олно
     const phoneNumber = profile?.phoneNumber || metadata.phoneNumber || null;
     const organisation = profile?.organisation || metadata.organisation || null;
 
@@ -499,13 +827,16 @@ export class ProfileService {
       completionStatus: profile?.completionStatus || null,
       verifiedAt: profile?.verifiedAt ? profile.verifiedAt.toISOString() : null,
       metadata: metadata,
+      basicComplete: false,
+      trustedComplete: false,
       isComplete: false,
       missingFields: [],
       recommendedFields: [],
     };
 
-    // Calculate completion metrics
     const completion = evaluateProfileCompletion(response);
+    response.basicComplete = completion.basicComplete;
+    response.trustedComplete = completion.trustedComplete;
     response.isComplete = completion.isComplete;
     response.missingFields = completion.missingFields;
     response.recommendedFields = completion.recommendedFields;
@@ -513,13 +844,12 @@ export class ProfileService {
     return response;
   }
 
-  // Mapper: ProfileVerification entity -> ProfileVerificationResponse
   private toVerificationResponse(v: any): ProfileVerificationResponse {
     return {
       id: v.id,
       profileId: v.profileId,
       status: v.status as ProfileVerificationStatus,
-      type: v.type,
+      type: v.type as ProfileVerificationType,
       rejectedReason: v.rejectedReason || null,
       reviewedBy: v.reviewedBy || null,
       reviewedAt: v.reviewedAt ? v.reviewedAt.toISOString() : null,
@@ -528,12 +858,11 @@ export class ProfileService {
     };
   }
 
-  // Mapper: ProfileDocument entity -> ProfileDocumentResponse
   private toDocumentResponse(d: any): ProfileDocumentResponse {
     return {
       id: d.id,
       profileId: d.profileId,
-      type: d.type,
+      type: d.type as ProfileVerificationType,
       name: d.name,
       storageKey: d.storageKey,
       mimeType: d.mimeType,
@@ -551,9 +880,128 @@ function normalizeOptional(value: any, maxLength: number): string | null {
   return str.substring(0, maxLength);
 }
 
+function normalizeOptionalPatch(
+  dto: Record<string, any>,
+  key: string,
+  maxLength: number,
+): string | null | undefined {
+  if (!Object.prototype.hasOwnProperty.call(dto, key)) return undefined;
+  return normalizeOptional(dto[key], maxLength);
+}
+
+function buildProfileUpdateData(dto: UpdateCandidateProfileRequest, beforeProfile: any | null): Record<string, any> {
+  const updateData: Record<string, any> = {};
+  const stringFields: Array<[keyof UpdateCandidateProfileRequest, number]> = [
+    ["displayName", 100],
+    ["firstName", 50],
+    ["lastName", 50],
+    ["phoneNumber", 20],
+    ["organisation", 100],
+    ["gender", 20],
+    ["country", 50],
+    ["address", 250],
+    ["preferredLanguage", 10],
+  ];
+
+  for (const [key, maxLength] of stringFields) {
+    const value = normalizeOptionalPatch(dto as Record<string, any>, key, maxLength);
+    if (value !== undefined) {
+      updateData[key] = value;
+    }
+  }
+
+  if (updateData.preferredLanguage && !ALLOWED_LANGUAGES.has(updateData.preferredLanguage)) {
+    throw new BadRequestException("Сонгосон хэл буруу байна.");
+  }
+
+  if (updateData.phoneNumber && !/^[+\d][\d\s-]{5,19}$/.test(updateData.phoneNumber)) {
+    throw new BadRequestException("Утасны дугаар буруу форматтай байна.");
+  }
+
+  if (Object.prototype.hasOwnProperty.call(dto, "birthDate")) {
+    if (!dto.birthDate) {
+      updateData.birthDate = null;
+    } else {
+      const parsedDate = new Date(dto.birthDate);
+      if (isNaN(parsedDate.getTime())) {
+        throw new BadRequestException("Төрсөн огноо буруу форматтай байна.");
+      }
+      if (parsedDate.getTime() > Date.now()) {
+        throw new BadRequestException("Төрсөн огноо ирээдүйн огноо байж болохгүй.");
+      }
+      updateData.birthDate = parsedDate;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(dto, "metadata")) {
+    updateData.metadata = dto.metadata || {};
+  } else if (!beforeProfile) {
+    updateData.metadata = {};
+  }
+
+  return updateData;
+}
+
 function readMetadata(metadata: unknown): Record<string, any> {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return {};
   }
   return metadata as Record<string, any>;
+}
+
+function hashOtp(code: string, salt: string): string {
+  return createHash("sha256").update(`${salt}:${code}`).digest("hex");
+}
+
+function verifyOtp(code: string, salt: string, expectedHash: string): boolean {
+  const actual = Buffer.from(hashOtp(code, salt), "hex");
+  const expected = Buffer.from(expectedHash, "hex");
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+function parseOptionalDate(value: unknown): Date | null {
+  if (typeof value !== "string" || !value) return null;
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+function isDevOtpBypassEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" && process.env.PROFILE_DEV_OTP_BYPASS_ENABLED === "true";
+}
+
+function validateVerificationType(type: string): void {
+  if (!ALLOWED_VERIFICATION_TYPES.has(type)) {
+    throw new BadRequestException("Баталгаажуулалтын төрөл буруу байна.");
+  }
+}
+
+function validateVerificationStatus(status: string): void {
+  if (!ALLOWED_VERIFICATION_STATUSES.has(status)) {
+    throw new BadRequestException("Баталгаажуулалтын төлөв буруу байна.");
+  }
+}
+
+function validateRegistryNumber(value: string): void {
+  const normalized = String(value || "").trim();
+  if (!/^[\p{L}]{2}\d{8}$/u.test(normalized)) {
+    throw new BadRequestException("Регистрийн дугаар буруу форматтай байна.");
+  }
+}
+
+function validateDocumentInput(
+  userId: string,
+  dto: { type: string; name: string; storageKey: string; mimeType: string; sizeBytes: number },
+): void {
+  if (!ALLOWED_DOCUMENT_TYPES.has(dto.type)) {
+    throw new BadRequestException("Баримт бичгийн төрөл буруу байна.");
+  }
+  if (!ALLOWED_DOCUMENT_MIME_TYPES.has(dto.mimeType)) {
+    throw new BadRequestException("Зөвхөн PDF файл зөвшөөрнө.");
+  }
+  if (!Number.isInteger(dto.sizeBytes) || dto.sizeBytes <= 0 || dto.sizeBytes > MAX_DOCUMENT_SIZE_BYTES) {
+    throw new BadRequestException("Файлын хэмжээ буруу байна.");
+  }
+  if (!dto.storageKey.startsWith(`documents/${userId}/`)) {
+    throw new BadRequestException("Файлын storage key хэрэглэгчтэй таарахгүй байна.");
+  }
 }

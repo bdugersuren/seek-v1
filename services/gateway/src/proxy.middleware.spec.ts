@@ -1,6 +1,13 @@
 import { ProxyMiddleware } from "./proxy.middleware";
 import { Request, Response, NextFunction } from "express";
 import * as jwt from "jsonwebtoken";
+import proxy from "express-http-proxy";
+
+jest.mock("express-http-proxy", () => {
+  return jest.fn(() =>
+    jest.fn((_req: Request, _res: Response, next: NextFunction) => next()),
+  );
+});
 
 describe("ProxyMiddleware Unit Tests", () => {
   let middleware: ProxyMiddleware;
@@ -241,6 +248,89 @@ describe("ProxyMiddleware Unit Tests", () => {
       );
 
       expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("File Service Gateway Protection", () => {
+    const mockedProxy = proxy as unknown as jest.Mock;
+
+    beforeEach(() => {
+      mockedProxy.mockClear();
+    });
+
+    it("should return 401 for /api/v1/file request if x-user-id is missing", () => {
+      mockRequest = {
+        method: "POST",
+        originalUrl: "/api/v1/file/presigned-upload",
+        headers: {},
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+    });
+
+    it("should allow /api/v1/file request when JWT identity is valid", () => {
+      const token = jwt.sign(
+        { sub: "user-123", session_id: "session-456", roles: ["CANDIDATE"] },
+        jwtSecret,
+        { issuer: "seek.mn", audience: "seek.mn" },
+      );
+      mockRequest = {
+        method: "POST",
+        originalUrl: "/api/v1/file/presigned-upload",
+        headers: {
+          authorization: `Bearer ${token}`,
+          origin: "http://localhost:8081",
+        },
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      expect(mockRequest.headers?.["x-user-id"]).toBe("user-123");
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+
+    it("should proxy /api/v1/file requests without parsing multipart bodies", () => {
+      const token = jwt.sign(
+        { sub: "user-123", session_id: "session-456", roles: ["CANDIDATE"] },
+        jwtSecret,
+        { issuer: "seek.mn", audience: "seek.mn" },
+      );
+      mockRequest = {
+        method: "POST",
+        originalUrl: "/api/v1/file/upload",
+        headers: {
+          authorization: `Bearer ${token}`,
+          origin: "http://localhost:8081",
+          "content-type": "multipart/form-data; boundary=test",
+        },
+      };
+      mockResponse.status = jest.fn().mockReturnThis();
+      mockResponse.json = jest.fn();
+
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        nextFunction as NextFunction,
+      );
+
+      const fileProxyCall = mockedProxy.mock.calls.find(
+        ([target]) => target === "http://localhost:3140",
+      );
+      expect(fileProxyCall?.[1]).toMatchObject({ parseReqBody: false });
     });
   });
 

@@ -1161,6 +1161,19 @@ exports.Prisma.OutboxEventScalarFieldEnum = {
   lastError: 'lastError'
 };
 
+exports.Prisma.AssessmentWorkflowEventScalarFieldEnum = {
+  id: 'id',
+  aggregateType: 'aggregateType',
+  aggregateId: 'aggregateId',
+  previousStatus: 'previousStatus',
+  newStatus: 'newStatus',
+  action: 'action',
+  comment: 'comment',
+  actorUserId: 'actorUserId',
+  occurredAt: 'occurredAt',
+  metadata: 'metadata'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1504,7 +1517,8 @@ exports.Prisma.ModelName = {
   ResultAiAnalysis: 'ResultAiAnalysis',
   QuestionWorkflowEvent: 'QuestionWorkflowEvent',
   ReportingAttemptFact: 'ReportingAttemptFact',
-  OutboxEvent: 'OutboxEvent'
+  OutboxEvent: 'OutboxEvent',
+  AssessmentWorkflowEvent: 'AssessmentWorkflowEvent'
 };
 
 /**

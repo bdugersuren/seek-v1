@@ -14,6 +14,7 @@ describe("ExecutionService attempt creation", () => {
       store,
       new InMemoryAttemptEventPublisher(),
       new SseService(),
+      null
     );
   });
 

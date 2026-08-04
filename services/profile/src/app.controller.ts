@@ -77,11 +77,21 @@ export class AppController {
     @Param("assessmentId") assessmentId: string,
     @Query("price") price?: string,
     @Query("accessType") accessType?: string,
+    @Query("emailVerified") emailVerified?: string,
+    @Query("enrolled") enrolled?: string,
+    @Query("assessmentOpen") assessmentOpen?: string,
+    @Query("alreadyAttempted") alreadyAttempted?: string,
+    @Query("attemptId") attemptId?: string,
   ) {
     const userId = getUserId(req);
     return this.profileService.getAssessmentEnrollmentGate(userId, assessmentId, {
       price: parsePrice(price),
       accessType,
+      emailVerified: parseBoolean(emailVerified),
+      enrolled: parseBoolean(enrolled),
+      assessmentOpen: parseBoolean(assessmentOpen),
+      alreadyAttempted: parseBoolean(alreadyAttempted),
+      attemptId,
     });
   }
 
@@ -98,12 +108,34 @@ export class AppController {
   @Post("profile/me/verification/submit")
   async submitVerification(
     @Req() req: Request,
-    @Body() dto: { type: string },
+    @Body() dto: { type: string; registryNumber?: string },
   ) {
     const userId = getUserId(req);
     const ip = getIpAddress(req);
     const ua = getUserAgent(req);
-    return this.profileService.submitVerificationRequest(userId, dto.type, ip, ua);
+    return this.profileService.submitVerificationRequest(userId, dto.type, dto.registryNumber, ip, ua);
+  }
+
+  @Post("profile/me/verification/phone/send-otp")
+  async sendPhoneOtp(
+    @Req() req: Request,
+    @Body() dto: { phoneNumber: string },
+  ) {
+    const userId = getUserId(req);
+    const ip = getIpAddress(req);
+    const ua = getUserAgent(req);
+    return this.profileService.sendPhoneOtp(userId, dto.phoneNumber, ip, ua);
+  }
+
+  @Post("profile/me/verification/phone/verify-otp")
+  async verifyPhoneOtp(
+    @Req() req: Request,
+    @Body() dto: { code: string },
+  ) {
+    const userId = getUserId(req);
+    const ip = getIpAddress(req);
+    const ua = getUserAgent(req);
+    return this.profileService.verifyPhoneOtp(userId, dto.code, ip, ua);
   }
 
   // =========================================================================
@@ -213,6 +245,13 @@ function parsePrice(value?: string): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseBoolean(value?: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
 }
 
 function getIpAddress(req: Request): string {

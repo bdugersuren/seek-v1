@@ -243,6 +243,11 @@ export type ReportingAttemptFact = $Result.DefaultSelection<Prisma.$ReportingAtt
  * 
  */
 export type OutboxEvent = $Result.DefaultSelection<Prisma.$OutboxEventPayload>
+/**
+ * Model AssessmentWorkflowEvent
+ * 
+ */
+export type AssessmentWorkflowEvent = $Result.DefaultSelection<Prisma.$AssessmentWorkflowEventPayload>
 
 /**
  * Enums
@@ -1316,6 +1321,16 @@ export class PrismaClient<
     * ```
     */
   get outboxEvent(): Prisma.OutboxEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.assessmentWorkflowEvent`: Exposes CRUD operations for the **AssessmentWorkflowEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AssessmentWorkflowEvents
+    * const assessmentWorkflowEvents = await prisma.assessmentWorkflowEvent.findMany()
+    * ```
+    */
+  get assessmentWorkflowEvent(): Prisma.AssessmentWorkflowEventDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1802,7 +1817,8 @@ export namespace Prisma {
     ResultAiAnalysis: 'ResultAiAnalysis',
     QuestionWorkflowEvent: 'QuestionWorkflowEvent',
     ReportingAttemptFact: 'ReportingAttemptFact',
-    OutboxEvent: 'OutboxEvent'
+    OutboxEvent: 'OutboxEvent',
+    AssessmentWorkflowEvent: 'AssessmentWorkflowEvent'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1818,7 +1834,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "question" | "questionType" | "questionVersion" | "questionOptionVersion" | "questionMedia" | "audienceType" | "audienceLevel" | "difficultyScale" | "difficultyLevel" | "cognitiveFramework" | "cognitiveLevel" | "competenceFramework" | "competenceType" | "assessmentContext" | "topic" | "topicQuestionClassification" | "topicQuestionCompetence" | "quizTemplate" | "quizSection" | "sectionQuestion" | "quiz" | "quizRevision" | "quizRevisionSection" | "quizRevisionQuestion" | "quizSchedule" | "quizAudienceRule" | "quizUserAssignment" | "quizSchedulePaymentPolicy" | "gradingJob" | "attemptQuestionScore" | "manualGradingTask" | "graderAssignment" | "manualGradingDecision" | "manualGradingResolution" | "questionCompetenceScoreContribution" | "assessmentResult" | "sectionResult" | "topicResult" | "competenceResult" | "resultPublication" | "resultPublicationEvent" | "resultAccessLog" | "resultAiAnalysis" | "questionWorkflowEvent" | "reportingAttemptFact" | "outboxEvent"
+      modelProps: "question" | "questionType" | "questionVersion" | "questionOptionVersion" | "questionMedia" | "audienceType" | "audienceLevel" | "difficultyScale" | "difficultyLevel" | "cognitiveFramework" | "cognitiveLevel" | "competenceFramework" | "competenceType" | "assessmentContext" | "topic" | "topicQuestionClassification" | "topicQuestionCompetence" | "quizTemplate" | "quizSection" | "sectionQuestion" | "quiz" | "quizRevision" | "quizRevisionSection" | "quizRevisionQuestion" | "quizSchedule" | "quizAudienceRule" | "quizUserAssignment" | "quizSchedulePaymentPolicy" | "gradingJob" | "attemptQuestionScore" | "manualGradingTask" | "graderAssignment" | "manualGradingDecision" | "manualGradingResolution" | "questionCompetenceScoreContribution" | "assessmentResult" | "sectionResult" | "topicResult" | "competenceResult" | "resultPublication" | "resultPublicationEvent" | "resultAccessLog" | "resultAiAnalysis" | "questionWorkflowEvent" | "reportingAttemptFact" | "outboxEvent" | "assessmentWorkflowEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5039,6 +5055,76 @@ export namespace Prisma {
           count: {
             args: Prisma.OutboxEventCountArgs<ExtArgs>
             result: $Utils.Optional<OutboxEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      AssessmentWorkflowEvent: {
+        payload: Prisma.$AssessmentWorkflowEventPayload<ExtArgs>
+        fields: Prisma.AssessmentWorkflowEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AssessmentWorkflowEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AssessmentWorkflowEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>
+          }
+          findFirst: {
+            args: Prisma.AssessmentWorkflowEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AssessmentWorkflowEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>
+          }
+          findMany: {
+            args: Prisma.AssessmentWorkflowEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>[]
+          }
+          create: {
+            args: Prisma.AssessmentWorkflowEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>
+          }
+          createMany: {
+            args: Prisma.AssessmentWorkflowEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AssessmentWorkflowEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>[]
+          }
+          delete: {
+            args: Prisma.AssessmentWorkflowEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>
+          }
+          update: {
+            args: Prisma.AssessmentWorkflowEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.AssessmentWorkflowEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AssessmentWorkflowEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AssessmentWorkflowEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AssessmentWorkflowEventPayload>
+          }
+          aggregate: {
+            args: Prisma.AssessmentWorkflowEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAssessmentWorkflowEvent>
+          }
+          groupBy: {
+            args: Prisma.AssessmentWorkflowEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AssessmentWorkflowEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AssessmentWorkflowEventCountArgs<ExtArgs>
+            result: $Utils.Optional<AssessmentWorkflowEventCountAggregateOutputType> | number
           }
         }
       }
@@ -60711,6 +60797,940 @@ export namespace Prisma {
 
 
   /**
+   * Model AssessmentWorkflowEvent
+   */
+
+  export type AggregateAssessmentWorkflowEvent = {
+    _count: AssessmentWorkflowEventCountAggregateOutputType | null
+    _min: AssessmentWorkflowEventMinAggregateOutputType | null
+    _max: AssessmentWorkflowEventMaxAggregateOutputType | null
+  }
+
+  export type AssessmentWorkflowEventMinAggregateOutputType = {
+    id: string | null
+    aggregateType: string | null
+    aggregateId: string | null
+    previousStatus: string | null
+    newStatus: string | null
+    action: string | null
+    comment: string | null
+    actorUserId: string | null
+    occurredAt: Date | null
+  }
+
+  export type AssessmentWorkflowEventMaxAggregateOutputType = {
+    id: string | null
+    aggregateType: string | null
+    aggregateId: string | null
+    previousStatus: string | null
+    newStatus: string | null
+    action: string | null
+    comment: string | null
+    actorUserId: string | null
+    occurredAt: Date | null
+  }
+
+  export type AssessmentWorkflowEventCountAggregateOutputType = {
+    id: number
+    aggregateType: number
+    aggregateId: number
+    previousStatus: number
+    newStatus: number
+    action: number
+    comment: number
+    actorUserId: number
+    occurredAt: number
+    metadata: number
+    _all: number
+  }
+
+
+  export type AssessmentWorkflowEventMinAggregateInputType = {
+    id?: true
+    aggregateType?: true
+    aggregateId?: true
+    previousStatus?: true
+    newStatus?: true
+    action?: true
+    comment?: true
+    actorUserId?: true
+    occurredAt?: true
+  }
+
+  export type AssessmentWorkflowEventMaxAggregateInputType = {
+    id?: true
+    aggregateType?: true
+    aggregateId?: true
+    previousStatus?: true
+    newStatus?: true
+    action?: true
+    comment?: true
+    actorUserId?: true
+    occurredAt?: true
+  }
+
+  export type AssessmentWorkflowEventCountAggregateInputType = {
+    id?: true
+    aggregateType?: true
+    aggregateId?: true
+    previousStatus?: true
+    newStatus?: true
+    action?: true
+    comment?: true
+    actorUserId?: true
+    occurredAt?: true
+    metadata?: true
+    _all?: true
+  }
+
+  export type AssessmentWorkflowEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AssessmentWorkflowEvent to aggregate.
+     */
+    where?: AssessmentWorkflowEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AssessmentWorkflowEvents to fetch.
+     */
+    orderBy?: AssessmentWorkflowEventOrderByWithRelationInput | AssessmentWorkflowEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AssessmentWorkflowEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AssessmentWorkflowEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AssessmentWorkflowEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AssessmentWorkflowEvents
+    **/
+    _count?: true | AssessmentWorkflowEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AssessmentWorkflowEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AssessmentWorkflowEventMaxAggregateInputType
+  }
+
+  export type GetAssessmentWorkflowEventAggregateType<T extends AssessmentWorkflowEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateAssessmentWorkflowEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAssessmentWorkflowEvent[P]>
+      : GetScalarType<T[P], AggregateAssessmentWorkflowEvent[P]>
+  }
+
+
+
+
+  export type AssessmentWorkflowEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AssessmentWorkflowEventWhereInput
+    orderBy?: AssessmentWorkflowEventOrderByWithAggregationInput | AssessmentWorkflowEventOrderByWithAggregationInput[]
+    by: AssessmentWorkflowEventScalarFieldEnum[] | AssessmentWorkflowEventScalarFieldEnum
+    having?: AssessmentWorkflowEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AssessmentWorkflowEventCountAggregateInputType | true
+    _min?: AssessmentWorkflowEventMinAggregateInputType
+    _max?: AssessmentWorkflowEventMaxAggregateInputType
+  }
+
+  export type AssessmentWorkflowEventGroupByOutputType = {
+    id: string
+    aggregateType: string
+    aggregateId: string
+    previousStatus: string | null
+    newStatus: string
+    action: string
+    comment: string | null
+    actorUserId: string
+    occurredAt: Date
+    metadata: JsonValue
+    _count: AssessmentWorkflowEventCountAggregateOutputType | null
+    _min: AssessmentWorkflowEventMinAggregateOutputType | null
+    _max: AssessmentWorkflowEventMaxAggregateOutputType | null
+  }
+
+  type GetAssessmentWorkflowEventGroupByPayload<T extends AssessmentWorkflowEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AssessmentWorkflowEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AssessmentWorkflowEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AssessmentWorkflowEventGroupByOutputType[P]>
+            : GetScalarType<T[P], AssessmentWorkflowEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AssessmentWorkflowEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    aggregateType?: boolean
+    aggregateId?: boolean
+    previousStatus?: boolean
+    newStatus?: boolean
+    action?: boolean
+    comment?: boolean
+    actorUserId?: boolean
+    occurredAt?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["assessmentWorkflowEvent"]>
+
+  export type AssessmentWorkflowEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    aggregateType?: boolean
+    aggregateId?: boolean
+    previousStatus?: boolean
+    newStatus?: boolean
+    action?: boolean
+    comment?: boolean
+    actorUserId?: boolean
+    occurredAt?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["assessmentWorkflowEvent"]>
+
+  export type AssessmentWorkflowEventSelectScalar = {
+    id?: boolean
+    aggregateType?: boolean
+    aggregateId?: boolean
+    previousStatus?: boolean
+    newStatus?: boolean
+    action?: boolean
+    comment?: boolean
+    actorUserId?: boolean
+    occurredAt?: boolean
+    metadata?: boolean
+  }
+
+
+  export type $AssessmentWorkflowEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AssessmentWorkflowEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      aggregateType: string
+      aggregateId: string
+      previousStatus: string | null
+      newStatus: string
+      action: string
+      comment: string | null
+      actorUserId: string
+      occurredAt: Date
+      metadata: Prisma.JsonValue
+    }, ExtArgs["result"]["assessmentWorkflowEvent"]>
+    composites: {}
+  }
+
+  type AssessmentWorkflowEventGetPayload<S extends boolean | null | undefined | AssessmentWorkflowEventDefaultArgs> = $Result.GetResult<Prisma.$AssessmentWorkflowEventPayload, S>
+
+  type AssessmentWorkflowEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AssessmentWorkflowEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AssessmentWorkflowEventCountAggregateInputType | true
+    }
+
+  export interface AssessmentWorkflowEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AssessmentWorkflowEvent'], meta: { name: 'AssessmentWorkflowEvent' } }
+    /**
+     * Find zero or one AssessmentWorkflowEvent that matches the filter.
+     * @param {AssessmentWorkflowEventFindUniqueArgs} args - Arguments to find a AssessmentWorkflowEvent
+     * @example
+     * // Get one AssessmentWorkflowEvent
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AssessmentWorkflowEventFindUniqueArgs>(args: SelectSubset<T, AssessmentWorkflowEventFindUniqueArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AssessmentWorkflowEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AssessmentWorkflowEventFindUniqueOrThrowArgs} args - Arguments to find a AssessmentWorkflowEvent
+     * @example
+     * // Get one AssessmentWorkflowEvent
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AssessmentWorkflowEventFindUniqueOrThrowArgs>(args: SelectSubset<T, AssessmentWorkflowEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AssessmentWorkflowEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventFindFirstArgs} args - Arguments to find a AssessmentWorkflowEvent
+     * @example
+     * // Get one AssessmentWorkflowEvent
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AssessmentWorkflowEventFindFirstArgs>(args?: SelectSubset<T, AssessmentWorkflowEventFindFirstArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AssessmentWorkflowEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventFindFirstOrThrowArgs} args - Arguments to find a AssessmentWorkflowEvent
+     * @example
+     * // Get one AssessmentWorkflowEvent
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AssessmentWorkflowEventFindFirstOrThrowArgs>(args?: SelectSubset<T, AssessmentWorkflowEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AssessmentWorkflowEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AssessmentWorkflowEvents
+     * const assessmentWorkflowEvents = await prisma.assessmentWorkflowEvent.findMany()
+     * 
+     * // Get first 10 AssessmentWorkflowEvents
+     * const assessmentWorkflowEvents = await prisma.assessmentWorkflowEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const assessmentWorkflowEventWithIdOnly = await prisma.assessmentWorkflowEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AssessmentWorkflowEventFindManyArgs>(args?: SelectSubset<T, AssessmentWorkflowEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AssessmentWorkflowEvent.
+     * @param {AssessmentWorkflowEventCreateArgs} args - Arguments to create a AssessmentWorkflowEvent.
+     * @example
+     * // Create one AssessmentWorkflowEvent
+     * const AssessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.create({
+     *   data: {
+     *     // ... data to create a AssessmentWorkflowEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends AssessmentWorkflowEventCreateArgs>(args: SelectSubset<T, AssessmentWorkflowEventCreateArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AssessmentWorkflowEvents.
+     * @param {AssessmentWorkflowEventCreateManyArgs} args - Arguments to create many AssessmentWorkflowEvents.
+     * @example
+     * // Create many AssessmentWorkflowEvents
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AssessmentWorkflowEventCreateManyArgs>(args?: SelectSubset<T, AssessmentWorkflowEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AssessmentWorkflowEvents and returns the data saved in the database.
+     * @param {AssessmentWorkflowEventCreateManyAndReturnArgs} args - Arguments to create many AssessmentWorkflowEvents.
+     * @example
+     * // Create many AssessmentWorkflowEvents
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AssessmentWorkflowEvents and only return the `id`
+     * const assessmentWorkflowEventWithIdOnly = await prisma.assessmentWorkflowEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AssessmentWorkflowEventCreateManyAndReturnArgs>(args?: SelectSubset<T, AssessmentWorkflowEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AssessmentWorkflowEvent.
+     * @param {AssessmentWorkflowEventDeleteArgs} args - Arguments to delete one AssessmentWorkflowEvent.
+     * @example
+     * // Delete one AssessmentWorkflowEvent
+     * const AssessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.delete({
+     *   where: {
+     *     // ... filter to delete one AssessmentWorkflowEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AssessmentWorkflowEventDeleteArgs>(args: SelectSubset<T, AssessmentWorkflowEventDeleteArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AssessmentWorkflowEvent.
+     * @param {AssessmentWorkflowEventUpdateArgs} args - Arguments to update one AssessmentWorkflowEvent.
+     * @example
+     * // Update one AssessmentWorkflowEvent
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AssessmentWorkflowEventUpdateArgs>(args: SelectSubset<T, AssessmentWorkflowEventUpdateArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AssessmentWorkflowEvents.
+     * @param {AssessmentWorkflowEventDeleteManyArgs} args - Arguments to filter AssessmentWorkflowEvents to delete.
+     * @example
+     * // Delete a few AssessmentWorkflowEvents
+     * const { count } = await prisma.assessmentWorkflowEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AssessmentWorkflowEventDeleteManyArgs>(args?: SelectSubset<T, AssessmentWorkflowEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AssessmentWorkflowEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AssessmentWorkflowEvents
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AssessmentWorkflowEventUpdateManyArgs>(args: SelectSubset<T, AssessmentWorkflowEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AssessmentWorkflowEvent.
+     * @param {AssessmentWorkflowEventUpsertArgs} args - Arguments to update or create a AssessmentWorkflowEvent.
+     * @example
+     * // Update or create a AssessmentWorkflowEvent
+     * const assessmentWorkflowEvent = await prisma.assessmentWorkflowEvent.upsert({
+     *   create: {
+     *     // ... data to create a AssessmentWorkflowEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AssessmentWorkflowEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AssessmentWorkflowEventUpsertArgs>(args: SelectSubset<T, AssessmentWorkflowEventUpsertArgs<ExtArgs>>): Prisma__AssessmentWorkflowEventClient<$Result.GetResult<Prisma.$AssessmentWorkflowEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AssessmentWorkflowEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventCountArgs} args - Arguments to filter AssessmentWorkflowEvents to count.
+     * @example
+     * // Count the number of AssessmentWorkflowEvents
+     * const count = await prisma.assessmentWorkflowEvent.count({
+     *   where: {
+     *     // ... the filter for the AssessmentWorkflowEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends AssessmentWorkflowEventCountArgs>(
+      args?: Subset<T, AssessmentWorkflowEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AssessmentWorkflowEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AssessmentWorkflowEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AssessmentWorkflowEventAggregateArgs>(args: Subset<T, AssessmentWorkflowEventAggregateArgs>): Prisma.PrismaPromise<GetAssessmentWorkflowEventAggregateType<T>>
+
+    /**
+     * Group by AssessmentWorkflowEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AssessmentWorkflowEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AssessmentWorkflowEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AssessmentWorkflowEventGroupByArgs['orderBy'] }
+        : { orderBy?: AssessmentWorkflowEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AssessmentWorkflowEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAssessmentWorkflowEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AssessmentWorkflowEvent model
+   */
+  readonly fields: AssessmentWorkflowEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AssessmentWorkflowEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AssessmentWorkflowEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AssessmentWorkflowEvent model
+   */ 
+  interface AssessmentWorkflowEventFieldRefs {
+    readonly id: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly aggregateType: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly aggregateId: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly previousStatus: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly newStatus: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly action: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly comment: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly actorUserId: FieldRef<"AssessmentWorkflowEvent", 'String'>
+    readonly occurredAt: FieldRef<"AssessmentWorkflowEvent", 'DateTime'>
+    readonly metadata: FieldRef<"AssessmentWorkflowEvent", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AssessmentWorkflowEvent findUnique
+   */
+  export type AssessmentWorkflowEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * Filter, which AssessmentWorkflowEvent to fetch.
+     */
+    where: AssessmentWorkflowEventWhereUniqueInput
+  }
+
+  /**
+   * AssessmentWorkflowEvent findUniqueOrThrow
+   */
+  export type AssessmentWorkflowEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * Filter, which AssessmentWorkflowEvent to fetch.
+     */
+    where: AssessmentWorkflowEventWhereUniqueInput
+  }
+
+  /**
+   * AssessmentWorkflowEvent findFirst
+   */
+  export type AssessmentWorkflowEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * Filter, which AssessmentWorkflowEvent to fetch.
+     */
+    where?: AssessmentWorkflowEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AssessmentWorkflowEvents to fetch.
+     */
+    orderBy?: AssessmentWorkflowEventOrderByWithRelationInput | AssessmentWorkflowEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AssessmentWorkflowEvents.
+     */
+    cursor?: AssessmentWorkflowEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AssessmentWorkflowEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AssessmentWorkflowEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AssessmentWorkflowEvents.
+     */
+    distinct?: AssessmentWorkflowEventScalarFieldEnum | AssessmentWorkflowEventScalarFieldEnum[]
+  }
+
+  /**
+   * AssessmentWorkflowEvent findFirstOrThrow
+   */
+  export type AssessmentWorkflowEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * Filter, which AssessmentWorkflowEvent to fetch.
+     */
+    where?: AssessmentWorkflowEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AssessmentWorkflowEvents to fetch.
+     */
+    orderBy?: AssessmentWorkflowEventOrderByWithRelationInput | AssessmentWorkflowEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AssessmentWorkflowEvents.
+     */
+    cursor?: AssessmentWorkflowEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AssessmentWorkflowEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AssessmentWorkflowEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AssessmentWorkflowEvents.
+     */
+    distinct?: AssessmentWorkflowEventScalarFieldEnum | AssessmentWorkflowEventScalarFieldEnum[]
+  }
+
+  /**
+   * AssessmentWorkflowEvent findMany
+   */
+  export type AssessmentWorkflowEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * Filter, which AssessmentWorkflowEvents to fetch.
+     */
+    where?: AssessmentWorkflowEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AssessmentWorkflowEvents to fetch.
+     */
+    orderBy?: AssessmentWorkflowEventOrderByWithRelationInput | AssessmentWorkflowEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AssessmentWorkflowEvents.
+     */
+    cursor?: AssessmentWorkflowEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AssessmentWorkflowEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AssessmentWorkflowEvents.
+     */
+    skip?: number
+    distinct?: AssessmentWorkflowEventScalarFieldEnum | AssessmentWorkflowEventScalarFieldEnum[]
+  }
+
+  /**
+   * AssessmentWorkflowEvent create
+   */
+  export type AssessmentWorkflowEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AssessmentWorkflowEvent.
+     */
+    data: XOR<AssessmentWorkflowEventCreateInput, AssessmentWorkflowEventUncheckedCreateInput>
+  }
+
+  /**
+   * AssessmentWorkflowEvent createMany
+   */
+  export type AssessmentWorkflowEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AssessmentWorkflowEvents.
+     */
+    data: AssessmentWorkflowEventCreateManyInput | AssessmentWorkflowEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AssessmentWorkflowEvent createManyAndReturn
+   */
+  export type AssessmentWorkflowEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AssessmentWorkflowEvents.
+     */
+    data: AssessmentWorkflowEventCreateManyInput | AssessmentWorkflowEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AssessmentWorkflowEvent update
+   */
+  export type AssessmentWorkflowEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AssessmentWorkflowEvent.
+     */
+    data: XOR<AssessmentWorkflowEventUpdateInput, AssessmentWorkflowEventUncheckedUpdateInput>
+    /**
+     * Choose, which AssessmentWorkflowEvent to update.
+     */
+    where: AssessmentWorkflowEventWhereUniqueInput
+  }
+
+  /**
+   * AssessmentWorkflowEvent updateMany
+   */
+  export type AssessmentWorkflowEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AssessmentWorkflowEvents.
+     */
+    data: XOR<AssessmentWorkflowEventUpdateManyMutationInput, AssessmentWorkflowEventUncheckedUpdateManyInput>
+    /**
+     * Filter which AssessmentWorkflowEvents to update
+     */
+    where?: AssessmentWorkflowEventWhereInput
+  }
+
+  /**
+   * AssessmentWorkflowEvent upsert
+   */
+  export type AssessmentWorkflowEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AssessmentWorkflowEvent to update in case it exists.
+     */
+    where: AssessmentWorkflowEventWhereUniqueInput
+    /**
+     * In case the AssessmentWorkflowEvent found by the `where` argument doesn't exist, create a new AssessmentWorkflowEvent with this data.
+     */
+    create: XOR<AssessmentWorkflowEventCreateInput, AssessmentWorkflowEventUncheckedCreateInput>
+    /**
+     * In case the AssessmentWorkflowEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AssessmentWorkflowEventUpdateInput, AssessmentWorkflowEventUncheckedUpdateInput>
+  }
+
+  /**
+   * AssessmentWorkflowEvent delete
+   */
+  export type AssessmentWorkflowEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+    /**
+     * Filter which AssessmentWorkflowEvent to delete.
+     */
+    where: AssessmentWorkflowEventWhereUniqueInput
+  }
+
+  /**
+   * AssessmentWorkflowEvent deleteMany
+   */
+  export type AssessmentWorkflowEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AssessmentWorkflowEvents to delete
+     */
+    where?: AssessmentWorkflowEventWhereInput
+  }
+
+  /**
+   * AssessmentWorkflowEvent without action
+   */
+  export type AssessmentWorkflowEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AssessmentWorkflowEvent
+     */
+    select?: AssessmentWorkflowEventSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -61899,6 +62919,22 @@ export namespace Prisma {
   };
 
   export type OutboxEventScalarFieldEnum = (typeof OutboxEventScalarFieldEnum)[keyof typeof OutboxEventScalarFieldEnum]
+
+
+  export const AssessmentWorkflowEventScalarFieldEnum: {
+    id: 'id',
+    aggregateType: 'aggregateType',
+    aggregateId: 'aggregateId',
+    previousStatus: 'previousStatus',
+    newStatus: 'newStatus',
+    action: 'action',
+    comment: 'comment',
+    actorUserId: 'actorUserId',
+    occurredAt: 'occurredAt',
+    metadata: 'metadata'
+  };
+
+  export type AssessmentWorkflowEventScalarFieldEnum = (typeof AssessmentWorkflowEventScalarFieldEnum)[keyof typeof AssessmentWorkflowEventScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -68756,6 +69792,83 @@ export namespace Prisma {
     lastAttemptAt?: DateTimeNullableWithAggregatesFilter<"OutboxEvent"> | Date | string | null
     deadLetteredAt?: DateTimeNullableWithAggregatesFilter<"OutboxEvent"> | Date | string | null
     lastError?: StringNullableWithAggregatesFilter<"OutboxEvent"> | string | null
+  }
+
+  export type AssessmentWorkflowEventWhereInput = {
+    AND?: AssessmentWorkflowEventWhereInput | AssessmentWorkflowEventWhereInput[]
+    OR?: AssessmentWorkflowEventWhereInput[]
+    NOT?: AssessmentWorkflowEventWhereInput | AssessmentWorkflowEventWhereInput[]
+    id?: StringFilter<"AssessmentWorkflowEvent"> | string
+    aggregateType?: StringFilter<"AssessmentWorkflowEvent"> | string
+    aggregateId?: StringFilter<"AssessmentWorkflowEvent"> | string
+    previousStatus?: StringNullableFilter<"AssessmentWorkflowEvent"> | string | null
+    newStatus?: StringFilter<"AssessmentWorkflowEvent"> | string
+    action?: StringFilter<"AssessmentWorkflowEvent"> | string
+    comment?: StringNullableFilter<"AssessmentWorkflowEvent"> | string | null
+    actorUserId?: StringFilter<"AssessmentWorkflowEvent"> | string
+    occurredAt?: DateTimeFilter<"AssessmentWorkflowEvent"> | Date | string
+    metadata?: JsonFilter<"AssessmentWorkflowEvent">
+  }
+
+  export type AssessmentWorkflowEventOrderByWithRelationInput = {
+    id?: SortOrder
+    aggregateType?: SortOrder
+    aggregateId?: SortOrder
+    previousStatus?: SortOrderInput | SortOrder
+    newStatus?: SortOrder
+    action?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    actorUserId?: SortOrder
+    occurredAt?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type AssessmentWorkflowEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AssessmentWorkflowEventWhereInput | AssessmentWorkflowEventWhereInput[]
+    OR?: AssessmentWorkflowEventWhereInput[]
+    NOT?: AssessmentWorkflowEventWhereInput | AssessmentWorkflowEventWhereInput[]
+    aggregateType?: StringFilter<"AssessmentWorkflowEvent"> | string
+    aggregateId?: StringFilter<"AssessmentWorkflowEvent"> | string
+    previousStatus?: StringNullableFilter<"AssessmentWorkflowEvent"> | string | null
+    newStatus?: StringFilter<"AssessmentWorkflowEvent"> | string
+    action?: StringFilter<"AssessmentWorkflowEvent"> | string
+    comment?: StringNullableFilter<"AssessmentWorkflowEvent"> | string | null
+    actorUserId?: StringFilter<"AssessmentWorkflowEvent"> | string
+    occurredAt?: DateTimeFilter<"AssessmentWorkflowEvent"> | Date | string
+    metadata?: JsonFilter<"AssessmentWorkflowEvent">
+  }, "id">
+
+  export type AssessmentWorkflowEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    aggregateType?: SortOrder
+    aggregateId?: SortOrder
+    previousStatus?: SortOrderInput | SortOrder
+    newStatus?: SortOrder
+    action?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    actorUserId?: SortOrder
+    occurredAt?: SortOrder
+    metadata?: SortOrder
+    _count?: AssessmentWorkflowEventCountOrderByAggregateInput
+    _max?: AssessmentWorkflowEventMaxOrderByAggregateInput
+    _min?: AssessmentWorkflowEventMinOrderByAggregateInput
+  }
+
+  export type AssessmentWorkflowEventScalarWhereWithAggregatesInput = {
+    AND?: AssessmentWorkflowEventScalarWhereWithAggregatesInput | AssessmentWorkflowEventScalarWhereWithAggregatesInput[]
+    OR?: AssessmentWorkflowEventScalarWhereWithAggregatesInput[]
+    NOT?: AssessmentWorkflowEventScalarWhereWithAggregatesInput | AssessmentWorkflowEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AssessmentWorkflowEvent"> | string
+    aggregateType?: StringWithAggregatesFilter<"AssessmentWorkflowEvent"> | string
+    aggregateId?: StringWithAggregatesFilter<"AssessmentWorkflowEvent"> | string
+    previousStatus?: StringNullableWithAggregatesFilter<"AssessmentWorkflowEvent"> | string | null
+    newStatus?: StringWithAggregatesFilter<"AssessmentWorkflowEvent"> | string
+    action?: StringWithAggregatesFilter<"AssessmentWorkflowEvent"> | string
+    comment?: StringNullableWithAggregatesFilter<"AssessmentWorkflowEvent"> | string | null
+    actorUserId?: StringWithAggregatesFilter<"AssessmentWorkflowEvent"> | string
+    occurredAt?: DateTimeWithAggregatesFilter<"AssessmentWorkflowEvent"> | Date | string
+    metadata?: JsonWithAggregatesFilter<"AssessmentWorkflowEvent">
   }
 
   export type QuestionCreateInput = {
@@ -76238,6 +77351,97 @@ export namespace Prisma {
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type AssessmentWorkflowEventCreateInput = {
+    id?: string
+    aggregateType: string
+    aggregateId: string
+    previousStatus?: string | null
+    newStatus: string
+    action: string
+    comment?: string | null
+    actorUserId: string
+    occurredAt?: Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AssessmentWorkflowEventUncheckedCreateInput = {
+    id?: string
+    aggregateType: string
+    aggregateId: string
+    previousStatus?: string | null
+    newStatus: string
+    action: string
+    comment?: string | null
+    actorUserId: string
+    occurredAt?: Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AssessmentWorkflowEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    aggregateType?: StringFieldUpdateOperationsInput | string
+    aggregateId?: StringFieldUpdateOperationsInput | string
+    previousStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    newStatus?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AssessmentWorkflowEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    aggregateType?: StringFieldUpdateOperationsInput | string
+    aggregateId?: StringFieldUpdateOperationsInput | string
+    previousStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    newStatus?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AssessmentWorkflowEventCreateManyInput = {
+    id?: string
+    aggregateType: string
+    aggregateId: string
+    previousStatus?: string | null
+    newStatus: string
+    action: string
+    comment?: string | null
+    actorUserId: string
+    occurredAt?: Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AssessmentWorkflowEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    aggregateType?: StringFieldUpdateOperationsInput | string
+    aggregateId?: StringFieldUpdateOperationsInput | string
+    previousStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    newStatus?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AssessmentWorkflowEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    aggregateType?: StringFieldUpdateOperationsInput | string
+    aggregateId?: StringFieldUpdateOperationsInput | string
+    previousStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    newStatus?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: StringFieldUpdateOperationsInput | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -81375,6 +82579,43 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumOutboxStatusFilter<$PrismaModel>
     _max?: NestedEnumOutboxStatusFilter<$PrismaModel>
+  }
+
+  export type AssessmentWorkflowEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    aggregateType?: SortOrder
+    aggregateId?: SortOrder
+    previousStatus?: SortOrder
+    newStatus?: SortOrder
+    action?: SortOrder
+    comment?: SortOrder
+    actorUserId?: SortOrder
+    occurredAt?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type AssessmentWorkflowEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    aggregateType?: SortOrder
+    aggregateId?: SortOrder
+    previousStatus?: SortOrder
+    newStatus?: SortOrder
+    action?: SortOrder
+    comment?: SortOrder
+    actorUserId?: SortOrder
+    occurredAt?: SortOrder
+  }
+
+  export type AssessmentWorkflowEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    aggregateType?: SortOrder
+    aggregateId?: SortOrder
+    previousStatus?: SortOrder
+    newStatus?: SortOrder
+    action?: SortOrder
+    comment?: SortOrder
+    actorUserId?: SortOrder
+    occurredAt?: SortOrder
   }
 
   export type QuestionVersionCreateNestedManyWithoutQuestionInput = {
@@ -108554,6 +109795,10 @@ export namespace Prisma {
      * @deprecated Use OutboxEventDefaultArgs instead
      */
     export type OutboxEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = OutboxEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AssessmentWorkflowEventDefaultArgs instead
+     */
+    export type AssessmentWorkflowEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AssessmentWorkflowEventDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

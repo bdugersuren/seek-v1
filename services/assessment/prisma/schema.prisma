@@ -1675,3 +1675,20 @@ model OutboxEvent {
   @@index([aggregateType, aggregateId])
   @@map("outbox_event")
 }
+
+model AssessmentWorkflowEvent {
+  id             String   @id @default(cuid())
+  aggregateType  String
+  aggregateId    String
+  previousStatus String?
+  newStatus      String
+  action         String
+  comment        String?  @db.Text
+  actorUserId    String
+  occurredAt     DateTime @default(now())
+  metadata       Json     @default("{}")
+
+  @@index([aggregateType, aggregateId, occurredAt])
+  @@map("assessment_workflow_event")
+}
+

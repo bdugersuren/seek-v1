@@ -25,18 +25,18 @@ Status: `READY_FOR_NEXT_TASK`
 
 Recently completed:
 
+- `docs/tasks/backup/2026-08-04-assessment-execution-reporting-durable-integration.md` -> `Assessment, Execution, and Reporting Durable Integration`
 - `docs/tasks/backup/2026-07-31-assessment-runtime-split-20k-readiness.md` -> `Assessment Runtime Split & 20k Concurrent Quiz Readiness`
 - `docs/tasks/backup/2026-07-31-assessment-runtime-hardening.md` -> `Assessment Runtime Hardening`
 - `docs/tasks/backup/2026-08-02-enterprise-assessment-runtime-schema-and-flow-hardening.md` -> `Enterprise Assessment Runtime Schema And Flow Hardening`
 
 Current active task:
 
-- `docs/tasks/active-task.md` -> `No active task`
+- `No active task`
 
 Next priority:
 
-1. Replace in-memory assessment/reporting workflow stores with Prisma repositories.
-2. Run the new migration addenda against a disposable PostgreSQL database.
-3. Add RabbitMQ consumers for assessment result finalized and schedule published events.
-4. Add production KMS/token-binding integration for request signatures and unlock keys.
-5. Add E2E coverage from catalog start to receipt and reporting fact projection.
+- [ ] Add production KMS/token-binding integration for request signatures and unlock keys.
+- [ ] Add E2E coverage from catalog start to receipt and reporting fact projection.
+- [ ] Run 20,000 concurrent user load testing and tune database indexes / Redis cache layers.
+

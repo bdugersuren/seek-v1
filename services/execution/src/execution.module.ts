@@ -5,10 +5,12 @@ import { ExecutionController } from "./execution.controller";
 import { ExecutionService } from "./execution.service";
 import { SseService } from "./infrastructure/sse.service";
 import { RabbitMQConsumerService } from "./infrastructure/rabbitmq-consumer.service";
-import { InMemoryAttemptStateStore } from "./infrastructure/in-memory-state-store";
+import { PrismaService } from "./prisma.service";
+import { PrismaAttemptStateStore } from "./infrastructure/prisma-state-store";
 import { InMemoryAttemptEventPublisher } from "./infrastructure/in-memory-event-publisher";
-import { RedisAttemptStateStore } from "./infrastructure/redis-state-store";
 import { RabbitMQAttemptEventPublisher } from "./infrastructure/rabbitmq-event-publisher";
+import { CryptoKMSService } from "./infrastructure/crypto-kms.service";
+import { SignatureGuard } from "./infrastructure/guards/signature.guard";
 
 @Module({
   controllers: [ExecutionController],
@@ -16,6 +18,9 @@ import { RabbitMQAttemptEventPublisher } from "./infrastructure/rabbitmq-event-p
     ExecutionService,
     SseService,
     RabbitMQConsumerService,
+    PrismaService,
+    CryptoKMSService,
+    SignatureGuard,
     {
       provide: "REDIS_CLIENT",
       useFactory: () => {
@@ -56,10 +61,7 @@ import { RabbitMQAttemptEventPublisher } from "./infrastructure/rabbitmq-event-p
     },
     {
       provide: "AttemptStateStore",
-      useClass:
-        process.env.USE_REDIS === "true"
-          ? RedisAttemptStateStore
-          : InMemoryAttemptStateStore,
+      useClass: PrismaAttemptStateStore,
     },
     {
       provide: "AttemptEventPublisher",
@@ -72,3 +74,5 @@ import { RabbitMQAttemptEventPublisher } from "./infrastructure/rabbitmq-event-p
   exports: [ExecutionService, SseService, RabbitMQConsumerService],
 })
 export class ExecutionModule {}
+
+

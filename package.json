@@ -24,7 +24,10 @@
     "test:local:auth": "pnpm test:smoke:auth && pnpm test:integration:auth && pnpm test:postman:auth && pnpm test:e2e:auth",
     "dev:auth-test": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test up --build",
     "dev:auth-test:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down",
-    "dev:auth-test:down-v": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down -v"
+    "dev:auth-test:down-v": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down -v",
+    "prod:verification-test": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-test --profile assessment --profile frontend up -d --build node-modules-init postgres redis rabbitmq minio auth profile organisation assessment execution commerce file integration gateway portal-web assessment-web nginx-proxy",
+    "prod:verification-test:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-test --profile frontend down",
+    "prod:verification-test:down-v": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-test --profile frontend down -v"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.0.0",

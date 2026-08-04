@@ -3,6 +3,7 @@ import type { ProfileCompletionStatus, ProfileMissingField } from "@seek/contrac
 export interface ProfileLike {
   displayName?: string | null;
   phoneNumber?: string | null;
+  phoneNumberVerifiedAt?: string | Date | null;
   country?: string | null;
   preferredLanguage?: string | null;
   organisation?: string | null;
@@ -12,20 +13,27 @@ export interface ProfileLike {
 
 export function evaluateProfileCompletion(profile: ProfileLike): ProfileCompletionStatus {
   const missingFields: ProfileMissingField[] = [];
+  const basicMissingFields: ProfileMissingField[] = [];
   const recommendedFields: string[] = [];
 
   // Required fields checking
   if (!profile.displayName || !profile.displayName.trim()) {
     missingFields.push("displayName");
+    basicMissingFields.push("displayName");
   }
   if (!profile.phoneNumber || !profile.phoneNumber.trim()) {
     missingFields.push("phoneNumber");
+    basicMissingFields.push("phoneNumber");
+  } else if (!profile.phoneNumberVerifiedAt) {
+    missingFields.push("phoneNumberVerified");
   }
   if (!profile.country || !profile.country.trim()) {
     missingFields.push("country");
+    basicMissingFields.push("country");
   }
   if (!profile.preferredLanguage || !profile.preferredLanguage.trim()) {
     missingFields.push("preferredLanguage");
+    basicMissingFields.push("preferredLanguage");
   }
 
   // Recommended fields checking
@@ -39,8 +47,9 @@ export function evaluateProfileCompletion(profile: ProfileLike): ProfileCompleti
     recommendedFields.push("address");
   }
 
-  const isComplete = missingFields.length === 0;
-  const nextAction = isComplete ? "CONTINUE" : "COMPLETE_PROFILE";
+  const basicComplete = basicMissingFields.length === 0;
+  const trustedComplete = missingFields.length === 0;
+  const nextAction = trustedComplete ? "CONTINUE" : "COMPLETE_PROFILE";
 
   const blockingReasons: string[] = [];
   if (missingFields.includes("displayName")) {
@@ -48,6 +57,9 @@ export function evaluateProfileCompletion(profile: ProfileLike): ProfileCompleti
   }
   if (missingFields.includes("phoneNumber")) {
     blockingReasons.push("Утасны дугаар бөглөгдөөгүй байна.");
+  }
+  if (missingFields.includes("phoneNumberVerified")) {
+    blockingReasons.push("Утасны дугаар баталгаажаагүй байна.");
   }
   if (missingFields.includes("country")) {
     blockingReasons.push("Улс бөглөгдөөгүй байна.");
@@ -57,7 +69,9 @@ export function evaluateProfileCompletion(profile: ProfileLike): ProfileCompleti
   }
 
   return {
-    isComplete,
+    basicComplete,
+    trustedComplete,
+    isComplete: trustedComplete,
     missingFields,
     recommendedFields,
     nextAction,
