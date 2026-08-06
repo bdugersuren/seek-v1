@@ -383,7 +383,7 @@ export function QuestionEditor({
                 };
               })
             }
-            addOption={() =>
+            addOption={() => {
               setState((current) => ({
                 ...current,
                 options: [
@@ -396,8 +396,9 @@ export function QuestionEditor({
                     score: 0,
                   },
                 ],
-              }))
-            }
+              }));
+              showToast("Шинэ хариултын сонголт амжилттай нэмэгдлээ.", "success");
+            }}
             removeOption={(index) =>
               setState((current) => ({
                 ...current,
@@ -406,7 +407,7 @@ export function QuestionEditor({
             }
             tagInput={tagInput}
             setTagInput={setTagInput}
-            addLeftMatchingOption={() =>
+            addLeftMatchingOption={() => {
               setState((current) => ({
                 ...current,
                 options: [
@@ -419,8 +420,9 @@ export function QuestionEditor({
                     score: 1,
                   },
                 ],
-              }))
-            }
+              }));
+              showToast("Зүүн талын шинэ сурвалж амжилттай нэмэгдлээ.", "success");
+            }}
             addRightMatchingOption={() => {
               const nextRightOptions = [...(state.scoringConfig?.rightOptions || [])];
               nextRightOptions.push({
@@ -434,6 +436,7 @@ export function QuestionEditor({
                   rightOptions: nextRightOptions,
                 },
               }));
+              showToast("Баруун талын шинэ хариулт амжилттай нэмэгдлээ.", "success");
             }}
             removeRightMatchingOption={(index) => {
               const nextRightOptions = (state.scoringConfig?.rightOptions || []).filter((_: any, i: number) => i !== index);
@@ -612,23 +615,7 @@ function StepOne({
   removeRightMatchingOption: (index: number) => void;
   updateRightMatchingOption: (index: number, val: string) => void;
 }) {
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [showScoringDropdown, setShowScoringDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const scoringDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Гадна дарах үед dropdown хаах
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowTypeDropdown(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  const { showToast } = useToast();
   const getScoringOptions = () => {
     switch (state.type) {
       case "SINGLE_CHOICE":
@@ -676,6 +663,27 @@ function StepOne({
         return [{ value: "all_or_nothing", label: "Бүгд зөв бол оноо өгөх" }];
     }
   };
+
+  const currentScoringOption = getScoringOptions().find(o => o.value === state.scoringMode);
+  const scoringLabel = currentScoringOption ? currentScoringOption.label : state.scoringMode;
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [showScoringDropdown, setShowScoringDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const scoringDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Гадна дарах үед dropdown хаах
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowTypeDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
 
   const handleTypeChange = (newType: QuestionType) => {
     let nextOptions = [...state.options];
@@ -970,7 +978,7 @@ function StepOne({
           />
         </CollapsibleCard>
 
-        <CollapsibleCard title="Хавсралт медиа файлууд" subtitle="Асуултанд зураг, аудио, видео файл хавсаргах." icon={Icons.AttachmentIcon}>
+        <CollapsibleCard title="Хавсралт медиа файлууд" subtitle="Асуултанд зураг, аудио, видео файл хавсаргах." icon={Icons.AttachmentIcon} defaultExpanded={false}>
           <div className="space-y-seek-4">
             <div className="flex items-center gap-seek-3">
               <input
@@ -1098,9 +1106,9 @@ function StepOne({
 
         {state.type === "ESSAY" ? (
           <CollapsibleCard
-            title="Үнэлгээний рубрик (Grading Rubric)"
-            subtitle="Асуултыг үнэлэх шалгууруудыг тодорхойлно."
-            icon={Icons.ListCheck}
+            title={(questionTypeLabels[state.type] || "Үнэлгээний рубрик (Grading Rubric)") + " (" + (state.rubric || []).length + " шалгууртай)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.ListCheck}
             headerActions={
               <Button
                 type="button"
@@ -1114,6 +1122,7 @@ function StepOne({
                       { id: `c${currentRubric.length + 1}`, criteria: "", maxScore: 1, description: "" }
                     ]
                   });
+                  showToast("Үнэлгээний шалгуур амжилттай нэмэгдлээ.", "success");
                 }}
               >
                 + Шалгуур нэмэх
@@ -1188,7 +1197,11 @@ function StepOne({
             </div>
           </CollapsibleCard>
         ) : state.type === "NUMERIC" ? (
-          <CollapsibleCard title="Тоон хариулт" subtitle="Зөв хариулах тоо ба хүлцэх алдаа." icon={Icons.Hash}>
+          <CollapsibleCard
+            title={questionTypeLabels[state.type] || "Тоон хариулттай асуулт"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.Hash}
+          >
             <div className="grid gap-seek-4 md:grid-cols-2">
               <FieldLabel label="Зөв тоон хариулт">
                 <Input
@@ -1231,7 +1244,11 @@ function StepOne({
             </div>
           </CollapsibleCard>
         ) : state.type === "MATCHING" ? (
-          <CollapsibleCard title="Харгалзуулах сонголтууд (Matching Setup)" subtitle="Зүүн талын сурвалж болон баруун талын хариултуудыг тодорхойлно." icon={Icons.Matching}>
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Харгалзуулах асуулт") + " (" + state.options.length + " сурвалжтай)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.Matching}
+          >
             
             <div className="grid gap-seek-5 md:grid-cols-2">
               {/* Left Side Elements */}
@@ -1255,7 +1272,11 @@ function StepOne({
                             value={option.score}
                             onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
                           />
-                          <Button type="button" variant="danger" size="sm" onClick={() => removeOption(index)} className="h-6 w-6 p-0 flex items-center justify-center text-xs"><Icons.ListX className="h-3.5 w-3.5" /></Button>
+                          <Button type="button" variant="danger" size="sm" 
+                            onClick={() => removeOption(index)} 
+                            className="h-6 w-6 p-0 flex items-center justify-center text-xs">
+                            <Icons.ListX />
+                          </Button>
                         </div>
                       </div>
                       <Input
@@ -1293,15 +1314,38 @@ function StepOne({
                 </div>
               </div>
             </div>
+
+            {state.scoringMode === "combination" && state.type === "MATCHING" && (
+              <div className="mt-seek-5 border-t border-border pt-seek-4">
+                <CombinationMatchingBuilder
+                  options={state.options}
+                  combinations={state.scoringConfig?.combinations || []}
+                  rightOptions={state.scoringConfig?.rightOptions || []}
+                  onChange={(newCombos) =>
+                    setState({
+                      scoringConfig: {
+                        ...state.scoringConfig,
+                        combinations: newCombos,
+                      },
+                    })
+                  }
+                />
+              </div>
+            )}
           </CollapsibleCard>
         ) : (
           <CollapsibleCard
-            title="Хариултын сонголтууд (Answers)"
-            subtitle="Нэг зөв хариулт эсвэл сонголт бүрт оноо тогтооно."
-            icon={Icons.ListCheck}
+            title={(questionTypeLabels[state.type] || "Хариултын сонголтууд") + " (" + state.options.length + " сонголттой)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.ListCheck}
             headerActions={
-              <Button type="button" variant="outline" size="sm" onClick={addOption} className="flex items-center gap-seek-2">
-                <Icons.AddRow className="h-4 w-4 stroke-[1.8]" />
+              <Button 
+                type="button" 
+                variant="primary" 
+                onClick={addOption} 
+                className="flex items-center gap-seek-2 bg-purple-600 hover:bg-purple-700 text-white font-bold h-10 px-seek-4 shadow-seek-md border-0 text-xs transition-all"
+              >
+                <Icons.AddRow className="h-5 w-5 stroke-[2] text-white" />
                 <span>Сонголт нэмэх</span>
               </Button>
             }
@@ -1313,25 +1357,29 @@ function StepOne({
                   className="rounded-seek-lg border border-border bg-surface p-seek-4"
                 >
                   <div className="mb-seek-3 flex flex-wrap items-center justify-between gap-seek-3">
-                    <Badge variant={option.score > 0 ? "success" : "secondary"}>
+                    <Badge variant={option.score > 0 ? "success" : option.score < 0 ? "danger" : "secondary"}>
                       {option.label}
                     </Badge>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">Оноо:</span>
-                      <Input
-                        className="w-20"
-                        type="number"
-                        value={option.score}
-                        onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
-                      />
+                      <span className="text-sm font-semibold text-slate-700">Оноо:</span>
+                      <div className="flex items-center gap-1 bg-slate-50 border border-border rounded-seek-md px-2 h-10 w-32">
+                        <Icons.MaxValue className="h-4 w-4 text-slate-400 stroke-[1.8] flex-shrink-0" />
+                        <Input
+                          className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-sm font-semibold text-center"
+                          type="number"
+                          step="any"
+                          max={99999}
+                          value={option.score}
+                          onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="danger"
-                        size="sm"
-                        className="flex items-center justify-center p-seek-1.5"
+                        className="flex items-center justify-center h-10 w-10 p-0 shadow-seek-sm"
                         onClick={() => removeOption(index)}
                       >
-                        <Icons.ListX className="h-4 w-4" />
+                        <Icons.ListX className="h-5.5 w-5.5 stroke-[1.8] text-white" />
                       </Button>
                     </div>
                   </div>
@@ -1343,63 +1391,60 @@ function StepOne({
                 </div>
               ))}
             </div>
+
+            {state.scoringMode === "combination" && state.type === "MULTIPLE_CHOICE" && (
+              <div className="mt-seek-5 border-t border-border pt-seek-4">
+                <CombinationMCBuilder
+                  options={state.options}
+                  combinations={state.scoringConfig?.combinations || []}
+                  onChange={(newCombos) =>
+                    setState({
+                      scoringConfig: {
+                        ...state.scoringConfig,
+                        combinations: newCombos,
+                      },
+                    })
+                  }
+                />
+              </div>
+            )}
           </CollapsibleCard>
         )}
 
         <CollapsibleCard title="Хариултуудад өгөх тайлбар" subtitle="Зөв болон буруу хариулсан үед харагдах тайлбар." icon={Icons.Ad}>
-          <div className="space-y-seek-4">
+          <div className="space-y-seek-5">
             <div className="space-y-1">
               <Text className="text-xs font-semibold text-slate-700">Зөв хариулсан үеийн тайлбар:</Text>
-              <RichEditor
-                value={state.feedbackCorrect}
-                placeholder="Тайлбарыг энд оруулна уу..."
-                onChange={(markdown) => setState({ feedbackCorrect: markdown })}
-              />
+              <div className="flex rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-success">
+                <div className="w-12 bg-success-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
+                  <Icons.Check className="h-5 w-5 text-white bg-success rounded-full p-0.5" />
+                </div>
+                <div className="flex-1 p-seek-3">
+                  <RichEditor
+                    value={state.feedbackCorrect}
+                    placeholder="Тайлбарыг энд оруулна уу..."
+                    onChange={(markdown) => setState({ feedbackCorrect: markdown })}
+                  />
+                </div>
+              </div>
             </div>
             <div className="space-y-1">
               <Text className="text-xs font-semibold text-slate-700">Буруу хариулсан үеийн тайлбар:</Text>
-              <RichEditor
-                value={state.feedbackIncorrect}
-                placeholder="Тайлбарыг энд оруулна уу..."
-                onChange={(markdown) => setState({ feedbackIncorrect: markdown })}
-              />
+              <div className="flex rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-danger">
+                <div className="w-12 bg-danger-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
+                  <Icons.Close className="h-5 w-5 text-white bg-danger rounded-full p-0.5" />
+                </div>
+                <div className="flex-1 p-seek-3">
+                  <RichEditor
+                    value={state.feedbackIncorrect}
+                    placeholder="Тайлбарыг энд оруулна уу..."
+                    onChange={(markdown) => setState({ feedbackIncorrect: markdown })}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          {state.scoringMode === "combination" && state.type === "MULTIPLE_CHOICE" && (
-            <div className="mt-seek-5 border-t border-border pt-seek-4">
-              <CombinationMCBuilder
-                options={state.options}
-                combinations={state.scoringConfig?.combinations || []}
-                onChange={(newCombos) =>
-                  setState({
-                    scoringConfig: {
-                      ...state.scoringConfig,
-                      combinations: newCombos,
-                    },
-                  })
-                }
-              />
-            </div>
-          )}
-
-          {state.scoringMode === "combination" && state.type === "MATCHING" && (
-            <div className="mt-seek-5 border-t border-border pt-seek-4">
-              <CombinationMatchingBuilder
-                options={state.options}
-                combinations={state.scoringConfig?.combinations || []}
-                rightOptions={state.scoringConfig?.rightOptions || []}
-                onChange={(newCombos) =>
-                  setState({
-                    scoringConfig: {
-                      ...state.scoringConfig,
-                      combinations: newCombos,
-                    },
-                  })
-                }
-              />
-            </div>
-          )}
         </CollapsibleCard>
 
         
@@ -2110,34 +2155,46 @@ function CombinationMCBuilder({
       <Text className="font-bold text-sm text-slate-800">Хослолын оноо тохируулах (Combination Scores)</Text>
       <div className="space-y-seek-2">
         {combinations.map((combo, combIdx) => (
-          <div key={combIdx} className="rounded-seek-md border border-primary/20 bg-primary/5 p-seek-3">
+          <div key={combIdx} className={`rounded-seek-md border p-seek-3 ${combo.score > 0 ? "border-success/20 bg-success/5" : combo.score < 0 ? "border-danger/20 bg-danger/5" : "border-slate-200 bg-slate-50"}`}>
             <div className="mb-seek-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-primary">Хослол {combIdx + 1}</span>
+              <span className={`text-xs font-semibold ${combo.score > 0 ? "text-success" : combo.score < 0 ? "text-danger" : "text-slate-500"}`}>Хослол {combIdx + 1}</span>
               <Button type="button" variant="danger" size="sm" onClick={() => removeCombination(combIdx)} className="h-6 w-6 p-0 text-xs">✕</Button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground">Сонголтууд:</span>
-              {options.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => toggleOption(combIdx, opt.id)}
-                  className={`rounded border px-2.5 py-0.5 text-xs font-bold transition-all ${
-                    combo.ids.includes(opt.id)
-                      ? "border-primary bg-primary text-white"
-                      : "border-border bg-surface text-foreground hover:border-primary/50"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-              <span className="ml-auto text-xs text-muted-foreground">Оноо:</span>
-              <Input
-                type="number"
-                value={combo.score}
-                onChange={(e) => setScore(combIdx, Number(e.target.value))}
-                className="w-16 h-8 text-center text-sm"
-              />
+            <div className="space-y-seek-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">Сонголтууд:</span>
+                {options.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => toggleOption(combIdx, opt.id)}
+                    className={`rounded border px-2.5 py-0.5 text-xs font-bold transition-all ${
+                      combo.ids.includes(opt.id)
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-surface text-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-dashed border-slate-200">
+                <span className="text-xs font-semibold text-slate-700">Оноо:</span>
+                <div className={`flex items-center gap-1 bg-slate-50 border rounded-seek-md px-2 h-10 w-32 ${
+                  combo.score > 0 ? "border-success/30" : combo.score < 0 ? "border-danger/30" : "border-border"
+                }`}>
+                  <Icons.MaxValue className={`h-4 w-4 stroke-[1.8] flex-shrink-0 ${
+                    combo.score > 0 ? "text-success" : combo.score < 0 ? "text-danger" : "text-slate-400"
+                  }`} />
+                  <Input
+                    type="number"
+                    step="any"
+                    value={combo.score}
+                    onChange={(e) => setScore(combIdx, Number(e.target.value))}
+                    className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-sm font-semibold text-center"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         ))}
