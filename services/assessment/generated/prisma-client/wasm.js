@@ -148,30 +148,12 @@ exports.Prisma.QuestionScalarFieldEnum = {
   deleteReason: 'deleteReason'
 };
 
-exports.Prisma.QuestionTypeScalarFieldEnum = {
-  id: 'id',
-  code: 'code',
-  name: 'name',
-  description: 'description',
-  schemaVersion: 'schemaVersion',
-  answerSchema: 'answerSchema',
-  renderSchema: 'renderSchema',
-  gradingSchema: 'gradingSchema',
-  supportsAutoGrading: 'supportsAutoGrading',
-  supportsManualGrading: 'supportsManualGrading',
-  supportsPartialCredit: 'supportsPartialCredit',
-  defaultLanguageCode: 'defaultLanguageCode',
-  isGrid: 'isGrid',
-  icon: 'icon',
-  isActive: 'isActive'
-};
-
 exports.Prisma.QuestionVersionScalarFieldEnum = {
   id: 'id',
   questionId: 'questionId',
   versionNumber: 'versionNumber',
   versionStatus: 'versionStatus',
-  typeId: 'typeId',
+  type: 'type',
   title: 'title',
   body: 'body',
   defaultTimeSeconds: 'defaultTimeSeconds',
@@ -1218,6 +1200,22 @@ exports.QuestionVersionStatus = exports.$Enums.QuestionVersionStatus = {
   REJECTED: 'REJECTED'
 };
 
+exports.QuestionType = exports.$Enums.QuestionType = {
+  SINGLE_CHOICE: 'SINGLE_CHOICE',
+  MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+  TRUE_FALSE: 'TRUE_FALSE',
+  ORDERING: 'ORDERING',
+  MATCHING: 'MATCHING',
+  SHORT_TEXT: 'SHORT_TEXT',
+  FILL_BLANK: 'FILL_BLANK',
+  MATRIX: 'MATRIX',
+  NUMERIC: 'NUMERIC',
+  LIKERT: 'LIKERT',
+  SJT: 'SJT',
+  CASE_BUNDLE: 'CASE_BUNDLE',
+  ESSAY: 'ESSAY'
+};
+
 exports.ClassificationStatus = exports.$Enums.ClassificationStatus = {
   VALID: 'VALID',
   REVIEW_REQUIRED: 'REVIEW_REQUIRED',
@@ -1473,7 +1471,6 @@ exports.OutboxStatus = exports.$Enums.OutboxStatus = {
 
 exports.Prisma.ModelName = {
   Question: 'Question',
-  QuestionType: 'QuestionType',
   QuestionVersion: 'QuestionVersion',
   QuestionOptionVersion: 'QuestionOptionVersion',
   QuestionMedia: 'QuestionMedia',

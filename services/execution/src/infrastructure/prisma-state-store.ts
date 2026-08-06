@@ -253,14 +253,15 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
   }
 
   async saveQuestions(attemptId: string, questions: any[]): Promise<void> {
-    for (const question of questions) {
+    for (let index = 0; index < questions.length; index++) {
+      const question = questions[index];
       const dataPayload = {
         questionId: question.id,
         questionVersionId: question.id,
         quizRevisionSectionId: question.sectionId || "default-section",
         sectionTitleSnapshot: question.sectionName || "Ерөнхий",
         questionCodeSnapshot: question.code,
-        orderIndex: question.order || question.orderIndex || 1,
+        orderIndex: question.order || question.orderIndex || (index + 1),
         maxScoreSnapshot: question.points || 0,
         questionTypeCodeSnapshot: question.type,
         contentSnapshot: { prompt: question.prompt, instruction: question.instruction } as any,
@@ -361,9 +362,9 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
       await this.prisma.attemptLifecycleEvent.create({
         data: {
           attemptId: event.attemptId,
-          previousStatus: event.payload.previousStatus as string,
-          newStatus: event.payload.newStatus as string,
-          reason: event.payload.reason as string,
+          previousStatus: (event.payload.previousStatus || event.payload.oldStatus || null) as string | null,
+          newStatus: (event.payload.newStatus || event.payload.status || "waiting") as string,
+          reason: (event.payload.reason || "system") as string | null,
           actorType: "CANDIDATE",
           idempotencyKey: event.idempotencyKey,
           metadata: event.payload as any,
@@ -384,23 +385,40 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
         },
       });
     } else if (event.type === "PayloadPreloaded") {
-      await this.prisma.attemptPayloadReceipt.create({
-        data: {
+      const existing = await this.prisma.attemptPayloadReceipt.findFirst({
+        where: {
           attemptId: event.attemptId,
           payloadHash: event.payload.payloadHash as string,
           receiptType: "PRELOAD",
-          clientInstanceId: event.payload.clientInstanceId as string,
         },
       });
+      if (!existing) {
+        await this.prisma.attemptPayloadReceipt.create({
+          data: {
+            attemptId: event.attemptId,
+            payloadHash: event.payload.payloadHash as string,
+            receiptType: "PRELOAD",
+            clientInstanceId: event.payload.clientInstanceId as string,
+          },
+        });
+      }
     } else if (event.type === "InstructionsAcknowledged") {
-      await this.prisma.attemptInstructionAcknowledgement.create({
-        data: {
+      const existing = await this.prisma.attemptInstructionAcknowledgement.findFirst({
+        where: {
           attemptId: event.attemptId,
           instructionHash: event.payload.instructionHash as string,
-          policyVersion: event.payload.policyVersion as string,
-          acceptedBy: event.payload.acceptedBy as string,
         },
       });
+      if (!existing) {
+        await this.prisma.attemptInstructionAcknowledgement.create({
+          data: {
+            attemptId: event.attemptId,
+            instructionHash: event.payload.instructionHash as string,
+            policyVersion: event.payload.policyVersion as string,
+            acceptedBy: event.payload.acceptedBy as string,
+          },
+        });
+      }
     } else {
       // General lifecycle event fallback
       await this.prisma.attemptLifecycleEvent.create({

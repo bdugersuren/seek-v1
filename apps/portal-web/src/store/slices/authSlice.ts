@@ -8,7 +8,7 @@ export interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  loading: false,
+  loading: true,
   error: null,
 };
 
@@ -30,6 +30,7 @@ const authSlice = createSlice({
     },
     logout(state) {
       state.user = null;
+      state.loading = false;
     },
   },
 });

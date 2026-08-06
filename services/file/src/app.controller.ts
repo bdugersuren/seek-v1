@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, Get, Post, Req, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Req, Res, Query, BadRequestException, UnauthorizedException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { UploadedFile, UseInterceptors } from "@nestjs/common";
-import { Request } from "express";
+import { Request, Response } from "express";
 import { MinioService } from "./minio.service";
 import type {
   PresignedUploadRequest,
@@ -61,6 +61,24 @@ export class AppController {
       mimeType: dto.mimeType,
       sizeBytes: dto.sizeBytes,
     });
+  }
+
+  @Get("file/objects")
+  async getObject(
+    @Req() req: Request,
+    @Query("storageKey") storageKey: string,
+    @Res() res: Response,
+  ) {
+    if (!storageKey) {
+      throw new BadRequestException("storageKey query параметр шаардлагатай.");
+    }
+
+    const userId = req.headers["x-user-id"] as string;
+    const userRolesHeader = req.headers["x-user-roles"] as string;
+    const userRoles = typeof userRolesHeader === "string" ? userRolesHeader.split(",") : [];
+
+    const downloadUrl = await this.minioService.getPresignedDownloadUrl(userId, storageKey, userRoles);
+    return res.redirect(downloadUrl);
   }
 
   @Delete("file/objects")

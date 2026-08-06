@@ -17,6 +17,10 @@ export class ProxyMiddleware implements NestMiddleware {
     process.env.FILE_SERVICE_URL || "http://localhost:3140";
   private readonly integrationServiceUrl =
     process.env.INTEGRATION_SERVICE_URL || "http://localhost:3130";
+  private readonly reportingServiceUrl =
+    process.env.REPORTING_SERVICE_URL || "http://localhost:3150";
+  private readonly assessmentServiceUrl =
+    process.env.ASSESSMENT_SERVICE_URL || "http://localhost:3070";
 
   private readonly healthProxyTargets: Record<string, string> = {
     profile: process.env.PROFILE_SERVICE_URL || "http://localhost:3030",
@@ -73,6 +77,22 @@ export class ProxyMiddleware implements NestMiddleware {
 
   private resolveIntegrationProxyPath(req: Request): string {
     return this.getRequestUrl(req).replace(/^\/api\/v1\/integration/, "/integration");
+  }
+
+  private isReportingProxyRequest(req: Request): boolean {
+    return this.getRequestUrl(req).startsWith("/api/v1/reporting");
+  }
+
+  private resolveReportingProxyPath(req: Request): string {
+    return this.getRequestUrl(req).replace(/^\/api\/v1\/reporting/, "/reporting");
+  }
+
+  private isAssessmentProxyRequest(req: Request): boolean {
+    return this.getRequestUrl(req).startsWith("/api/v1/assessment");
+  }
+
+  private resolveAssessmentProxyPath(req: Request): string {
+    return this.getRequestUrl(req).replace(/^\/api\/v1\/assessment/, "/assessment");
   }
 
   private getHealthProxyTarget(req: Request): { url: string; service: string } | null {
@@ -274,7 +294,8 @@ export class ProxyMiddleware implements NestMiddleware {
 
     // 6.5. File proxy requests (Requires authentication)
     if (this.isFileProxyRequest(req)) {
-      if (!req.headers["x-user-id"]) {
+      const isGetObjects = req.method === "GET" && this.getRequestUrl(req).startsWith("/api/v1/file/objects");
+      if (!isGetObjects && !req.headers["x-user-id"]) {
         res.status(401).json({
           statusCode: 401,
           message: "Нэвтрэх эрхгүй байна.",
@@ -283,8 +304,22 @@ export class ProxyMiddleware implements NestMiddleware {
         return;
       }
 
+      const isJson = req.headers["content-type"]?.includes("application/json") || false;
       const proxyMiddleware = proxy(this.fileServiceUrl, {
-        parseReqBody: false,
+        parseReqBody: true,
+        proxyReqBodyDecorator: (bodyContent, srcReq) => {
+          if (isJson && srcReq.body) {
+            return JSON.stringify(srcReq.body);
+          }
+          return bodyContent;
+        },
+        proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+          if (isJson && srcReq.body) {
+            const bodyStr = JSON.stringify(srcReq.body);
+            proxyReqOpts.headers["Content-Length"] = Buffer.byteLength(bodyStr);
+          }
+          return proxyReqOpts;
+        },
         proxyReqPathResolver: (proxyReq) => {
           return this.resolveFileProxyPath(proxyReq);
         },
@@ -306,6 +341,35 @@ export class ProxyMiddleware implements NestMiddleware {
       const proxyMiddleware = proxy(this.integrationServiceUrl, {
         proxyReqPathResolver: (proxyReq) => {
           return this.resolveIntegrationProxyPath(proxyReq);
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 6.7. Reporting proxy requests
+    if (this.isReportingProxyRequest(req)) {
+      const proxyMiddleware = proxy(this.reportingServiceUrl, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveReportingProxyPath(proxyReq);
+        },
+      });
+      return proxyMiddleware(req, res, next);
+    }
+
+    // 6.8. Assessment proxy requests
+    if (this.isAssessmentProxyRequest(req)) {
+      if (!req.headers["x-user-id"]) {
+        res.status(401).json({
+          statusCode: 401,
+          message: "Нэвтрэх эрхгүй байна.",
+          error: "Unauthorized",
+        });
+        return;
+      }
+
+      const proxyMiddleware = proxy(this.assessmentServiceUrl, {
+        proxyReqPathResolver: (proxyReq) => {
+          return this.resolveAssessmentProxyPath(proxyReq);
         },
       });
       return proxyMiddleware(req, res, next);

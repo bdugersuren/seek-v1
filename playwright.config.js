@@ -9,6 +9,7 @@ module.exports = {
   use: {
     baseURL: process.env.E2E_BASE_URL || "http://localhost:3001",
     trace: "on-first-retry",
+    ignoreHTTPSErrors: true,
   },
   projects: [
     {

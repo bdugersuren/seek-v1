@@ -6,6 +6,7 @@ export const mockCandidateAttempt: CandidateAttempt = {
   candidateName: "Candidate",
   durationMinutes: 7,
   remainingMinutes: 4,
+  shuffleAnswers: true,
   questions: [
     {
       id: "q1",

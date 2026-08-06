@@ -1,0 +1,21 @@
+import React from 'react';
+
+export interface IconProps extends React.SVGProps<SVGSVGElement> {
+  size?: number | string;
+}
+
+export const Numeric = ({ size, ...props }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width={size ?? props.width ?? 24}
+    height={size ?? props.height ?? 24}
+    {...props}
+  >
+    <path d="M10 18h10" /><path d="m17 21 3-3-3-3" /><path d="M3 11h.01" /><rect x="15" y="3" width="5" height="8" rx="2.5" /><rect x="6" y="3" width="5" height="8" rx="2.5" />
+  </svg>
+);

@@ -73,6 +73,7 @@ export interface CandidateAttempt {
   durationMinutes: number;
   remainingMinutes: number;
   questions: CandidateQuestion[];
+  shuffleAnswers?: boolean;
 }
 
 export type CandidateAnswerValue = string | string[] | Record<string, string>;

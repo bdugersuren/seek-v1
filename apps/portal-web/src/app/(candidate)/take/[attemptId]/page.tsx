@@ -19,7 +19,35 @@ import type {
   CandidateAnswerValue,
   CandidateAnswers,
   CandidateQuestion,
+  CandidateAttempt,
 } from "@/features/candidate-attempt/types";
+
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function processAttempt(source: CandidateAttempt): CandidateAttempt {
+  if (!source.shuffleAnswers) {
+    return source;
+  }
+  return {
+    ...source,
+    questions: source.questions.map((q) => {
+      if (q.options) {
+        return {
+          ...q,
+          options: shuffleArray(q.options),
+        };
+      }
+      return q;
+    }),
+  };
+}
 
 const typeLabels: Record<CandidateQuestion["type"], string> = {
   single_choice: "SINGLE CHOICE",
@@ -65,7 +93,7 @@ function reorderItems(items: string[], fromIndex: number, toIndex: number) {
 export default function TakeAssessmentPage() {
   const params = useParams<{ attemptId: string }>();
   const { showToast } = useToast();
-  const attempt = mockCandidateAttempt;
+  const [attempt] = useState<CandidateAttempt>(() => processAttempt(mockCandidateAttempt));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<CandidateAnswers>({});
   const [visited, setVisited] = useState<Record<string, boolean>>({

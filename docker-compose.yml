@@ -3,6 +3,19 @@
 
 services:
   # =========================================================================
+  # Initialization Services
+  # =========================================================================
+  node-modules-init:
+    image: node:18-alpine
+    container_name: seek-node-modules-init
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: sh -c "npm install -g pnpm && pnpm install --frozen-lockfile"
+    networks:
+      - shared-net
+
+  # =========================================================================
   # Core Infrastructure Services (Profile-less)
   # =========================================================================
   postgres:
@@ -120,8 +133,6 @@ services:
 #      - shared-net
 
   auth:
-    profiles:
-      - auth-test
     image: seek-auth:latest
     build:
       context: .
@@ -143,8 +154,8 @@ services:
       AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-no-reply@seek.mn}
       AUTH_EMAIL_VERIFICATION_TTL_HOURS: ${AUTH_EMAIL_VERIFICATION_TTL_HOURS:-24}
       AUTH_EMAIL_DELIVERY_MODE: ${AUTH_EMAIL_DELIVERY_MODE:-log}
-      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-10}
-      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-1000}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-60000}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -170,8 +181,6 @@ services:
       retries: 5
 
   gateway:
-    profiles:
-      - auth-test
     image: seek-gateway:latest
     build:
       context: .
@@ -218,9 +227,6 @@ services:
   # Frontend Application Services (frontend profile)
   # =========================================================================
   portal-web:
-    profiles:
-      - frontend
-      - auth-test
     image: seek-portal-web:latest
     build:
       context: .
@@ -230,20 +236,20 @@ services:
     working_dir: /app/apps/portal-web
     volumes:
       - .:/app
-      - /app/node_modules
-      - /app/apps/portal-web/node_modules
       - /app/apps/portal-web/.next
     ports:
       - "127.0.0.1:8081:8081"
     environment:
       - NODE_ENV=development
-      - INTERNAL_API_URL=http://gateway:3010/api
-      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
+      - INTERNAL_API_URL=${INTERNAL_API_URL:-http://gateway:3010/api}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://quiz-api.seek.mn/api}
       - NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
-    command: sh -c "npm install -g pnpm && cd /app && CI=true pnpm install --frozen-lockfile && pnpm --filter @seek/portal-web dev"
+    command: pnpm --filter @seek/portal-web dev
     networks:
       - shared-net
     depends_on:
+      node-modules-init:
+        condition: service_completed_successfully
       gateway:
         condition: service_healthy
     healthcheck:
@@ -257,9 +263,6 @@ services:
       retries: 5
 
   assessment-web:
-    profiles:
-      - frontend
-      - assessment
     image: seek-assessment-web:latest
     build:
       context: .
@@ -269,19 +272,20 @@ services:
     working_dir: /app/apps/assessment-web
     volumes:
       - .:/app
-      - /app/node_modules
-      - /app/apps/assessment-web/node_modules
       - /app/apps/assessment-web/.next
     ports:
       - "127.0.0.1:8082:8082"
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_EXECUTION_URL=http://quiz-api.seek.mn/api/v1/execution
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://quiz-api.seek.mn/api}
+      - NEXT_PUBLIC_EXECUTION_URL=${NEXT_PUBLIC_EXECUTION_URL:-https://quiz-api.seek.mn/api/v1/execution}
       - NEXT_PUBLIC_MOCK_MODE=false
-    command: sh -c "npm install -g pnpm && cd /app && CI=true pnpm install --frozen-lockfile && pnpm --filter @seek/assessment-web dev"
+    command: pnpm --filter @seek/assessment-web dev
     depends_on:
-      - execution
+      node-modules-init:
+        condition: service_completed_successfully
+      execution:
+        condition: service_started
     networks:
       - shared-net
 
@@ -289,8 +293,6 @@ services:
   # Assessment & Evaluation Services (assessment profile)
   # =========================================================================
   profile:
-    profiles:
-      - assessment
     image: seek-profile:latest
     build:
       context: .
@@ -311,8 +313,6 @@ services:
         condition: service_healthy
 
   organisation:
-    profiles:
-      - assessment
     image: seek-organisation:latest
     build:
       context: .
@@ -330,41 +330,39 @@ services:
       postgres:
         condition: service_healthy
 
-  verification:
-    profiles:
-      - assessment
-    image: seek-verification:latest
-    build:
-      context: .
-      dockerfile: services/verification/Dockerfile
-    container_name: seek-verification
-    restart: unless-stopped
-    expose:
-      - "3050"
-    environment:
-      PORT: 3050
-    networks:
-      - shared-net
-
-  competency:
-    profiles:
-      - assessment
-    image: seek-competency:latest
-    build:
-      context: .
-      dockerfile: services/competency/Dockerfile
-    container_name: seek-competency
-    restart: unless-stopped
-    expose:
-      - "3060"
-    environment:
-      PORT: 3060
-    networks:
-      - shared-net
+#  verification:
+#    profiles:
+#      - assessment
+#    image: seek-verification:latest
+#    build:
+#      context: .
+#      dockerfile: services/verification/Dockerfile
+#    container_name: seek-verification
+#    restart: unless-stopped
+#    expose:
+#      - "3050"
+#    environment:
+#      PORT: 3050
+#    networks:
+#      - shared-net
+#
+#  competency:
+#    profiles:
+#      - assessment
+#    image: seek-competency:latest
+#    build:
+#      context: .
+#      dockerfile: services/competency/Dockerfile
+#    container_name: seek-competency
+#    restart: unless-stopped
+#    expose:
+#      - "3060"
+#    environment:
+#      PORT: 3060
+#    networks:
+#      - shared-net
 
   assessment:
-    profiles:
-      - assessment
     image: seek-assessment:latest
     build:
       context: .
@@ -382,29 +380,27 @@ services:
       postgres:
         condition: service_healthy
 
-  commerce:
-    profiles:
-      - assessment
-    image: seek-commerce:latest
-    build:
-      context: .
-      dockerfile: services/commerce/Dockerfile
-    container_name: seek-commerce
-    restart: unless-stopped
-    expose:
-      - "3080"
-    environment:
-      PORT: 3080
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/commerce_db?connection_limit=5
-    networks:
-      - shared-net
-    depends_on:
-      postgres:
-        condition: service_healthy
+#  commerce:
+#    profiles:
+#      - assessment
+#    image: seek-commerce:latest
+#    build:
+#      context: .
+#      dockerfile: services/commerce/Dockerfile
+#    container_name: seek-commerce
+#    restart: unless-stopped
+#    expose:
+#      - "3080"
+#    environment:
+#      PORT: 3080
+#      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/commerce_db?connection_limit=5
+#    networks:
+#      - shared-net
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
 
   execution:
-    profiles:
-      - assessment
     image: seek-execution:latest
     build:
       context: .
@@ -417,6 +413,7 @@ services:
       PORT: 3090
       USE_REDIS: "true"
       USE_RABBITMQ: "true"
+      ENABLE_SIGNATURE_VERIFICATION: "false"
       EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/execution_db?connection_limit=5
       REDIS_URL: redis://:seek_redis_pass@redis:6379
       RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
@@ -430,61 +427,63 @@ services:
       rabbitmq:
         condition: service_started
 
-  evaluation-worker:
-    profiles:
-      - assessment
-    image: seek-evaluation-worker:latest
-    build:
-      context: .
-      dockerfile: services/evaluation/Dockerfile
-    container_name: seek-evaluation-worker
-    restart: unless-stopped
-    expose:
-      - "3100"
-    environment:
-      PORT: 3100
-    networks:
-      - shared-net
-
-  learning:
-    profiles:
-      - assessment
-    image: seek-learning:latest
-    build:
-      context: .
-      dockerfile: services/learning/Dockerfile
-    container_name: seek-learning
-    restart: unless-stopped
-    expose:
-      - "3110"
-    environment:
-      PORT: 3110
-    networks:
-      - shared-net
-
-  reporting:
-    profiles:
-      - assessment
-    image: seek-reporting:latest
-    build:
-      context: .
-      dockerfile: services/reporting/Dockerfile
-    container_name: seek-reporting
-    restart: unless-stopped
-    expose:
-      - "3150"
-    environment:
-      PORT: 3150
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/reporting_db?connection_limit=5
-    networks:
-      - shared-net
-    depends_on:
-      postgres:
-        condition: service_healthy
+#  evaluation-worker:
+#    profiles:
+#      - assessment
+#    image: seek-evaluation-worker:latest
+#    build:
+#      context: .
+#      dockerfile: services/evaluation/Dockerfile
+#    container_name: seek-evaluation-worker
+#    restart: unless-stopped
+#    expose:
+#      - "3100"
+#    environment:
+#      PORT: 3100
+#    networks:
+#      - shared-net
+#
+#  learning:
+#    profiles:
+#      - assessment
+#    image: seek-learning:latest
+#    build:
+#      context: .
+#      dockerfile: services/learning/Dockerfile
+#    container_name: seek-learning
+#    restart: unless-stopped
+#    expose:
+#      - "3110"
+#    environment:
+#      PORT: 3110
+#    networks:
+#      - shared-net
+#
+#  reporting:
+#    profiles:
+#      - assessment
+#    image: seek-reporting:latest
+#    build:
+#      context: .
+#      dockerfile: services/reporting/Dockerfile
+#    container_name: seek-reporting
+#    restart: unless-stopped
+#    expose:
+#      - "3150"
+#    environment:
+#      PORT: 3150
+#      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/reporting_db?connection_limit=5
+#      USE_RABBITMQ: "true"
+#      RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
+#    networks:
+#      - shared-net
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#      rabbitmq:
+#        condition: service_started
 
   file:
-    profiles:
-      - assessment
     image: seek-file:latest
     build:
       context: .
@@ -501,6 +500,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-seek_minio_admin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-seek_minio_pass}
       MINIO_BUCKET: seek-files
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     networks:
       - shared-net
     depends_on:
@@ -509,104 +509,101 @@ services:
       minio:
         condition: service_started
 
-  notification:
-    profiles:
-      - assessment
-    image: seek-notification:latest
-    build:
-      context: .
-      dockerfile: services/notification/Dockerfile
-    container_name: seek-notification
-    restart: unless-stopped
-    expose:
-      - "3170"
-    environment:
-      PORT: 3170
-      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/notification_db?connection_limit=5
-      RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
-    networks:
-      - shared-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-
-  platform:
-    profiles:
-      - assessment
-    image: seek-platform:latest
-    build:
-      context: .
-      dockerfile: services/platform/Dockerfile
-    container_name: seek-platform
-    restart: unless-stopped
-    expose:
-      - "3160"
-    environment:
-      PORT: 3160
-    networks:
-      - shared-net
+#  notification:
+#    profiles:
+#      - assessment
+#    image: seek-notification:latest
+#    build:
+#      context: .
+#      dockerfile: services/notification/Dockerfile
+#    container_name: seek-notification
+#    restart: unless-stopped
+#    expose:
+#      - "3170"
+#    environment:
+#      PORT: 3170
+#      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:-seek_postgres_pass}@postgres:5432/notification_db?connection_limit=5
+#      RABBITMQ_URL: amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
+#    networks:
+#      - shared-net
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#      rabbitmq:
+#        condition: service_started
+#
+#  platform:
+#    profiles:
+#      - assessment
+#    image: seek-platform:latest
+#    build:
+#      context: .
+#      dockerfile: services/platform/Dockerfile
+#    container_name: seek-platform
+#    restart: unless-stopped
+#    expose:
+#      - "3160"
+#    environment:
+#      PORT: 3160
+#    networks:
+#      - shared-net
 
   # =========================================================================
   # AI Orchestration Services (ai profile)
   # =========================================================================
-  ollama:
-    profiles:
-      - ai
-    image: ollama/ollama:latest
-    container_name: seek-ollama
-    restart: unless-stopped
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - shared-net
-
-  qdrant:
-    profiles:
-      - ai
-    image: qdrant/qdrant:latest
-    container_name: seek-qdrant
-    restart: unless-stopped
-    volumes:
-      - qdrant_data:/qdrant/storage
-    networks:
-      - shared-net
-
-  ai:
-    profiles:
-      - ai
-    image: seek-ai:latest
-    build:
-      context: .
-      dockerfile: services/ai/Dockerfile
-    container_name: seek-ai
-    restart: unless-stopped
-    expose:
-      - "3120"
-    environment:
-      PORT: 3120
-    networks:
-      - shared-net
-
-  # =========================================================================
-  # Integration Services (integration profile)
-  # =========================================================================
-  integration:
-    profiles:
-      - integration
-    image: seek-integration:latest
-    build:
-      context: .
-      dockerfile: services/integration/Dockerfile
-    container_name: seek-integration
-    restart: unless-stopped
-    expose:
-      - "3130"
-    environment:
-      PORT: 3130
-    networks:
-      - shared-net
+#  ollama:
+#    profiles:
+#      - ai
+#    image: ollama/ollama:latest
+#    container_name: seek-ollama
+#    restart: unless-stopped
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    networks:
+#      - shared-net
+#
+#  qdrant:
+#    profiles:
+#      - ai
+#    image: qdrant/qdrant:latest
+#    container_name: seek-qdrant
+#    restart: unless-stopped
+#    volumes:
+#      - qdrant_data:/qdrant/storage
+#    networks:
+#      - shared-net
+#
+#  ai:
+#    profiles:
+#      - ai
+#    image: seek-ai:latest
+#    build:
+#      context: .
+#      dockerfile: services/ai/Dockerfile
+#    container_name: seek-ai
+#    restart: unless-stopped
+#    expose:
+#      - "3120"
+#    environment:
+#      PORT: 3120
+#    networks:
+#      - shared-net
+#
+#  integration:
+#    profiles:
+#      - integration
+#    image: seek-integration:latest
+#    build:
+#      context: .
+#      dockerfile: services/integration/Dockerfile
+#    container_name: seek-integration
+#    restart: unless-stopped
+#    expose:
+#      - "3130"
+#    environment:
+#      PORT: 3130
+#    networks:
+#      - shared-net
 
   nginx-proxy:
     image: seek-npm:latest
@@ -623,7 +620,11 @@ services:
       - ./docker/nginx-proxy/data:/data
       - ./docker/nginx-proxy/letsencrypt:/etc/letsencrypt
     networks:
-      - shared-net
+      shared-net:
+        aliases:
+          - portal.seek.mn
+          - files.seek.mn
+          - minio-console.seek.mn
 
 # =========================================================================
 # Shared Network Configuration
@@ -641,5 +642,5 @@ volumes:
   redis_data:
   rabbitmq_data:
   minio_data:
-  ollama_data:
-  qdrant_data:
+#  ollama_data:
+#  qdrant_data:

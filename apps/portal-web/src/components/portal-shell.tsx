@@ -87,6 +87,24 @@ const navItems: Array<{
     roles: ["assessor"],
   },
   {
+    href: "/topics-management",
+    labelKey: "nav.topicsManagement",
+    icon: Icons.Menu,
+    roles: ["assessor"],
+  },
+  {
+    href: "/metadata-management",
+    labelKey: "nav.metadataManagement",
+    icon: Icons.Settings,
+    roles: ["assessor"],
+  },
+  {
+    href: "/db-management",
+    labelKey: "nav.dbManagement" as any,
+    icon: Icons.Shield,
+    roles: ["assessor"],
+  },
+  {
     href: "/catalog",
     labelKey: "nav.catalog",
     icon: Icons.Search,
@@ -206,7 +224,10 @@ function getRoleHref(href: string, role: PortalRole): string {
     href === "/assessments" ||
     href === "/blueprints" ||
     href === "/question-bank" ||
-    href === "/quizzes"
+    href === "/quizzes" ||
+    href === "/topics-management" ||
+    href === "/metadata-management" ||
+    href === "/db-management"
   ) {
     return `/assessor${href}`;
   }

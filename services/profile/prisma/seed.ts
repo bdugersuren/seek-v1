@@ -44,6 +44,33 @@ async function main() {
     },
   });
 
+  const candidateProfile = await prisma.userProfile.upsert({
+    where: { userId: "candidate-user-uuid-1111-2222" },
+    update: {
+      displayName: "Candidate User",
+      phoneNumber: "99112244",
+      phoneNumberVerifiedAt: new Date(),
+      country: "Монгол",
+      preferredLanguage: "mn",
+      metadata: {
+        email: "candidate@seek.local",
+        phone: "99112244",
+      },
+    },
+    create: {
+      userId: "candidate-user-uuid-1111-2222",
+      displayName: "Candidate User",
+      phoneNumber: "99112244",
+      phoneNumberVerifiedAt: new Date(),
+      country: "Монгол",
+      preferredLanguage: "mn",
+      metadata: {
+        email: "candidate@seek.local",
+        phone: "99112244",
+      },
+    },
+  });
+
   await prisma.profileLocation.deleteMany({ where: { profileId: profile.id } });
   await prisma.educationRecord.deleteMany({ where: { profileId: profile.id } });
   await prisma.workRecord.deleteMany({ where: { profileId: profile.id } });

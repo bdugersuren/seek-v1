@@ -11,6 +11,7 @@ import type { PresignedUploadResponse } from "@seek/contracts";
 @Injectable()
 export class MinioService implements OnModuleInit {
   private minioClient: Minio.Client;
+  private publicMinioClient: Minio.Client;
   private bucket = process.env.MINIO_BUCKET || "seek-files";
 
   async onModuleInit() {
@@ -24,6 +25,7 @@ export class MinioService implements OnModuleInit {
       useSSL: process.env.MINIO_USE_SSL === "true",
       accessKey: process.env.MINIO_ACCESS_KEY || "seek_minio_admin",
       secretKey: process.env.MINIO_SECRET_KEY || "seek_minio_pass",
+      region: "us-east-1",
     });
 
     try {
@@ -37,20 +39,67 @@ export class MinioService implements OnModuleInit {
     } catch (err) {
       console.error(`[MinIO] Failed to initialize bucket "${this.bucket}":`, err);
     }
+
+    const publicEndpoint = process.env.MINIO_PUBLIC_ENDPOINT || "https://files.seek.mn";
+    try {
+      const publicUrl = new URL(publicEndpoint);
+      const isHttps = publicUrl.protocol === "https:";
+      const defaultPort = isHttps ? 443 : 80;
+      const port = publicUrl.port ? parseInt(publicUrl.port, 10) : defaultPort;
+
+      this.publicMinioClient = new Minio.Client({
+        endPoint: publicUrl.hostname,
+        port: port,
+        useSSL: isHttps,
+        accessKey: process.env.MINIO_ACCESS_KEY || "seek_minio_admin",
+        secretKey: process.env.MINIO_SECRET_KEY || "seek_minio_pass",
+        region: "us-east-1",
+      });
+      console.log(`[MinIO] Public client initialized for ${publicUrl.hostname}:${port}`);
+    } catch (err: any) {
+      console.error(`[MinIO] Failed to initialize public client, using fallback: ${err.message}`);
+      this.publicMinioClient = this.minioClient;
+    }
   }
 
   async getPresignedUploadUrl(userId: string, name: string, type: string): Promise<PresignedUploadResponse> {
     const safeName = sanitizeFileName(name);
-    const storageKey = `documents/${userId}/${Date.now()}-${randomSuffix()}-${safeName}`;
+    const folder = type === "QUESTION_ATTACHMENT" ? "questions" : "documents";
+    const storageKey = `${folder}/${userId}/${Date.now()}-${randomSuffix()}-${safeName}`;
     try {
-      const uploadUrl = await this.minioClient.presignedPutObject(this.bucket, storageKey, 5 * 60);
+      const uploadUrl = await this.publicMinioClient.presignedPutObject(this.bucket, storageKey, 5 * 60);
 
       return {
-        uploadUrl: toBrowserAccessiblePresignedUrl(uploadUrl),
+        uploadUrl,
         storageKey,
       };
     } catch (err: any) {
       throw new InternalServerErrorException(`Presigned URL үүсгэхэд алдаа гарлаа: ${err.message}`);
+    }
+  }
+
+  async getPresignedDownloadUrl(userId: string, storageKey: string, userRoles: string[]): Promise<string> {
+    const isSharedOrPublic =
+      storageKey.startsWith("public/") ||
+      storageKey.startsWith("questions/") ||
+      storageKey.includes("QUESTION_ATTACHMENT");
+      
+    const hasAdminRole = userRoles.some((role) =>
+      ["SUPER_ADMIN", "ASSESSOR", "ORGANIZATION_ADMIN"].includes(role),
+    );
+
+    if (!isSharedOrPublic && !hasAdminRole) {
+      if (!userId) {
+        throw new BadRequestException("Нэвтрээгүй хэрэглэгч хувийн файлд хандах боломжгүй.");
+      }
+      this.assertUserStorageKey(userId, storageKey);
+    }
+
+    try {
+      const downloadUrl = await this.publicMinioClient.presignedGetObject(this.bucket, storageKey, 15 * 60);
+      return downloadUrl;
+    } catch (err: any) {
+      throw new NotFoundException(`Файл хадгалах санд олдсонгүй эсвэл татах URL үүсгэхэд алдаа гарлаа: ${err.message}`);
     }
   }
 
@@ -140,7 +189,9 @@ export class MinioService implements OnModuleInit {
   }
 
   private assertUserStorageKey(userId: string, storageKey: string): void {
-    if (!storageKey?.startsWith(`documents/${userId}/`)) {
+    const isDoc = storageKey?.startsWith(`documents/${userId}/`);
+    const isQuest = storageKey?.startsWith(`questions/${userId}/`);
+    if (!isDoc && !isQuest) {
       throw new BadRequestException("Файлын storage key хэрэглэгчтэй таарахгүй байна.");
     }
   }

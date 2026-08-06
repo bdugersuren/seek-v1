@@ -61,9 +61,9 @@ services:
   portal-web:
     environment:
       - NODE_ENV=development
-      - INTERNAL_API_URL=http://gateway:3010/api
-      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_ASSESSMENT_WEB_URL=http://localhost:8082
+      - INTERNAL_API_URL=${INTERNAL_API_URL:-http://gateway:3010/api}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://quiz-api.seek.mn/api}
+      - NEXT_PUBLIC_ASSESSMENT_WEB_URL=${NEXT_PUBLIC_ASSESSMENT_WEB_URL:-https://quiz.seek.mn}
     volumes:
       - .:/app
       - /app/node_modules
@@ -76,8 +76,8 @@ services:
   assessment-web:
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_EXECUTION_URL=http://quiz-api.seek.mn/api/v1/execution
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://quiz-api.seek.mn/api}
+      - NEXT_PUBLIC_EXECUTION_URL=${NEXT_PUBLIC_EXECUTION_URL:-https://quiz-api.seek.mn/api/v1/execution}
       - NEXT_PUBLIC_MOCK_MODE=false
     volumes:
       - .:/app
@@ -115,27 +115,27 @@ services:
       - "127.0.0.1:3040:3040"
     command: pnpm run start:dev
 
-  verification:
-    environment:
-      - NODE_ENV=development
-      - PORT=3050
-    volumes:
-      - ./services/verification:/app/services/verification
-      - /app/services/verification/node_modules
-    ports:
-      - "127.0.0.1:3050:3050"
-    command: pnpm run start:dev
-
-  competency:
-    environment:
-      - NODE_ENV=development
-      - PORT=3060
-    volumes:
-      - ./services/competency:/app/services/competency
-      - /app/services/competency/node_modules
-    ports:
-      - "127.0.0.1:3060:3060"
-    command: pnpm run start:dev
+#  verification:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3050
+#    volumes:
+#      - ./services/verification:/app/services/verification
+#      - /app/services/verification/node_modules
+#    ports:
+#      - "127.0.0.1:3050:3050"
+#    command: pnpm run start:dev
+#
+#  competency:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3060
+#    volumes:
+#      - ./services/competency:/app/services/competency
+#      - /app/services/competency/node_modules
+#    ports:
+#      - "127.0.0.1:3060:3060"
+#    command: pnpm run start:dev
 
   assessment:
     environment:
@@ -149,17 +149,17 @@ services:
       - "127.0.0.1:3070:3070"
     command: pnpm run start:dev
 
-  commerce:
-    environment:
-      - NODE_ENV=development
-      - PORT=3080
-      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/commerce_db
-    volumes:
-      - ./services/commerce:/app/services/commerce
-      - /app/services/commerce/node_modules
-    ports:
-      - "127.0.0.1:3080:3080"
-    command: pnpm run start:dev
+#  commerce:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3080
+#      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/commerce_db
+#    volumes:
+#      - ./services/commerce:/app/services/commerce
+#      - /app/services/commerce/node_modules
+#    ports:
+#      - "127.0.0.1:3080:3080"
+#    command: pnpm run start:dev
 
   execution:
     environment:
@@ -177,39 +177,39 @@ services:
       - "127.0.0.1:3090:3090"
     command: pnpm run start:dev
 
-  evaluation-worker:
-    environment:
-      - NODE_ENV=development
-      - PORT=3100
-    volumes:
-      - ./services/evaluation:/app/services/evaluation
-      - /app/services/evaluation/node_modules
-    ports:
-      - "127.0.0.1:3100:3100"
-    command: pnpm run start:dev
-
-  learning:
-    environment:
-      - NODE_ENV=development
-      - PORT=3110
-    volumes:
-      - ./services/learning:/app/services/learning
-      - /app/services/learning/node_modules
-    ports:
-      - "127.0.0.1:3110:3110"
-    command: pnpm run start:dev
-
-  reporting:
-    environment:
-      - NODE_ENV=development
-      - PORT=3150
-      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/reporting_db
-    volumes:
-      - ./services/reporting:/app/services/reporting
-      - /app/services/reporting/node_modules
-    ports:
-      - "127.0.0.1:3150:3150"
-    command: pnpm run start:dev
+#  evaluation-worker:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3100
+#    volumes:
+#      - ./services/evaluation:/app/services/evaluation
+#      - /app/services/evaluation/node_modules
+#    ports:
+#      - "127.0.0.1:3100:3100"
+#    command: pnpm run start:dev
+#
+#  learning:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3110
+#    volumes:
+#      - ./services/learning:/app/services/learning
+#      - /app/services/learning/node_modules
+#    ports:
+#      - "127.0.0.1:3110:3110"
+#    command: pnpm run start:dev
+#
+#  reporting:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3150
+#      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/reporting_db
+#    volumes:
+#      - ./services/reporting:/app/services/reporting
+#      - /app/services/reporting/node_modules
+#    ports:
+#      - "127.0.0.1:3150:3150"
+#    command: pnpm run start:dev
 
   file:
     environment:
@@ -227,29 +227,29 @@ services:
       - "127.0.0.1:3140:3140"
     command: pnpm run start:dev
 
-  notification:
-    environment:
-      - NODE_ENV=development
-      - PORT=3170
-      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/notification_db
-      - RABBITMQ_URL=amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
-    volumes:
-      - ./services/notification:/app/services/notification
-      - /app/services/notification/node_modules
-    ports:
-      - "127.0.0.1:3170:3170"
-    command: pnpm run start:dev
-
-  platform:
-    environment:
-      - NODE_ENV=development
-      - PORT=3160
-    volumes:
-      - ./services/platform:/app/services/platform
-      - /app/services/platform/node_modules
-    ports:
-      - "127.0.0.1:3160:3160"
-    command: pnpm run start:dev
+#  notification:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3170
+#      - DATABASE_URL=postgresql://seek_admin:seek_postgres_pass@postgres:5432/notification_db
+#      - RABBITMQ_URL=amqp://seek_mq_user:seek_rabbitmq_pass@rabbitmq:5672
+#    volumes:
+#      - ./services/notification:/app/services/notification
+#      - /app/services/notification/node_modules
+#    ports:
+#      - "127.0.0.1:3170:3170"
+#    command: pnpm run start:dev
+#
+#  platform:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3160
+#    volumes:
+#      - ./services/platform:/app/services/platform
+#      - /app/services/platform/node_modules
+#    ports:
+#      - "127.0.0.1:3160:3160"
+#    command: pnpm run start:dev
 
   # =========================================================================
   # AI & Integration Services
@@ -263,24 +263,24 @@ services:
       - "127.0.0.1:6333:6333"
       - "127.0.0.1:6334:6334"
 
-  ai:
-    environment:
-      - NODE_ENV=development
-      - PORT=3120
-    volumes:
-      - ./services/ai:/app/services/ai
-      - /app/services/ai/node_modules
-    ports:
-      - "127.0.0.1:3120:3120"
-    command: pnpm run start:dev
-
-  integration:
-    environment:
-      - NODE_ENV=development
-      - PORT=3130
-    volumes:
-      - ./services/integration:/app/services/integration
-      - /app/services/integration/node_modules
-    ports:
-      - "127.0.0.1:3130:3130"
-    command: pnpm run start:dev
+#  ai:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3120
+#    volumes:
+#      - ./services/ai:/app/services/ai
+#      - /app/services/ai/node_modules
+#    ports:
+#      - "127.0.0.1:3120:3120"
+#    command: pnpm run start:dev
+#
+#  integration:
+#    environment:
+#      - NODE_ENV=development
+#      - PORT=3130
+#    volumes:
+#      - ./services/integration:/app/services/integration
+#      - /app/services/integration/node_modules
+#    ports:
+#      - "127.0.0.1:3130:3130"
+#    command: pnpm run start:dev

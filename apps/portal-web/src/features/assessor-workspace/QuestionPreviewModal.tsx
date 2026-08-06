@@ -311,56 +311,83 @@ function renderLatex(expression: string, displayMode: boolean) {
 }
 
 function MediaPreview({ question }: { question: QuestionBankItem }) {
-  if (question.media.length === 0) return null;
+  if (!question.media || question.media.length === 0) return null;
 
   return (
-    <div className="grid gap-seek-3 md:grid-cols-2">
-      {question.media.map((item) => (
-        <div
-          key={`${item.type}-${item.name}`}
-          className="rounded-seek-md border border-border bg-surface p-seek-3"
-        >
-          {item.type === "image" && (
-            <div className="grid aspect-video place-items-center rounded-seek-md bg-gradient-to-br from-primary/10 to-cyan-100 text-primary">
-              <div className="text-center">
-                <Icons.Info className="mx-auto h-8 w-8" />
-                <Text className="mt-2 text-sm font-semibold">{item.name}</Text>
+    <div className="grid gap-seek-3 md:grid-cols-2 mt-seek-4">
+      {question.media.map((item, idx) => {
+        const fileUrl = item.url;
+        
+        return (
+          <div
+            key={`${item.type}-${idx}`}
+            className="rounded-seek-md border border-border bg-surface p-seek-3 flex flex-col justify-between"
+          >
+            {item.type === "image" && (
+              <div className="overflow-hidden rounded-seek-md bg-muted-background flex items-center justify-center border border-border">
+                <img
+                  src={fileUrl}
+                  alt={item.name}
+                  className="max-h-64 max-w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
               </div>
-            </div>
-          )}
-          {item.type === "video" && (
-            <div className="grid aspect-video place-items-center rounded-seek-md bg-slate-900 text-white">
-              <Text className="font-semibold">Видео preview · {item.name}</Text>
-            </div>
-          )}
-          {item.type === "audio" && (
-            <div className="rounded-seek-md bg-muted-background p-seek-4">
-              <Text className="font-semibold">Аудио файл</Text>
-              <div className="mt-seek-3 h-2 rounded-seek-full bg-primary/30" />
-              <Text variant="muted" className="mt-2 text-sm">
+            )}
+            
+            {item.type === "video" && (
+              <div className="overflow-hidden rounded-seek-md bg-black border border-border flex items-center justify-center">
+                <video
+                  src={fileUrl}
+                  controls
+                  className="max-h-64 w-full"
+                />
+              </div>
+            )}
+            
+            {item.type === "audio" && (
+              <div className="rounded-seek-md bg-muted-background p-seek-3 border border-border">
+                <Text className="font-semibold text-sm mb-2 truncate">{item.name}</Text>
+                <audio
+                  src={fileUrl}
+                  controls
+                  className="w-full"
+                />
+              </div>
+            )}
+            
+            {item.type === "file" && (
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-seek-md bg-muted-background p-seek-3 border border-border hover:bg-muted-background/80"
+              >
+                <Icons.Calendar className="h-8 w-8 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <Text className="font-semibold text-sm truncate">Хавсралт файл (Татах)</Text>
+                  <Text variant="muted" className="text-xs truncate">
+                    {item.name}
+                  </Text>
+                </div>
+              </a>
+            )}
+            
+            {item.type !== "file" && (
+              <Text variant="muted" className="mt-2 text-xs truncate">
                 {item.name}
               </Text>
-            </div>
-          )}
-          {item.type === "file" && (
-            <div className="flex items-center gap-3 rounded-seek-md bg-muted-background p-seek-4">
-              <Icons.Calendar className="h-8 w-8 text-primary" />
-              <div>
-                <Text className="font-semibold">Хавсралт файл</Text>
-                <Text variant="muted" className="text-sm">
-                  {item.name}
-                </Text>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
-  if (question.type === "essay") {
+  if (question.type === "ESSAY") {
     return (
       <Textarea
         rows={7}
@@ -370,18 +397,50 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
     );
   }
 
-  if (question.type === "fill_blank" || question.type === "numeric") {
+  if (question.type === "FILL_BLANK" || question.type === "NUMERIC") {
     return (
       <div className="rounded-seek-md border border-border bg-surface p-seek-4">
         <Text variant="muted" className="mb-2 text-sm">
-          {question.type === "numeric"
+          {question.type === "NUMERIC"
             ? "Тоон хариултаа оруулна уу"
             : "Хоосон зайг нөхнө үү"}
         </Text>
         <Input
           disabled
-          placeholder={question.type === "numeric" ? "Жишээ: 24" : "Хариулт"}
+          placeholder={question.type === "NUMERIC" ? "Жишээ: 24" : "Хариулт"}
         />
+      </div>
+    );
+  }
+
+  if (question.type === "MATCHING") {
+    return (
+      <div className="space-y-seek-3">
+        <Text variant="muted" className="text-sm">Дараах утгуудыг зөв харгалзуулна уу:</Text>
+        <div className="grid gap-seek-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase">Зүүн тал</Text>
+            {question.options.map((option, idx) => (
+              <div key={`left-${option.id}-${idx}`} className="rounded-seek-md border border-border bg-muted-background/40 p-seek-3">
+                {idx + 1}. <InlineMath value={option.content} />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase">Баруун тал</Text>
+            {(
+              question.scoringConfig?.rightOptions || 
+              (question.contentJson as any)?.scoringConfig?.rightOptions ||
+              (question.contentJson as any)?.payload?.scoringConfig?.rightOptions ||
+              question.options.map(o => ({ id: o.id, value: o.matchValue })).filter(o => o.value)
+            )
+              .map((valObj: any, idx: number) => (
+                <div key={`right-${valObj.id || idx}`} className="rounded-seek-md border border-border bg-surface p-seek-3 cursor-pointer hover:border-slate-800">
+                  {String.fromCharCode(65 + idx)}. <InlineMath value={valObj.value || ""} />
+                </div>
+              ))}
+          </div>
+        </div>
       </div>
     );
   }

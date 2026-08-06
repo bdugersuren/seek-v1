@@ -91,17 +91,7 @@ export function QuestionRichEditor({
             <span className="line-through">T</span>
           </ToolbarButton>
         </div>
-        <div className="question-rich-toolbar-group">
-          <ToolbarButton title="Heading" onClick={() => insertSnippet("### Гарчиг\n", 11)}>
-            A<sup>+</sup>
-          </ToolbarButton>
-          <ToolbarButton title="Small text marker" onClick={() => insertSnippet("<small>text</small>", 7)}>
-            A-
-          </ToolbarButton>
-          <ToolbarButton title="Clear formatting marker" onClick={() => insertSnippet("`raw`", 1)}>
-            A×
-          </ToolbarButton>
-        </div>
+
         <div className="question-rich-toolbar-group">
           <ToolbarButton title="Bullet list" onClick={() => insertSnippet("\n- Жагсаалт\n")}>
             ≡

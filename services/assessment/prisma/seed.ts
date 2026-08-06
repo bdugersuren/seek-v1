@@ -213,6 +213,8 @@ const catalogAssessments = [
 ] as const;
 
 async function seedLookups() {
+  // Note: question_type table no longer exists as it is replaced by QuestionType enum in schema.prisma
+  /*
   for (const [code, name, isGrid] of [
     ["single_choice", "Нэг сонголт", false],
     ["multiple_choice", "Олон сонголт", false],
@@ -230,6 +232,7 @@ async function seedLookups() {
       VALUES (${q(`qt-${code}`)}, ${q(code)}, ${q(name)}, ${q(isGrid)}, true)
       ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, "isGrid" = EXCLUDED."isGrid"`);
   }
+  */
 
   await exec(`INSERT INTO audience_type (id, code, name, "isActive")
     VALUES ('audience-candidate', 'candidate', 'Candidate', true)
@@ -237,6 +240,92 @@ async function seedLookups() {
   await exec(`INSERT INTO audience_level (id, "audienceTypeId", code, name, "orderIndex", "isActive")
     VALUES ('audience-level-adult', 'audience-candidate', 'adult', 'Adult learner', 1, true)
     ON CONFLICT ("audienceTypeId", code) DO UPDATE SET name = EXCLUDED.name`);
+
+  // New Audience Types
+  for (const [code, name] of [
+    ["student", "Сурагч"],
+    ["teacher", "Багш"],
+    ["executive", "Удирдах ажилтан"],
+    ["civil-servant", "Төрийн албан хаагч"],
+    ["driver", "Жолооч"]
+  ] as const) {
+    await exec(`INSERT INTO audience_type (id, code, name, "isActive")
+      VALUES ('audience-${code}', ${q(code)}, ${q(name)}, true)
+      ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`);
+  }
+
+  // Load active audience types from DB to get actual IDs (either static or dynamic CUID)
+  const audTypes = await prisma.audienceType.findMany();
+  const getAudId = (code: string) => {
+    const found = audTypes.find((t: any) => t.code === code);
+    return found ? found.id : `audience-${code}`;
+  };
+
+  // New Audience Levels
+  // 1. Student Stages (Parent levels)
+  for (const [levelCode, levelName, idx] of [
+    ["primary", "Бага боловсрол", 1],
+    ["secondary", "Суурь боловсрол", 2],
+    ["high", "Бүрэн дунд боловсрол", 3]
+  ] as const) {
+    await exec(`INSERT INTO audience_level (id, "audienceTypeId", code, name, "orderIndex", "isActive", "levelKind")
+      VALUES ('aud-level-student-${levelCode}', ${q(getAudId('student'))}, ${q(levelCode)}, ${q(levelName)}, ${idx}, true, 'STAGE')
+      ON CONFLICT ("audienceTypeId", code) DO UPDATE SET name = EXCLUDED.name, "orderIndex" = EXCLUDED."orderIndex", "levelKind" = EXCLUDED."levelKind"`);
+  }
+
+  // 2. Student Classes (Child levels with parentId)
+  const studentClasses = [
+    // Бага боловсрол
+    { code: "class-1", name: "1-р анги", parent: "primary", idx: 1 },
+    { code: "class-2", name: "2-р анги", parent: "primary", idx: 2 },
+    { code: "class-3", name: "3-р анги", parent: "primary", idx: 3 },
+    { code: "class-4", name: "4-р анги", parent: "primary", idx: 4 },
+    { code: "class-5", name: "5-р анги", parent: "primary", idx: 5 },
+    // Суурь боловсрол
+    { code: "class-6", name: "6-р анги", parent: "secondary", idx: 1 },
+    { code: "class-7", name: "7-р анги", parent: "secondary", idx: 2 },
+    { code: "class-8", name: "8-р анги", parent: "secondary", idx: 3 },
+    { code: "class-9", name: "9-р анги", parent: "secondary", idx: 4 },
+    // Бүрэн дунд боловсрол
+    { code: "class-10", name: "10-р анги", parent: "high", idx: 1 },
+    { code: "class-11", name: "11-р анги", parent: "high", idx: 2 },
+    { code: "class-12", name: "12-р анги", parent: "high", idx: 3 }
+  ];
+
+  for (const c of studentClasses) {
+    await exec(`INSERT INTO audience_level (id, "audienceTypeId", "parentId", code, name, "orderIndex", "isActive")
+      VALUES ('aud-level-student-${c.code}', ${q(getAudId('student'))}, 'aud-level-student-${c.parent}', ${q(c.code)}, ${q(c.name)}, ${c.idx}, true)
+      ON CONFLICT ("audienceTypeId", code) DO UPDATE SET name = EXCLUDED.name, "orderIndex" = EXCLUDED."orderIndex", "parentId" = EXCLUDED."parentId"`);
+  }
+
+  // 3. Other audience levels
+  for (const [audCode, levelCode, levelName, idx] of [
+    // Teacher
+    ["teacher", "unranked", "Зэрэггүй", 1],
+    ["teacher", "methodist", "Заах аргач", 2],
+    ["teacher", "senior", "Тэргүүлэх", 3],
+    ["teacher", "advisor", "Зөвлөх", 4],
+    // Executive
+    ["executive", "junior-exec", "Анхан шат", 1],
+    ["executive", "middle-exec", "Дунд шат", 2],
+    ["executive", "senior-exec", "Дээд шат", 3],
+    // Civil Servant
+    ["civil-servant", "executive-staff", "Гүйцэтгэх", 1],
+    ["civil-servant", "senior-staff", "Ахлах", 2],
+    ["civil-servant", "manager-staff", "Удирдах", 3],
+    ["civil-servant", "strategic-staff", "Стратегийн", 4],
+    // Driver
+    ["driver", "A", "A ангилал", 1],
+    ["driver", "B", "B ангилал", 2],
+    ["driver", "C", "C ангилал", 3],
+    ["driver", "D", "D ангилал", 4],
+    ["driver", "E", "E ангилал", 5]
+  ] as const) {
+    await exec(`INSERT INTO audience_level (id, "audienceTypeId", code, name, "orderIndex", "isActive")
+      VALUES ('aud-level-${audCode}-${levelCode}', ${q(getAudId(audCode))}, ${q(levelCode)}, ${q(levelName)}, ${idx}, true)
+      ON CONFLICT ("audienceTypeId", code) DO UPDATE SET name = EXCLUDED.name, "orderIndex" = EXCLUDED."orderIndex"`);
+  }
+
   await exec(`INSERT INTO difficulty_scale (id, code, name, "isActive")
     VALUES ('difficulty-default', 'default', 'Default difficulty', true)
     ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`);
@@ -256,18 +345,45 @@ async function seedLookups() {
   await exec(`INSERT INTO competence_framework (id, code, name, version, "isActive")
     VALUES ('competence-default', 'default', 'Default competence framework', '2026', true)
     ON CONFLICT (code, version) DO UPDATE SET name = EXCLUDED.name`);
-  for (const [id, name] of [["knowledge", "Мэдлэг"], ["skill", "Ур чадвар"], ["attitude", "Хандлага"], ["digital", "Дижитал ур чадвар"], ["professional", "Ажил мэргэжил"]] as const) {
+  
+  // New Competences
+  for (const [id, name] of [
+    ["knowledge", "Мэдлэг"],
+    ["skill", "Ур чадвар"],
+    ["attitude", "Хандлага"],
+    ["digital", "Дижитал ур чадвар"],
+    ["professional", "Ажил мэргэжил"],
+    ["pedagogy", "Сурган хүмүүжүүлэх ур чадвар"],
+    ["management", "Удирдлага, манлайлал"],
+    ["road-safety", "Аюулгүй ажиллагаа, дүрэм"],
+    ["communication", "Харилцааны суурь чадамж"],
+    ["digital-literacy", "Дижитал бичиг үсэг"]
+  ] as const) {
     await exec(`INSERT INTO competence_type (id, "competenceFrameworkId", code, name, "isActive")
       VALUES (${q(id)}, 'competence-default', ${q(id)}, ${q(name)}, true)
       ON CONFLICT ("competenceFrameworkId", code) DO UPDATE SET name = EXCLUDED.name`);
   }
+
+  // New Assessment Contexts
   await exec(`INSERT INTO assessment_context (id, code, name, "audienceTypeId", "audienceLevelId", "difficultyScaleId", "cognitiveFrameworkId", "competenceFrameworkId", "isActive")
     VALUES ('context-civil-service', 'civil-service', 'Civil Service Assessment', 'audience-candidate', 'audience-level-adult', 'difficulty-default', 'bloom', 'competence-default', true)
     ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`);
+
+  for (const [code, name, audCode, levelId] of [
+    ["student-context", "Сурагчийн ерөнхий үнэлгээ", "student", "aud-level-student-secondary"],
+    ["teacher-context", "Багшийн мэргэжлийн үнэлгээ", "teacher", "aud-level-teacher-methodist"],
+    ["executive-context", "Менежерийн манлайллын үнэлгээ", "executive", "aud-level-executive-middle-exec"],
+    ["civil-servant-context", "Төрийн албан хаагчийн ур чадвар", "civil-servant", "aud-level-civil-servant-senior-staff"],
+    ["driver-context", "Мэргэшсэн жолоочийн дүрэм", "driver", "aud-level-driver-B"]
+  ] as const) {
+    await exec(`INSERT INTO assessment_context (id, code, name, "audienceTypeId", "audienceLevelId", "difficultyScaleId", "cognitiveFrameworkId", "competenceFrameworkId", "isActive")
+      VALUES ('context-${code}', ${q(code)}, ${q(name)}, ${q(getAudId(audCode))}, ${q(levelId)}, 'difficulty-default', 'bloom', 'competence-default', true)
+      ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`);
+  }
   for (const [id, title] of [["fractions", "Энгийн бутархай"], ["algebra", "Шугаман алгебр"], ["communication", "Харилцааны ур чадвар"], ["cyber", "Кибер аюулгүй байдал"], ["leadership", "Манлайлал"], ["governance", "Засаглалын бүтэц"]] as const) {
-    await exec(`INSERT INTO topic (id, code, title, "isActive")
-      VALUES (${q(id)}, ${q(id)}, ${q(title)}, true)
-      ON CONFLICT (code) DO UPDATE SET title = EXCLUDED.title`);
+    await exec(`INSERT INTO topic (id, code, title, "isActive", "updatedAt")
+      VALUES (${q(id)}, ${q(id)}, ${q(title)}, true, now())
+      ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, "updatedAt" = now()`);
   }
 }
 
@@ -276,9 +392,9 @@ async function seedQuestions() {
     await exec(`INSERT INTO question (id, code, "lifecycleStatus", "ownerUserId", "ownerOrganizationId", "createdBy", "createdAt", "updatedAt")
       VALUES (${q(item.id)}, ${q(item.code)}, ${q(item.status === "DRAFT" ? "ACTIVE" : "ACTIVE")}, 'mock-assessor', 'org-demo', 'mock-assessor', now(), now())
       ON CONFLICT (code) DO UPDATE SET "ownerUserId" = EXCLUDED."ownerUserId", "updatedAt" = now()`);
-    await exec(`INSERT INTO question_version (id, "questionId", "versionNumber", "versionStatus", "typeId", title, body, "defaultTimeSeconds", "defaultMaxScore", tags, "feedbackCorrectly", explanation, payload, "answerConfig", "presentationConfig", "createdBy", "createdAt")
-      VALUES (${q(item.versionId)}, ${q(item.id)}, 1, ${q(item.status)}, ${q(`qt-${item.type}`)}, ${q(item.title)}, ${q(item.body)}, ${q(item.durationSeconds)}, ${q(item.points)}, ARRAY[${item.tags.map(q).join(",")}], ${q(item.feedback)}, ${q(item.feedback)}, ${json({ prompt: item.body })}, ${json({ answerKey: item.answerKey, options: item.options })}, ${json({ frontendType: item.type })}, 'mock-assessor', now())
-      ON CONFLICT ("questionId", "versionNumber") DO UPDATE SET "versionStatus" = EXCLUDED."versionStatus", title = EXCLUDED.title, body = EXCLUDED.body, payload = EXCLUDED.payload, "answerConfig" = EXCLUDED."answerConfig"`);
+    await exec(`INSERT INTO question_version (id, "questionId", "versionNumber", "versionStatus", "type", title, body, "defaultTimeSeconds", "defaultMaxScore", tags, "feedbackCorrectly", explanation, payload, "answerConfig", "presentationConfig", "createdBy", "createdAt", "updatedAt")
+      VALUES (${q(item.versionId)}, ${q(item.id)}, 1, ${q(item.status)}, ${q(item.type.toUpperCase()) as any}, ${q(item.title)}, ${q(item.body)}, ${q(item.durationSeconds)}, ${q(item.points)}, ARRAY[${item.tags.map(q).join(",")}], ${q(item.feedback)}, ${q(item.feedback)}, ${json({ prompt: item.body })}, ${json({ answerKey: item.answerKey, options: item.options })}, ${json({ frontendType: item.type })}, 'mock-assessor', now(), now())
+      ON CONFLICT ("questionId", "versionNumber") DO UPDATE SET "versionStatus" = EXCLUDED."versionStatus", title = EXCLUDED.title, body = EXCLUDED.body, payload = EXCLUDED.payload, "answerConfig" = EXCLUDED."answerConfig", "updatedAt" = now()`);
     if (item.status === "PUBLISHED") {
       await exec(`UPDATE question SET "currentPublishedVersionId" = ${q(item.versionId)} WHERE id = ${q(item.id)}`);
     }
@@ -302,7 +418,7 @@ async function seedQuestions() {
     const classificationId = `class-${item.id}`;
     await exec(`INSERT INTO topic_question_classification (id, "topicId", "questionId", "assessmentContextId", "difficultyLevelId", "cognitiveLevelId", "validatedQuestionVersionId", "classificationStatus", "isPrimary", weight, "createdBy", "createdAt", "updatedAt")
       VALUES (${q(classificationId)}, ${q(item.topicId)}, ${q(item.id)}, 'context-civil-service', ${q(item.difficultyId)}, ${q(item.cognitiveId)}, ${q(item.versionId)}, 'VALID', true, 1, 'mock-assessor', now(), now())
-      ON CONFLICT ("topicId", "questionId", "assessmentContextId") DO UPDATE SET "difficultyLevelId" = EXCLUDED."difficultyLevelId", "cognitiveLevelId" = EXCLUDED."cognitiveLevelId", "validatedQuestionVersionId" = EXCLUDED."validatedQuestionVersionId"`);
+      ON CONFLICT (id) DO UPDATE SET "difficultyLevelId" = EXCLUDED."difficultyLevelId", "cognitiveLevelId" = EXCLUDED."cognitiveLevelId", "validatedQuestionVersionId" = EXCLUDED."validatedQuestionVersionId"`);
     await exec(`INSERT INTO topic_question_competence (id, "classificationId", "competenceId", weight, "isPrimary")
       VALUES (${q(`comp-${classificationId}`)}, ${q(classificationId)}, ${q(item.competenceId)}, 1, true)
       ON CONFLICT ("classificationId", "competenceId") DO UPDATE SET weight = EXCLUDED.weight`);

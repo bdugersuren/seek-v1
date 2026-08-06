@@ -19,11 +19,6 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type Question = $Result.DefaultSelection<Prisma.$QuestionPayload>
 /**
- * Model QuestionType
- * 
- */
-export type QuestionType = $Result.DefaultSelection<Prisma.$QuestionTypePayload>
-/**
  * Model QuestionVersion
  * 
  */
@@ -272,6 +267,25 @@ export const QuestionVersionStatus: {
 };
 
 export type QuestionVersionStatus = (typeof QuestionVersionStatus)[keyof typeof QuestionVersionStatus]
+
+
+export const QuestionType: {
+  SINGLE_CHOICE: 'SINGLE_CHOICE',
+  MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+  TRUE_FALSE: 'TRUE_FALSE',
+  ORDERING: 'ORDERING',
+  MATCHING: 'MATCHING',
+  SHORT_TEXT: 'SHORT_TEXT',
+  FILL_BLANK: 'FILL_BLANK',
+  MATRIX: 'MATRIX',
+  NUMERIC: 'NUMERIC',
+  LIKERT: 'LIKERT',
+  SJT: 'SJT',
+  CASE_BUNDLE: 'CASE_BUNDLE',
+  ESSAY: 'ESSAY'
+};
+
+export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType]
 
 
 export const ClassificationStatus: {
@@ -623,6 +637,10 @@ export type QuestionVersionStatus = $Enums.QuestionVersionStatus
 
 export const QuestionVersionStatus: typeof $Enums.QuestionVersionStatus
 
+export type QuestionType = $Enums.QuestionType
+
+export const QuestionType: typeof $Enums.QuestionType
+
 export type ClassificationStatus = $Enums.ClassificationStatus
 
 export const ClassificationStatus: typeof $Enums.ClassificationStatus
@@ -871,16 +889,6 @@ export class PrismaClient<
     * ```
     */
   get question(): Prisma.QuestionDelegate<ExtArgs>;
-
-  /**
-   * `prisma.questionType`: Exposes CRUD operations for the **QuestionType** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more QuestionTypes
-    * const questionTypes = await prisma.questionType.findMany()
-    * ```
-    */
-  get questionType(): Prisma.QuestionTypeDelegate<ExtArgs>;
 
   /**
    * `prisma.questionVersion`: Exposes CRUD operations for the **QuestionVersion** model.
@@ -1773,7 +1781,6 @@ export namespace Prisma {
 
   export const ModelName: {
     Question: 'Question',
-    QuestionType: 'QuestionType',
     QuestionVersion: 'QuestionVersion',
     QuestionOptionVersion: 'QuestionOptionVersion',
     QuestionMedia: 'QuestionMedia',
@@ -1834,7 +1841,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "question" | "questionType" | "questionVersion" | "questionOptionVersion" | "questionMedia" | "audienceType" | "audienceLevel" | "difficultyScale" | "difficultyLevel" | "cognitiveFramework" | "cognitiveLevel" | "competenceFramework" | "competenceType" | "assessmentContext" | "topic" | "topicQuestionClassification" | "topicQuestionCompetence" | "quizTemplate" | "quizSection" | "sectionQuestion" | "quiz" | "quizRevision" | "quizRevisionSection" | "quizRevisionQuestion" | "quizSchedule" | "quizAudienceRule" | "quizUserAssignment" | "quizSchedulePaymentPolicy" | "gradingJob" | "attemptQuestionScore" | "manualGradingTask" | "graderAssignment" | "manualGradingDecision" | "manualGradingResolution" | "questionCompetenceScoreContribution" | "assessmentResult" | "sectionResult" | "topicResult" | "competenceResult" | "resultPublication" | "resultPublicationEvent" | "resultAccessLog" | "resultAiAnalysis" | "questionWorkflowEvent" | "reportingAttemptFact" | "outboxEvent" | "assessmentWorkflowEvent"
+      modelProps: "question" | "questionVersion" | "questionOptionVersion" | "questionMedia" | "audienceType" | "audienceLevel" | "difficultyScale" | "difficultyLevel" | "cognitiveFramework" | "cognitiveLevel" | "competenceFramework" | "competenceType" | "assessmentContext" | "topic" | "topicQuestionClassification" | "topicQuestionCompetence" | "quizTemplate" | "quizSection" | "sectionQuestion" | "quiz" | "quizRevision" | "quizRevisionSection" | "quizRevisionQuestion" | "quizSchedule" | "quizAudienceRule" | "quizUserAssignment" | "quizSchedulePaymentPolicy" | "gradingJob" | "attemptQuestionScore" | "manualGradingTask" | "graderAssignment" | "manualGradingDecision" | "manualGradingResolution" | "questionCompetenceScoreContribution" | "assessmentResult" | "sectionResult" | "topicResult" | "competenceResult" | "resultPublication" | "resultPublicationEvent" | "resultAccessLog" | "resultAiAnalysis" | "questionWorkflowEvent" | "reportingAttemptFact" | "outboxEvent" | "assessmentWorkflowEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1905,76 +1912,6 @@ export namespace Prisma {
           count: {
             args: Prisma.QuestionCountArgs<ExtArgs>
             result: $Utils.Optional<QuestionCountAggregateOutputType> | number
-          }
-        }
-      }
-      QuestionType: {
-        payload: Prisma.$QuestionTypePayload<ExtArgs>
-        fields: Prisma.QuestionTypeFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.QuestionTypeFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.QuestionTypeFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>
-          }
-          findFirst: {
-            args: Prisma.QuestionTypeFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.QuestionTypeFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>
-          }
-          findMany: {
-            args: Prisma.QuestionTypeFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>[]
-          }
-          create: {
-            args: Prisma.QuestionTypeCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>
-          }
-          createMany: {
-            args: Prisma.QuestionTypeCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.QuestionTypeCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>[]
-          }
-          delete: {
-            args: Prisma.QuestionTypeDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>
-          }
-          update: {
-            args: Prisma.QuestionTypeUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>
-          }
-          deleteMany: {
-            args: Prisma.QuestionTypeDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.QuestionTypeUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          upsert: {
-            args: Prisma.QuestionTypeUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$QuestionTypePayload>
-          }
-          aggregate: {
-            args: Prisma.QuestionTypeAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateQuestionType>
-          }
-          groupBy: {
-            args: Prisma.QuestionTypeGroupByArgs<ExtArgs>
-            result: $Utils.Optional<QuestionTypeGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.QuestionTypeCountArgs<ExtArgs>
-            result: $Utils.Optional<QuestionTypeCountAggregateOutputType> | number
           }
         }
       }
@@ -5352,37 +5289,6 @@ export namespace Prisma {
 
 
   /**
-   * Count Type QuestionTypeCountOutputType
-   */
-
-  export type QuestionTypeCountOutputType = {
-    versions: number
-  }
-
-  export type QuestionTypeCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    versions?: boolean | QuestionTypeCountOutputTypeCountVersionsArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * QuestionTypeCountOutputType without action
-   */
-  export type QuestionTypeCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionTypeCountOutputType
-     */
-    select?: QuestionTypeCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * QuestionTypeCountOutputType without action
-   */
-  export type QuestionTypeCountOutputTypeCountVersionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: QuestionVersionWhereInput
-  }
-
-
-  /**
    * Count Type QuestionVersionCountOutputType
    */
 
@@ -7787,1096 +7693,6 @@ export namespace Prisma {
 
 
   /**
-   * Model QuestionType
-   */
-
-  export type AggregateQuestionType = {
-    _count: QuestionTypeCountAggregateOutputType | null
-    _avg: QuestionTypeAvgAggregateOutputType | null
-    _sum: QuestionTypeSumAggregateOutputType | null
-    _min: QuestionTypeMinAggregateOutputType | null
-    _max: QuestionTypeMaxAggregateOutputType | null
-  }
-
-  export type QuestionTypeAvgAggregateOutputType = {
-    schemaVersion: number | null
-  }
-
-  export type QuestionTypeSumAggregateOutputType = {
-    schemaVersion: number | null
-  }
-
-  export type QuestionTypeMinAggregateOutputType = {
-    id: string | null
-    code: string | null
-    name: string | null
-    description: string | null
-    schemaVersion: number | null
-    supportsAutoGrading: boolean | null
-    supportsManualGrading: boolean | null
-    supportsPartialCredit: boolean | null
-    defaultLanguageCode: string | null
-    isGrid: boolean | null
-    icon: string | null
-    isActive: boolean | null
-  }
-
-  export type QuestionTypeMaxAggregateOutputType = {
-    id: string | null
-    code: string | null
-    name: string | null
-    description: string | null
-    schemaVersion: number | null
-    supportsAutoGrading: boolean | null
-    supportsManualGrading: boolean | null
-    supportsPartialCredit: boolean | null
-    defaultLanguageCode: string | null
-    isGrid: boolean | null
-    icon: string | null
-    isActive: boolean | null
-  }
-
-  export type QuestionTypeCountAggregateOutputType = {
-    id: number
-    code: number
-    name: number
-    description: number
-    schemaVersion: number
-    answerSchema: number
-    renderSchema: number
-    gradingSchema: number
-    supportsAutoGrading: number
-    supportsManualGrading: number
-    supportsPartialCredit: number
-    defaultLanguageCode: number
-    isGrid: number
-    icon: number
-    isActive: number
-    _all: number
-  }
-
-
-  export type QuestionTypeAvgAggregateInputType = {
-    schemaVersion?: true
-  }
-
-  export type QuestionTypeSumAggregateInputType = {
-    schemaVersion?: true
-  }
-
-  export type QuestionTypeMinAggregateInputType = {
-    id?: true
-    code?: true
-    name?: true
-    description?: true
-    schemaVersion?: true
-    supportsAutoGrading?: true
-    supportsManualGrading?: true
-    supportsPartialCredit?: true
-    defaultLanguageCode?: true
-    isGrid?: true
-    icon?: true
-    isActive?: true
-  }
-
-  export type QuestionTypeMaxAggregateInputType = {
-    id?: true
-    code?: true
-    name?: true
-    description?: true
-    schemaVersion?: true
-    supportsAutoGrading?: true
-    supportsManualGrading?: true
-    supportsPartialCredit?: true
-    defaultLanguageCode?: true
-    isGrid?: true
-    icon?: true
-    isActive?: true
-  }
-
-  export type QuestionTypeCountAggregateInputType = {
-    id?: true
-    code?: true
-    name?: true
-    description?: true
-    schemaVersion?: true
-    answerSchema?: true
-    renderSchema?: true
-    gradingSchema?: true
-    supportsAutoGrading?: true
-    supportsManualGrading?: true
-    supportsPartialCredit?: true
-    defaultLanguageCode?: true
-    isGrid?: true
-    icon?: true
-    isActive?: true
-    _all?: true
-  }
-
-  export type QuestionTypeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which QuestionType to aggregate.
-     */
-    where?: QuestionTypeWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of QuestionTypes to fetch.
-     */
-    orderBy?: QuestionTypeOrderByWithRelationInput | QuestionTypeOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: QuestionTypeWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` QuestionTypes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` QuestionTypes.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned QuestionTypes
-    **/
-    _count?: true | QuestionTypeCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: QuestionTypeAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: QuestionTypeSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: QuestionTypeMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: QuestionTypeMaxAggregateInputType
-  }
-
-  export type GetQuestionTypeAggregateType<T extends QuestionTypeAggregateArgs> = {
-        [P in keyof T & keyof AggregateQuestionType]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateQuestionType[P]>
-      : GetScalarType<T[P], AggregateQuestionType[P]>
-  }
-
-
-
-
-  export type QuestionTypeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: QuestionTypeWhereInput
-    orderBy?: QuestionTypeOrderByWithAggregationInput | QuestionTypeOrderByWithAggregationInput[]
-    by: QuestionTypeScalarFieldEnum[] | QuestionTypeScalarFieldEnum
-    having?: QuestionTypeScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: QuestionTypeCountAggregateInputType | true
-    _avg?: QuestionTypeAvgAggregateInputType
-    _sum?: QuestionTypeSumAggregateInputType
-    _min?: QuestionTypeMinAggregateInputType
-    _max?: QuestionTypeMaxAggregateInputType
-  }
-
-  export type QuestionTypeGroupByOutputType = {
-    id: string
-    code: string
-    name: string
-    description: string | null
-    schemaVersion: number
-    answerSchema: JsonValue
-    renderSchema: JsonValue
-    gradingSchema: JsonValue
-    supportsAutoGrading: boolean
-    supportsManualGrading: boolean
-    supportsPartialCredit: boolean
-    defaultLanguageCode: string | null
-    isGrid: boolean
-    icon: string | null
-    isActive: boolean
-    _count: QuestionTypeCountAggregateOutputType | null
-    _avg: QuestionTypeAvgAggregateOutputType | null
-    _sum: QuestionTypeSumAggregateOutputType | null
-    _min: QuestionTypeMinAggregateOutputType | null
-    _max: QuestionTypeMaxAggregateOutputType | null
-  }
-
-  type GetQuestionTypeGroupByPayload<T extends QuestionTypeGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<QuestionTypeGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof QuestionTypeGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], QuestionTypeGroupByOutputType[P]>
-            : GetScalarType<T[P], QuestionTypeGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type QuestionTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    code?: boolean
-    name?: boolean
-    description?: boolean
-    schemaVersion?: boolean
-    answerSchema?: boolean
-    renderSchema?: boolean
-    gradingSchema?: boolean
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: boolean
-    isGrid?: boolean
-    icon?: boolean
-    isActive?: boolean
-    versions?: boolean | QuestionType$versionsArgs<ExtArgs>
-    _count?: boolean | QuestionTypeCountOutputTypeDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["questionType"]>
-
-  export type QuestionTypeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    code?: boolean
-    name?: boolean
-    description?: boolean
-    schemaVersion?: boolean
-    answerSchema?: boolean
-    renderSchema?: boolean
-    gradingSchema?: boolean
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: boolean
-    isGrid?: boolean
-    icon?: boolean
-    isActive?: boolean
-  }, ExtArgs["result"]["questionType"]>
-
-  export type QuestionTypeSelectScalar = {
-    id?: boolean
-    code?: boolean
-    name?: boolean
-    description?: boolean
-    schemaVersion?: boolean
-    answerSchema?: boolean
-    renderSchema?: boolean
-    gradingSchema?: boolean
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: boolean
-    isGrid?: boolean
-    icon?: boolean
-    isActive?: boolean
-  }
-
-  export type QuestionTypeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    versions?: boolean | QuestionType$versionsArgs<ExtArgs>
-    _count?: boolean | QuestionTypeCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type QuestionTypeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-
-  export type $QuestionTypePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "QuestionType"
-    objects: {
-      versions: Prisma.$QuestionVersionPayload<ExtArgs>[]
-    }
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      code: string
-      name: string
-      description: string | null
-      schemaVersion: number
-      answerSchema: Prisma.JsonValue
-      renderSchema: Prisma.JsonValue
-      gradingSchema: Prisma.JsonValue
-      supportsAutoGrading: boolean
-      supportsManualGrading: boolean
-      supportsPartialCredit: boolean
-      defaultLanguageCode: string | null
-      isGrid: boolean
-      icon: string | null
-      isActive: boolean
-    }, ExtArgs["result"]["questionType"]>
-    composites: {}
-  }
-
-  type QuestionTypeGetPayload<S extends boolean | null | undefined | QuestionTypeDefaultArgs> = $Result.GetResult<Prisma.$QuestionTypePayload, S>
-
-  type QuestionTypeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<QuestionTypeFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: QuestionTypeCountAggregateInputType | true
-    }
-
-  export interface QuestionTypeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['QuestionType'], meta: { name: 'QuestionType' } }
-    /**
-     * Find zero or one QuestionType that matches the filter.
-     * @param {QuestionTypeFindUniqueArgs} args - Arguments to find a QuestionType
-     * @example
-     * // Get one QuestionType
-     * const questionType = await prisma.questionType.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends QuestionTypeFindUniqueArgs>(args: SelectSubset<T, QuestionTypeFindUniqueArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
-
-    /**
-     * Find one QuestionType that matches the filter or throw an error with `error.code='P2025'` 
-     * if no matches were found.
-     * @param {QuestionTypeFindUniqueOrThrowArgs} args - Arguments to find a QuestionType
-     * @example
-     * // Get one QuestionType
-     * const questionType = await prisma.questionType.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends QuestionTypeFindUniqueOrThrowArgs>(args: SelectSubset<T, QuestionTypeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
-
-    /**
-     * Find the first QuestionType that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeFindFirstArgs} args - Arguments to find a QuestionType
-     * @example
-     * // Get one QuestionType
-     * const questionType = await prisma.questionType.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends QuestionTypeFindFirstArgs>(args?: SelectSubset<T, QuestionTypeFindFirstArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
-
-    /**
-     * Find the first QuestionType that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeFindFirstOrThrowArgs} args - Arguments to find a QuestionType
-     * @example
-     * // Get one QuestionType
-     * const questionType = await prisma.questionType.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends QuestionTypeFindFirstOrThrowArgs>(args?: SelectSubset<T, QuestionTypeFindFirstOrThrowArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
-
-    /**
-     * Find zero or more QuestionTypes that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all QuestionTypes
-     * const questionTypes = await prisma.questionType.findMany()
-     * 
-     * // Get first 10 QuestionTypes
-     * const questionTypes = await prisma.questionType.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const questionTypeWithIdOnly = await prisma.questionType.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends QuestionTypeFindManyArgs>(args?: SelectSubset<T, QuestionTypeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "findMany">>
-
-    /**
-     * Create a QuestionType.
-     * @param {QuestionTypeCreateArgs} args - Arguments to create a QuestionType.
-     * @example
-     * // Create one QuestionType
-     * const QuestionType = await prisma.questionType.create({
-     *   data: {
-     *     // ... data to create a QuestionType
-     *   }
-     * })
-     * 
-     */
-    create<T extends QuestionTypeCreateArgs>(args: SelectSubset<T, QuestionTypeCreateArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "create">, never, ExtArgs>
-
-    /**
-     * Create many QuestionTypes.
-     * @param {QuestionTypeCreateManyArgs} args - Arguments to create many QuestionTypes.
-     * @example
-     * // Create many QuestionTypes
-     * const questionType = await prisma.questionType.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends QuestionTypeCreateManyArgs>(args?: SelectSubset<T, QuestionTypeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many QuestionTypes and returns the data saved in the database.
-     * @param {QuestionTypeCreateManyAndReturnArgs} args - Arguments to create many QuestionTypes.
-     * @example
-     * // Create many QuestionTypes
-     * const questionType = await prisma.questionType.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many QuestionTypes and only return the `id`
-     * const questionTypeWithIdOnly = await prisma.questionType.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends QuestionTypeCreateManyAndReturnArgs>(args?: SelectSubset<T, QuestionTypeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
-     * Delete a QuestionType.
-     * @param {QuestionTypeDeleteArgs} args - Arguments to delete one QuestionType.
-     * @example
-     * // Delete one QuestionType
-     * const QuestionType = await prisma.questionType.delete({
-     *   where: {
-     *     // ... filter to delete one QuestionType
-     *   }
-     * })
-     * 
-     */
-    delete<T extends QuestionTypeDeleteArgs>(args: SelectSubset<T, QuestionTypeDeleteArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "delete">, never, ExtArgs>
-
-    /**
-     * Update one QuestionType.
-     * @param {QuestionTypeUpdateArgs} args - Arguments to update one QuestionType.
-     * @example
-     * // Update one QuestionType
-     * const questionType = await prisma.questionType.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends QuestionTypeUpdateArgs>(args: SelectSubset<T, QuestionTypeUpdateArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "update">, never, ExtArgs>
-
-    /**
-     * Delete zero or more QuestionTypes.
-     * @param {QuestionTypeDeleteManyArgs} args - Arguments to filter QuestionTypes to delete.
-     * @example
-     * // Delete a few QuestionTypes
-     * const { count } = await prisma.questionType.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends QuestionTypeDeleteManyArgs>(args?: SelectSubset<T, QuestionTypeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more QuestionTypes.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many QuestionTypes
-     * const questionType = await prisma.questionType.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends QuestionTypeUpdateManyArgs>(args: SelectSubset<T, QuestionTypeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create or update one QuestionType.
-     * @param {QuestionTypeUpsertArgs} args - Arguments to update or create a QuestionType.
-     * @example
-     * // Update or create a QuestionType
-     * const questionType = await prisma.questionType.upsert({
-     *   create: {
-     *     // ... data to create a QuestionType
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the QuestionType we want to update
-     *   }
-     * })
-     */
-    upsert<T extends QuestionTypeUpsertArgs>(args: SelectSubset<T, QuestionTypeUpsertArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
-
-
-    /**
-     * Count the number of QuestionTypes.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeCountArgs} args - Arguments to filter QuestionTypes to count.
-     * @example
-     * // Count the number of QuestionTypes
-     * const count = await prisma.questionType.count({
-     *   where: {
-     *     // ... the filter for the QuestionTypes we want to count
-     *   }
-     * })
-    **/
-    count<T extends QuestionTypeCountArgs>(
-      args?: Subset<T, QuestionTypeCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], QuestionTypeCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a QuestionType.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends QuestionTypeAggregateArgs>(args: Subset<T, QuestionTypeAggregateArgs>): Prisma.PrismaPromise<GetQuestionTypeAggregateType<T>>
-
-    /**
-     * Group by QuestionType.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {QuestionTypeGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends QuestionTypeGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: QuestionTypeGroupByArgs['orderBy'] }
-        : { orderBy?: QuestionTypeGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, QuestionTypeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQuestionTypeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the QuestionType model
-   */
-  readonly fields: QuestionTypeFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for QuestionType.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__QuestionTypeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    versions<T extends QuestionType$versionsArgs<ExtArgs> = {}>(args?: Subset<T, QuestionType$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuestionVersionPayload<ExtArgs>, T, "findMany"> | Null>
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the QuestionType model
-   */ 
-  interface QuestionTypeFieldRefs {
-    readonly id: FieldRef<"QuestionType", 'String'>
-    readonly code: FieldRef<"QuestionType", 'String'>
-    readonly name: FieldRef<"QuestionType", 'String'>
-    readonly description: FieldRef<"QuestionType", 'String'>
-    readonly schemaVersion: FieldRef<"QuestionType", 'Int'>
-    readonly answerSchema: FieldRef<"QuestionType", 'Json'>
-    readonly renderSchema: FieldRef<"QuestionType", 'Json'>
-    readonly gradingSchema: FieldRef<"QuestionType", 'Json'>
-    readonly supportsAutoGrading: FieldRef<"QuestionType", 'Boolean'>
-    readonly supportsManualGrading: FieldRef<"QuestionType", 'Boolean'>
-    readonly supportsPartialCredit: FieldRef<"QuestionType", 'Boolean'>
-    readonly defaultLanguageCode: FieldRef<"QuestionType", 'String'>
-    readonly isGrid: FieldRef<"QuestionType", 'Boolean'>
-    readonly icon: FieldRef<"QuestionType", 'String'>
-    readonly isActive: FieldRef<"QuestionType", 'Boolean'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * QuestionType findUnique
-   */
-  export type QuestionTypeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * Filter, which QuestionType to fetch.
-     */
-    where: QuestionTypeWhereUniqueInput
-  }
-
-  /**
-   * QuestionType findUniqueOrThrow
-   */
-  export type QuestionTypeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * Filter, which QuestionType to fetch.
-     */
-    where: QuestionTypeWhereUniqueInput
-  }
-
-  /**
-   * QuestionType findFirst
-   */
-  export type QuestionTypeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * Filter, which QuestionType to fetch.
-     */
-    where?: QuestionTypeWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of QuestionTypes to fetch.
-     */
-    orderBy?: QuestionTypeOrderByWithRelationInput | QuestionTypeOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for QuestionTypes.
-     */
-    cursor?: QuestionTypeWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` QuestionTypes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` QuestionTypes.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of QuestionTypes.
-     */
-    distinct?: QuestionTypeScalarFieldEnum | QuestionTypeScalarFieldEnum[]
-  }
-
-  /**
-   * QuestionType findFirstOrThrow
-   */
-  export type QuestionTypeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * Filter, which QuestionType to fetch.
-     */
-    where?: QuestionTypeWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of QuestionTypes to fetch.
-     */
-    orderBy?: QuestionTypeOrderByWithRelationInput | QuestionTypeOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for QuestionTypes.
-     */
-    cursor?: QuestionTypeWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` QuestionTypes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` QuestionTypes.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of QuestionTypes.
-     */
-    distinct?: QuestionTypeScalarFieldEnum | QuestionTypeScalarFieldEnum[]
-  }
-
-  /**
-   * QuestionType findMany
-   */
-  export type QuestionTypeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * Filter, which QuestionTypes to fetch.
-     */
-    where?: QuestionTypeWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of QuestionTypes to fetch.
-     */
-    orderBy?: QuestionTypeOrderByWithRelationInput | QuestionTypeOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing QuestionTypes.
-     */
-    cursor?: QuestionTypeWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` QuestionTypes from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` QuestionTypes.
-     */
-    skip?: number
-    distinct?: QuestionTypeScalarFieldEnum | QuestionTypeScalarFieldEnum[]
-  }
-
-  /**
-   * QuestionType create
-   */
-  export type QuestionTypeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * The data needed to create a QuestionType.
-     */
-    data: XOR<QuestionTypeCreateInput, QuestionTypeUncheckedCreateInput>
-  }
-
-  /**
-   * QuestionType createMany
-   */
-  export type QuestionTypeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many QuestionTypes.
-     */
-    data: QuestionTypeCreateManyInput | QuestionTypeCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * QuestionType createManyAndReturn
-   */
-  export type QuestionTypeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many QuestionTypes.
-     */
-    data: QuestionTypeCreateManyInput | QuestionTypeCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * QuestionType update
-   */
-  export type QuestionTypeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * The data needed to update a QuestionType.
-     */
-    data: XOR<QuestionTypeUpdateInput, QuestionTypeUncheckedUpdateInput>
-    /**
-     * Choose, which QuestionType to update.
-     */
-    where: QuestionTypeWhereUniqueInput
-  }
-
-  /**
-   * QuestionType updateMany
-   */
-  export type QuestionTypeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update QuestionTypes.
-     */
-    data: XOR<QuestionTypeUpdateManyMutationInput, QuestionTypeUncheckedUpdateManyInput>
-    /**
-     * Filter which QuestionTypes to update
-     */
-    where?: QuestionTypeWhereInput
-  }
-
-  /**
-   * QuestionType upsert
-   */
-  export type QuestionTypeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * The filter to search for the QuestionType to update in case it exists.
-     */
-    where: QuestionTypeWhereUniqueInput
-    /**
-     * In case the QuestionType found by the `where` argument doesn't exist, create a new QuestionType with this data.
-     */
-    create: XOR<QuestionTypeCreateInput, QuestionTypeUncheckedCreateInput>
-    /**
-     * In case the QuestionType was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<QuestionTypeUpdateInput, QuestionTypeUncheckedUpdateInput>
-  }
-
-  /**
-   * QuestionType delete
-   */
-  export type QuestionTypeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-    /**
-     * Filter which QuestionType to delete.
-     */
-    where: QuestionTypeWhereUniqueInput
-  }
-
-  /**
-   * QuestionType deleteMany
-   */
-  export type QuestionTypeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which QuestionTypes to delete
-     */
-    where?: QuestionTypeWhereInput
-  }
-
-  /**
-   * QuestionType.versions
-   */
-  export type QuestionType$versionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionVersion
-     */
-    select?: QuestionVersionSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionVersionInclude<ExtArgs> | null
-    where?: QuestionVersionWhereInput
-    orderBy?: QuestionVersionOrderByWithRelationInput | QuestionVersionOrderByWithRelationInput[]
-    cursor?: QuestionVersionWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: QuestionVersionScalarFieldEnum | QuestionVersionScalarFieldEnum[]
-  }
-
-  /**
-   * QuestionType without action
-   */
-  export type QuestionTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the QuestionType
-     */
-    select?: QuestionTypeSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: QuestionTypeInclude<ExtArgs> | null
-  }
-
-
-  /**
    * Model QuestionVersion
    */
 
@@ -8907,7 +7723,7 @@ export namespace Prisma {
     questionId: string | null
     versionNumber: number | null
     versionStatus: $Enums.QuestionVersionStatus | null
-    typeId: string | null
+    type: $Enums.QuestionType | null
     title: string | null
     body: string | null
     defaultTimeSeconds: number | null
@@ -8941,7 +7757,7 @@ export namespace Prisma {
     questionId: string | null
     versionNumber: number | null
     versionStatus: $Enums.QuestionVersionStatus | null
-    typeId: string | null
+    type: $Enums.QuestionType | null
     title: string | null
     body: string | null
     defaultTimeSeconds: number | null
@@ -8975,7 +7791,7 @@ export namespace Prisma {
     questionId: number
     versionNumber: number
     versionStatus: number
-    typeId: number
+    type: number
     title: number
     body: number
     defaultTimeSeconds: number
@@ -9034,7 +7850,7 @@ export namespace Prisma {
     questionId?: true
     versionNumber?: true
     versionStatus?: true
-    typeId?: true
+    type?: true
     title?: true
     body?: true
     defaultTimeSeconds?: true
@@ -9068,7 +7884,7 @@ export namespace Prisma {
     questionId?: true
     versionNumber?: true
     versionStatus?: true
-    typeId?: true
+    type?: true
     title?: true
     body?: true
     defaultTimeSeconds?: true
@@ -9102,7 +7918,7 @@ export namespace Prisma {
     questionId?: true
     versionNumber?: true
     versionStatus?: true
-    typeId?: true
+    type?: true
     title?: true
     body?: true
     defaultTimeSeconds?: true
@@ -9232,7 +8048,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title: string | null
     body: string
     defaultTimeSeconds: number | null
@@ -9294,7 +8110,7 @@ export namespace Prisma {
     questionId?: boolean
     versionNumber?: boolean
     versionStatus?: boolean
-    typeId?: boolean
+    type?: boolean
     title?: boolean
     body?: boolean
     defaultTimeSeconds?: boolean
@@ -9332,7 +8148,6 @@ export namespace Prisma {
     retiredAt?: boolean
     question?: boolean | QuestionDefaultArgs<ExtArgs>
     currentForQuestion?: boolean | QuestionVersion$currentForQuestionArgs<ExtArgs>
-    type?: boolean | QuestionTypeDefaultArgs<ExtArgs>
     options?: boolean | QuestionVersion$optionsArgs<ExtArgs>
     media?: boolean | QuestionVersion$mediaArgs<ExtArgs>
     validatedClassifications?: boolean | QuestionVersion$validatedClassificationsArgs<ExtArgs>
@@ -9346,7 +8161,7 @@ export namespace Prisma {
     questionId?: boolean
     versionNumber?: boolean
     versionStatus?: boolean
-    typeId?: boolean
+    type?: boolean
     title?: boolean
     body?: boolean
     defaultTimeSeconds?: boolean
@@ -9383,7 +8198,6 @@ export namespace Prisma {
     publishedAt?: boolean
     retiredAt?: boolean
     question?: boolean | QuestionDefaultArgs<ExtArgs>
-    type?: boolean | QuestionTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["questionVersion"]>
 
   export type QuestionVersionSelectScalar = {
@@ -9391,7 +8205,7 @@ export namespace Prisma {
     questionId?: boolean
     versionNumber?: boolean
     versionStatus?: boolean
-    typeId?: boolean
+    type?: boolean
     title?: boolean
     body?: boolean
     defaultTimeSeconds?: boolean
@@ -9432,7 +8246,6 @@ export namespace Prisma {
   export type QuestionVersionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     question?: boolean | QuestionDefaultArgs<ExtArgs>
     currentForQuestion?: boolean | QuestionVersion$currentForQuestionArgs<ExtArgs>
-    type?: boolean | QuestionTypeDefaultArgs<ExtArgs>
     options?: boolean | QuestionVersion$optionsArgs<ExtArgs>
     media?: boolean | QuestionVersion$mediaArgs<ExtArgs>
     validatedClassifications?: boolean | QuestionVersion$validatedClassificationsArgs<ExtArgs>
@@ -9442,7 +8255,6 @@ export namespace Prisma {
   }
   export type QuestionVersionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     question?: boolean | QuestionDefaultArgs<ExtArgs>
-    type?: boolean | QuestionTypeDefaultArgs<ExtArgs>
   }
 
   export type $QuestionVersionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9450,7 +8262,6 @@ export namespace Prisma {
     objects: {
       question: Prisma.$QuestionPayload<ExtArgs>
       currentForQuestion: Prisma.$QuestionPayload<ExtArgs> | null
-      type: Prisma.$QuestionTypePayload<ExtArgs>
       options: Prisma.$QuestionOptionVersionPayload<ExtArgs>[]
       media: Prisma.$QuestionMediaPayload<ExtArgs>[]
       validatedClassifications: Prisma.$TopicQuestionClassificationPayload<ExtArgs>[]
@@ -9462,7 +8273,7 @@ export namespace Prisma {
       questionId: string
       versionNumber: number
       versionStatus: $Enums.QuestionVersionStatus
-      typeId: string
+      type: $Enums.QuestionType
       title: string | null
       body: string
       defaultTimeSeconds: number | null
@@ -9864,7 +8675,6 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     question<T extends QuestionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, QuestionDefaultArgs<ExtArgs>>): Prisma__QuestionClient<$Result.GetResult<Prisma.$QuestionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     currentForQuestion<T extends QuestionVersion$currentForQuestionArgs<ExtArgs> = {}>(args?: Subset<T, QuestionVersion$currentForQuestionArgs<ExtArgs>>): Prisma__QuestionClient<$Result.GetResult<Prisma.$QuestionPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
-    type<T extends QuestionTypeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, QuestionTypeDefaultArgs<ExtArgs>>): Prisma__QuestionTypeClient<$Result.GetResult<Prisma.$QuestionTypePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     options<T extends QuestionVersion$optionsArgs<ExtArgs> = {}>(args?: Subset<T, QuestionVersion$optionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuestionOptionVersionPayload<ExtArgs>, T, "findMany"> | Null>
     media<T extends QuestionVersion$mediaArgs<ExtArgs> = {}>(args?: Subset<T, QuestionVersion$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QuestionMediaPayload<ExtArgs>, T, "findMany"> | Null>
     validatedClassifications<T extends QuestionVersion$validatedClassificationsArgs<ExtArgs> = {}>(args?: Subset<T, QuestionVersion$validatedClassificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TopicQuestionClassificationPayload<ExtArgs>, T, "findMany"> | Null>
@@ -9903,7 +8713,7 @@ export namespace Prisma {
     readonly questionId: FieldRef<"QuestionVersion", 'String'>
     readonly versionNumber: FieldRef<"QuestionVersion", 'Int'>
     readonly versionStatus: FieldRef<"QuestionVersion", 'QuestionVersionStatus'>
-    readonly typeId: FieldRef<"QuestionVersion", 'String'>
+    readonly type: FieldRef<"QuestionVersion", 'QuestionType'>
     readonly title: FieldRef<"QuestionVersion", 'String'>
     readonly body: FieldRef<"QuestionVersion", 'String'>
     readonly defaultTimeSeconds: FieldRef<"QuestionVersion", 'Int'>
@@ -61773,33 +60583,12 @@ export namespace Prisma {
   export type QuestionScalarFieldEnum = (typeof QuestionScalarFieldEnum)[keyof typeof QuestionScalarFieldEnum]
 
 
-  export const QuestionTypeScalarFieldEnum: {
-    id: 'id',
-    code: 'code',
-    name: 'name',
-    description: 'description',
-    schemaVersion: 'schemaVersion',
-    answerSchema: 'answerSchema',
-    renderSchema: 'renderSchema',
-    gradingSchema: 'gradingSchema',
-    supportsAutoGrading: 'supportsAutoGrading',
-    supportsManualGrading: 'supportsManualGrading',
-    supportsPartialCredit: 'supportsPartialCredit',
-    defaultLanguageCode: 'defaultLanguageCode',
-    isGrid: 'isGrid',
-    icon: 'icon',
-    isActive: 'isActive'
-  };
-
-  export type QuestionTypeScalarFieldEnum = (typeof QuestionTypeScalarFieldEnum)[keyof typeof QuestionTypeScalarFieldEnum]
-
-
   export const QuestionVersionScalarFieldEnum: {
     id: 'id',
     questionId: 'questionId',
     versionNumber: 'versionNumber',
     versionStatus: 'versionStatus',
-    typeId: 'typeId',
+    type: 'type',
     title: 'title',
     body: 'body',
     defaultTimeSeconds: 'defaultTimeSeconds',
@@ -63047,20 +61836,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Json'
-   */
-  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-  /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
    * Reference to a field of type 'QuestionVersionStatus'
    */
   export type EnumQuestionVersionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuestionVersionStatus'>
@@ -63075,6 +61850,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'QuestionType'
+   */
+  export type EnumQuestionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuestionType'>
+    
+
+
+  /**
+   * Reference to a field of type 'QuestionType[]'
+   */
+  export type ListEnumQuestionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuestionType[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Decimal'
    */
   export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
@@ -63085,6 +61874,20 @@ export namespace Prisma {
    * Reference to a field of type 'Decimal[]'
    */
   export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -63687,113 +62490,6 @@ export namespace Prisma {
     deleteReason?: StringNullableWithAggregatesFilter<"Question"> | string | null
   }
 
-  export type QuestionTypeWhereInput = {
-    AND?: QuestionTypeWhereInput | QuestionTypeWhereInput[]
-    OR?: QuestionTypeWhereInput[]
-    NOT?: QuestionTypeWhereInput | QuestionTypeWhereInput[]
-    id?: StringFilter<"QuestionType"> | string
-    code?: StringFilter<"QuestionType"> | string
-    name?: StringFilter<"QuestionType"> | string
-    description?: StringNullableFilter<"QuestionType"> | string | null
-    schemaVersion?: IntFilter<"QuestionType"> | number
-    answerSchema?: JsonFilter<"QuestionType">
-    renderSchema?: JsonFilter<"QuestionType">
-    gradingSchema?: JsonFilter<"QuestionType">
-    supportsAutoGrading?: BoolFilter<"QuestionType"> | boolean
-    supportsManualGrading?: BoolFilter<"QuestionType"> | boolean
-    supportsPartialCredit?: BoolFilter<"QuestionType"> | boolean
-    defaultLanguageCode?: StringNullableFilter<"QuestionType"> | string | null
-    isGrid?: BoolFilter<"QuestionType"> | boolean
-    icon?: StringNullableFilter<"QuestionType"> | string | null
-    isActive?: BoolFilter<"QuestionType"> | boolean
-    versions?: QuestionVersionListRelationFilter
-  }
-
-  export type QuestionTypeOrderByWithRelationInput = {
-    id?: SortOrder
-    code?: SortOrder
-    name?: SortOrder
-    description?: SortOrderInput | SortOrder
-    schemaVersion?: SortOrder
-    answerSchema?: SortOrder
-    renderSchema?: SortOrder
-    gradingSchema?: SortOrder
-    supportsAutoGrading?: SortOrder
-    supportsManualGrading?: SortOrder
-    supportsPartialCredit?: SortOrder
-    defaultLanguageCode?: SortOrderInput | SortOrder
-    isGrid?: SortOrder
-    icon?: SortOrderInput | SortOrder
-    isActive?: SortOrder
-    versions?: QuestionVersionOrderByRelationAggregateInput
-  }
-
-  export type QuestionTypeWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    code?: string
-    AND?: QuestionTypeWhereInput | QuestionTypeWhereInput[]
-    OR?: QuestionTypeWhereInput[]
-    NOT?: QuestionTypeWhereInput | QuestionTypeWhereInput[]
-    name?: StringFilter<"QuestionType"> | string
-    description?: StringNullableFilter<"QuestionType"> | string | null
-    schemaVersion?: IntFilter<"QuestionType"> | number
-    answerSchema?: JsonFilter<"QuestionType">
-    renderSchema?: JsonFilter<"QuestionType">
-    gradingSchema?: JsonFilter<"QuestionType">
-    supportsAutoGrading?: BoolFilter<"QuestionType"> | boolean
-    supportsManualGrading?: BoolFilter<"QuestionType"> | boolean
-    supportsPartialCredit?: BoolFilter<"QuestionType"> | boolean
-    defaultLanguageCode?: StringNullableFilter<"QuestionType"> | string | null
-    isGrid?: BoolFilter<"QuestionType"> | boolean
-    icon?: StringNullableFilter<"QuestionType"> | string | null
-    isActive?: BoolFilter<"QuestionType"> | boolean
-    versions?: QuestionVersionListRelationFilter
-  }, "id" | "code">
-
-  export type QuestionTypeOrderByWithAggregationInput = {
-    id?: SortOrder
-    code?: SortOrder
-    name?: SortOrder
-    description?: SortOrderInput | SortOrder
-    schemaVersion?: SortOrder
-    answerSchema?: SortOrder
-    renderSchema?: SortOrder
-    gradingSchema?: SortOrder
-    supportsAutoGrading?: SortOrder
-    supportsManualGrading?: SortOrder
-    supportsPartialCredit?: SortOrder
-    defaultLanguageCode?: SortOrderInput | SortOrder
-    isGrid?: SortOrder
-    icon?: SortOrderInput | SortOrder
-    isActive?: SortOrder
-    _count?: QuestionTypeCountOrderByAggregateInput
-    _avg?: QuestionTypeAvgOrderByAggregateInput
-    _max?: QuestionTypeMaxOrderByAggregateInput
-    _min?: QuestionTypeMinOrderByAggregateInput
-    _sum?: QuestionTypeSumOrderByAggregateInput
-  }
-
-  export type QuestionTypeScalarWhereWithAggregatesInput = {
-    AND?: QuestionTypeScalarWhereWithAggregatesInput | QuestionTypeScalarWhereWithAggregatesInput[]
-    OR?: QuestionTypeScalarWhereWithAggregatesInput[]
-    NOT?: QuestionTypeScalarWhereWithAggregatesInput | QuestionTypeScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"QuestionType"> | string
-    code?: StringWithAggregatesFilter<"QuestionType"> | string
-    name?: StringWithAggregatesFilter<"QuestionType"> | string
-    description?: StringNullableWithAggregatesFilter<"QuestionType"> | string | null
-    schemaVersion?: IntWithAggregatesFilter<"QuestionType"> | number
-    answerSchema?: JsonWithAggregatesFilter<"QuestionType">
-    renderSchema?: JsonWithAggregatesFilter<"QuestionType">
-    gradingSchema?: JsonWithAggregatesFilter<"QuestionType">
-    supportsAutoGrading?: BoolWithAggregatesFilter<"QuestionType"> | boolean
-    supportsManualGrading?: BoolWithAggregatesFilter<"QuestionType"> | boolean
-    supportsPartialCredit?: BoolWithAggregatesFilter<"QuestionType"> | boolean
-    defaultLanguageCode?: StringNullableWithAggregatesFilter<"QuestionType"> | string | null
-    isGrid?: BoolWithAggregatesFilter<"QuestionType"> | boolean
-    icon?: StringNullableWithAggregatesFilter<"QuestionType"> | string | null
-    isActive?: BoolWithAggregatesFilter<"QuestionType"> | boolean
-  }
-
   export type QuestionVersionWhereInput = {
     AND?: QuestionVersionWhereInput | QuestionVersionWhereInput[]
     OR?: QuestionVersionWhereInput[]
@@ -63802,7 +62498,7 @@ export namespace Prisma {
     questionId?: StringFilter<"QuestionVersion"> | string
     versionNumber?: IntFilter<"QuestionVersion"> | number
     versionStatus?: EnumQuestionVersionStatusFilter<"QuestionVersion"> | $Enums.QuestionVersionStatus
-    typeId?: StringFilter<"QuestionVersion"> | string
+    type?: EnumQuestionTypeFilter<"QuestionVersion"> | $Enums.QuestionType
     title?: StringNullableFilter<"QuestionVersion"> | string | null
     body?: StringFilter<"QuestionVersion"> | string
     defaultTimeSeconds?: IntNullableFilter<"QuestionVersion"> | number | null
@@ -63840,7 +62536,6 @@ export namespace Prisma {
     retiredAt?: DateTimeNullableFilter<"QuestionVersion"> | Date | string | null
     question?: XOR<QuestionRelationFilter, QuestionWhereInput>
     currentForQuestion?: XOR<QuestionNullableRelationFilter, QuestionWhereInput> | null
-    type?: XOR<QuestionTypeRelationFilter, QuestionTypeWhereInput>
     options?: QuestionOptionVersionListRelationFilter
     media?: QuestionMediaListRelationFilter
     validatedClassifications?: TopicQuestionClassificationListRelationFilter
@@ -63853,7 +62548,7 @@ export namespace Prisma {
     questionId?: SortOrder
     versionNumber?: SortOrder
     versionStatus?: SortOrder
-    typeId?: SortOrder
+    type?: SortOrder
     title?: SortOrderInput | SortOrder
     body?: SortOrder
     defaultTimeSeconds?: SortOrderInput | SortOrder
@@ -63891,7 +62586,6 @@ export namespace Prisma {
     retiredAt?: SortOrderInput | SortOrder
     question?: QuestionOrderByWithRelationInput
     currentForQuestion?: QuestionOrderByWithRelationInput
-    type?: QuestionTypeOrderByWithRelationInput
     options?: QuestionOptionVersionOrderByRelationAggregateInput
     media?: QuestionMediaOrderByRelationAggregateInput
     validatedClassifications?: TopicQuestionClassificationOrderByRelationAggregateInput
@@ -63908,7 +62602,7 @@ export namespace Prisma {
     questionId?: StringFilter<"QuestionVersion"> | string
     versionNumber?: IntFilter<"QuestionVersion"> | number
     versionStatus?: EnumQuestionVersionStatusFilter<"QuestionVersion"> | $Enums.QuestionVersionStatus
-    typeId?: StringFilter<"QuestionVersion"> | string
+    type?: EnumQuestionTypeFilter<"QuestionVersion"> | $Enums.QuestionType
     title?: StringNullableFilter<"QuestionVersion"> | string | null
     body?: StringFilter<"QuestionVersion"> | string
     defaultTimeSeconds?: IntNullableFilter<"QuestionVersion"> | number | null
@@ -63946,7 +62640,6 @@ export namespace Prisma {
     retiredAt?: DateTimeNullableFilter<"QuestionVersion"> | Date | string | null
     question?: XOR<QuestionRelationFilter, QuestionWhereInput>
     currentForQuestion?: XOR<QuestionNullableRelationFilter, QuestionWhereInput> | null
-    type?: XOR<QuestionTypeRelationFilter, QuestionTypeWhereInput>
     options?: QuestionOptionVersionListRelationFilter
     media?: QuestionMediaListRelationFilter
     validatedClassifications?: TopicQuestionClassificationListRelationFilter
@@ -63959,7 +62652,7 @@ export namespace Prisma {
     questionId?: SortOrder
     versionNumber?: SortOrder
     versionStatus?: SortOrder
-    typeId?: SortOrder
+    type?: SortOrder
     title?: SortOrderInput | SortOrder
     body?: SortOrder
     defaultTimeSeconds?: SortOrderInput | SortOrder
@@ -64010,7 +62703,7 @@ export namespace Prisma {
     questionId?: StringWithAggregatesFilter<"QuestionVersion"> | string
     versionNumber?: IntWithAggregatesFilter<"QuestionVersion"> | number
     versionStatus?: EnumQuestionVersionStatusWithAggregatesFilter<"QuestionVersion"> | $Enums.QuestionVersionStatus
-    typeId?: StringWithAggregatesFilter<"QuestionVersion"> | string
+    type?: EnumQuestionTypeWithAggregatesFilter<"QuestionVersion"> | $Enums.QuestionType
     title?: StringNullableWithAggregatesFilter<"QuestionVersion"> | string | null
     body?: StringWithAggregatesFilter<"QuestionVersion"> | string
     defaultTimeSeconds?: IntNullableWithAggregatesFilter<"QuestionVersion"> | number | null
@@ -70072,140 +68765,11 @@ export namespace Prisma {
     deleteReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
-  export type QuestionTypeCreateInput = {
-    id?: string
-    code: string
-    name: string
-    description?: string | null
-    schemaVersion?: number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: string | null
-    isGrid?: boolean
-    icon?: string | null
-    isActive?: boolean
-    versions?: QuestionVersionCreateNestedManyWithoutTypeInput
-  }
-
-  export type QuestionTypeUncheckedCreateInput = {
-    id?: string
-    code: string
-    name: string
-    description?: string | null
-    schemaVersion?: number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: string | null
-    isGrid?: boolean
-    icon?: string | null
-    isActive?: boolean
-    versions?: QuestionVersionUncheckedCreateNestedManyWithoutTypeInput
-  }
-
-  export type QuestionTypeUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    schemaVersion?: IntFieldUpdateOperationsInput | number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsManualGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsPartialCredit?: BoolFieldUpdateOperationsInput | boolean
-    defaultLanguageCode?: NullableStringFieldUpdateOperationsInput | string | null
-    isGrid?: BoolFieldUpdateOperationsInput | boolean
-    icon?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    versions?: QuestionVersionUpdateManyWithoutTypeNestedInput
-  }
-
-  export type QuestionTypeUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    schemaVersion?: IntFieldUpdateOperationsInput | number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsManualGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsPartialCredit?: BoolFieldUpdateOperationsInput | boolean
-    defaultLanguageCode?: NullableStringFieldUpdateOperationsInput | string | null
-    isGrid?: BoolFieldUpdateOperationsInput | boolean
-    icon?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    versions?: QuestionVersionUncheckedUpdateManyWithoutTypeNestedInput
-  }
-
-  export type QuestionTypeCreateManyInput = {
-    id?: string
-    code: string
-    name: string
-    description?: string | null
-    schemaVersion?: number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: string | null
-    isGrid?: boolean
-    icon?: string | null
-    isActive?: boolean
-  }
-
-  export type QuestionTypeUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    schemaVersion?: IntFieldUpdateOperationsInput | number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsManualGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsPartialCredit?: BoolFieldUpdateOperationsInput | boolean
-    defaultLanguageCode?: NullableStringFieldUpdateOperationsInput | string | null
-    isGrid?: BoolFieldUpdateOperationsInput | boolean
-    icon?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-  }
-
-  export type QuestionTypeUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    schemaVersion?: IntFieldUpdateOperationsInput | number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsManualGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsPartialCredit?: BoolFieldUpdateOperationsInput | boolean
-    defaultLanguageCode?: NullableStringFieldUpdateOperationsInput | string | null
-    isGrid?: BoolFieldUpdateOperationsInput | boolean
-    icon?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-  }
-
   export type QuestionVersionCreateInput = {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -70243,7 +68807,6 @@ export namespace Prisma {
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
@@ -70256,7 +68819,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -70304,6 +68867,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -70341,7 +68905,6 @@ export namespace Prisma {
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
@@ -70354,7 +68917,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -70403,7 +68966,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -70445,6 +69008,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -70487,7 +69051,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -77751,128 +76315,19 @@ export namespace Prisma {
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
-  export type JsonFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
-
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type QuestionTypeCountOrderByAggregateInput = {
-    id?: SortOrder
-    code?: SortOrder
-    name?: SortOrder
-    description?: SortOrder
-    schemaVersion?: SortOrder
-    answerSchema?: SortOrder
-    renderSchema?: SortOrder
-    gradingSchema?: SortOrder
-    supportsAutoGrading?: SortOrder
-    supportsManualGrading?: SortOrder
-    supportsPartialCredit?: SortOrder
-    defaultLanguageCode?: SortOrder
-    isGrid?: SortOrder
-    icon?: SortOrder
-    isActive?: SortOrder
-  }
-
-  export type QuestionTypeAvgOrderByAggregateInput = {
-    schemaVersion?: SortOrder
-  }
-
-  export type QuestionTypeMaxOrderByAggregateInput = {
-    id?: SortOrder
-    code?: SortOrder
-    name?: SortOrder
-    description?: SortOrder
-    schemaVersion?: SortOrder
-    supportsAutoGrading?: SortOrder
-    supportsManualGrading?: SortOrder
-    supportsPartialCredit?: SortOrder
-    defaultLanguageCode?: SortOrder
-    isGrid?: SortOrder
-    icon?: SortOrder
-    isActive?: SortOrder
-  }
-
-  export type QuestionTypeMinOrderByAggregateInput = {
-    id?: SortOrder
-    code?: SortOrder
-    name?: SortOrder
-    description?: SortOrder
-    schemaVersion?: SortOrder
-    supportsAutoGrading?: SortOrder
-    supportsManualGrading?: SortOrder
-    supportsPartialCredit?: SortOrder
-    defaultLanguageCode?: SortOrder
-    isGrid?: SortOrder
-    icon?: SortOrder
-    isActive?: SortOrder
-  }
-
-  export type QuestionTypeSumOrderByAggregateInput = {
-    schemaVersion?: SortOrder
-  }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
-  }
-
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
 
   export type EnumQuestionVersionStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.QuestionVersionStatus | EnumQuestionVersionStatusFieldRefInput<$PrismaModel>
     in?: $Enums.QuestionVersionStatus[] | ListEnumQuestionVersionStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.QuestionVersionStatus[] | ListEnumQuestionVersionStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumQuestionVersionStatusFilter<$PrismaModel> | $Enums.QuestionVersionStatus
+  }
+
+  export type EnumQuestionTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuestionType | EnumQuestionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuestionTypeFilter<$PrismaModel> | $Enums.QuestionType
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -77904,6 +76359,28 @@ export namespace Prisma {
     hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
     isEmpty?: boolean
   }
+  export type JsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type QuestionRelationFilter = {
     is?: QuestionWhereInput
@@ -77913,11 +76390,6 @@ export namespace Prisma {
   export type QuestionNullableRelationFilter = {
     is?: QuestionWhereInput | null
     isNot?: QuestionWhereInput | null
-  }
-
-  export type QuestionTypeRelationFilter = {
-    is?: QuestionTypeWhereInput
-    isNot?: QuestionTypeWhereInput
   }
 
   export type QuestionOptionVersionListRelationFilter = {
@@ -77950,7 +76422,7 @@ export namespace Prisma {
     questionId?: SortOrder
     versionNumber?: SortOrder
     versionStatus?: SortOrder
-    typeId?: SortOrder
+    type?: SortOrder
     title?: SortOrder
     body?: SortOrder
     defaultTimeSeconds?: SortOrder
@@ -78000,7 +76472,7 @@ export namespace Prisma {
     questionId?: SortOrder
     versionNumber?: SortOrder
     versionStatus?: SortOrder
-    typeId?: SortOrder
+    type?: SortOrder
     title?: SortOrder
     body?: SortOrder
     defaultTimeSeconds?: SortOrder
@@ -78034,7 +76506,7 @@ export namespace Prisma {
     questionId?: SortOrder
     versionNumber?: SortOrder
     versionStatus?: SortOrder
-    typeId?: SortOrder
+    type?: SortOrder
     title?: SortOrder
     body?: SortOrder
     defaultTimeSeconds?: SortOrder
@@ -78080,6 +76552,16 @@ export namespace Prisma {
     _max?: NestedEnumQuestionVersionStatusFilter<$PrismaModel>
   }
 
+  export type EnumQuestionTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuestionType | EnumQuestionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuestionTypeWithAggregatesFilter<$PrismaModel> | $Enums.QuestionType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumQuestionTypeFilter<$PrismaModel>
+    _max?: NestedEnumQuestionTypeFilter<$PrismaModel>
+  }
+
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -78110,6 +76592,31 @@ export namespace Prisma {
     _sum?: NestedDecimalFilter<$PrismaModel>
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
   }
 
   export type BoolNullableFilter<$PrismaModel = never> = {
@@ -78389,6 +76896,11 @@ export namespace Prisma {
     _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type AudienceLevelListRelationFilter = {
     every?: AudienceLevelWhereInput
     some?: AudienceLevelWhereInput
@@ -78444,6 +76956,14 @@ export namespace Prisma {
     name?: SortOrder
     description?: SortOrder
     isActive?: SortOrder
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type AudienceTypeRelationFilter = {
@@ -82872,52 +81392,6 @@ export namespace Prisma {
     deleteMany?: QuestionWorkflowEventScalarWhereInput | QuestionWorkflowEventScalarWhereInput[]
   }
 
-  export type QuestionVersionCreateNestedManyWithoutTypeInput = {
-    create?: XOR<QuestionVersionCreateWithoutTypeInput, QuestionVersionUncheckedCreateWithoutTypeInput> | QuestionVersionCreateWithoutTypeInput[] | QuestionVersionUncheckedCreateWithoutTypeInput[]
-    connectOrCreate?: QuestionVersionCreateOrConnectWithoutTypeInput | QuestionVersionCreateOrConnectWithoutTypeInput[]
-    createMany?: QuestionVersionCreateManyTypeInputEnvelope
-    connect?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-  }
-
-  export type QuestionVersionUncheckedCreateNestedManyWithoutTypeInput = {
-    create?: XOR<QuestionVersionCreateWithoutTypeInput, QuestionVersionUncheckedCreateWithoutTypeInput> | QuestionVersionCreateWithoutTypeInput[] | QuestionVersionUncheckedCreateWithoutTypeInput[]
-    connectOrCreate?: QuestionVersionCreateOrConnectWithoutTypeInput | QuestionVersionCreateOrConnectWithoutTypeInput[]
-    createMany?: QuestionVersionCreateManyTypeInputEnvelope
-    connect?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-  }
-
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
-  }
-
-  export type QuestionVersionUpdateManyWithoutTypeNestedInput = {
-    create?: XOR<QuestionVersionCreateWithoutTypeInput, QuestionVersionUncheckedCreateWithoutTypeInput> | QuestionVersionCreateWithoutTypeInput[] | QuestionVersionUncheckedCreateWithoutTypeInput[]
-    connectOrCreate?: QuestionVersionCreateOrConnectWithoutTypeInput | QuestionVersionCreateOrConnectWithoutTypeInput[]
-    upsert?: QuestionVersionUpsertWithWhereUniqueWithoutTypeInput | QuestionVersionUpsertWithWhereUniqueWithoutTypeInput[]
-    createMany?: QuestionVersionCreateManyTypeInputEnvelope
-    set?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    disconnect?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    delete?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    connect?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    update?: QuestionVersionUpdateWithWhereUniqueWithoutTypeInput | QuestionVersionUpdateWithWhereUniqueWithoutTypeInput[]
-    updateMany?: QuestionVersionUpdateManyWithWhereWithoutTypeInput | QuestionVersionUpdateManyWithWhereWithoutTypeInput[]
-    deleteMany?: QuestionVersionScalarWhereInput | QuestionVersionScalarWhereInput[]
-  }
-
-  export type QuestionVersionUncheckedUpdateManyWithoutTypeNestedInput = {
-    create?: XOR<QuestionVersionCreateWithoutTypeInput, QuestionVersionUncheckedCreateWithoutTypeInput> | QuestionVersionCreateWithoutTypeInput[] | QuestionVersionUncheckedCreateWithoutTypeInput[]
-    connectOrCreate?: QuestionVersionCreateOrConnectWithoutTypeInput | QuestionVersionCreateOrConnectWithoutTypeInput[]
-    upsert?: QuestionVersionUpsertWithWhereUniqueWithoutTypeInput | QuestionVersionUpsertWithWhereUniqueWithoutTypeInput[]
-    createMany?: QuestionVersionCreateManyTypeInputEnvelope
-    set?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    disconnect?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    delete?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    connect?: QuestionVersionWhereUniqueInput | QuestionVersionWhereUniqueInput[]
-    update?: QuestionVersionUpdateWithWhereUniqueWithoutTypeInput | QuestionVersionUpdateWithWhereUniqueWithoutTypeInput[]
-    updateMany?: QuestionVersionUpdateManyWithWhereWithoutTypeInput | QuestionVersionUpdateManyWithWhereWithoutTypeInput[]
-    deleteMany?: QuestionVersionScalarWhereInput | QuestionVersionScalarWhereInput[]
-  }
-
   export type QuestionVersionCreatetagsInput = {
     set: string[]
   }
@@ -82932,12 +81406,6 @@ export namespace Prisma {
     create?: XOR<QuestionCreateWithoutCurrentPublishedVersionInput, QuestionUncheckedCreateWithoutCurrentPublishedVersionInput>
     connectOrCreate?: QuestionCreateOrConnectWithoutCurrentPublishedVersionInput
     connect?: QuestionWhereUniqueInput
-  }
-
-  export type QuestionTypeCreateNestedOneWithoutVersionsInput = {
-    create?: XOR<QuestionTypeCreateWithoutVersionsInput, QuestionTypeUncheckedCreateWithoutVersionsInput>
-    connectOrCreate?: QuestionTypeCreateOrConnectWithoutVersionsInput
-    connect?: QuestionTypeWhereUniqueInput
   }
 
   export type QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput = {
@@ -83020,6 +81488,10 @@ export namespace Prisma {
     set?: $Enums.QuestionVersionStatus
   }
 
+  export type EnumQuestionTypeFieldUpdateOperationsInput = {
+    set?: $Enums.QuestionType
+  }
+
   export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
@@ -83057,14 +81529,6 @@ export namespace Prisma {
     delete?: QuestionWhereInput | boolean
     connect?: QuestionWhereUniqueInput
     update?: XOR<XOR<QuestionUpdateToOneWithWhereWithoutCurrentPublishedVersionInput, QuestionUpdateWithoutCurrentPublishedVersionInput>, QuestionUncheckedUpdateWithoutCurrentPublishedVersionInput>
-  }
-
-  export type QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput = {
-    create?: XOR<QuestionTypeCreateWithoutVersionsInput, QuestionTypeUncheckedCreateWithoutVersionsInput>
-    connectOrCreate?: QuestionTypeCreateOrConnectWithoutVersionsInput
-    upsert?: QuestionTypeUpsertWithoutVersionsInput
-    connect?: QuestionTypeWhereUniqueInput
-    update?: XOR<XOR<QuestionTypeUpdateToOneWithWhereWithoutVersionsInput, QuestionTypeUpdateWithoutVersionsInput>, QuestionTypeUncheckedUpdateWithoutVersionsInput>
   }
 
   export type QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput = {
@@ -83305,6 +81769,10 @@ export namespace Prisma {
     connectOrCreate?: QuizAudienceRuleCreateOrConnectWithoutAudienceTypeInput | QuizAudienceRuleCreateOrConnectWithoutAudienceTypeInput[]
     createMany?: QuizAudienceRuleCreateManyAudienceTypeInputEnvelope
     connect?: QuizAudienceRuleWhereUniqueInput | QuizAudienceRuleWhereUniqueInput[]
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
   }
 
   export type AudienceLevelUpdateManyWithoutAudienceTypeNestedInput = {
@@ -86841,46 +85309,18 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-  export type NestedJsonFilter<$PrismaModel = never> = 
-    | PatchUndefined<
-        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type NestedEnumQuestionVersionStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.QuestionVersionStatus | EnumQuestionVersionStatusFieldRefInput<$PrismaModel>
     in?: $Enums.QuestionVersionStatus[] | ListEnumQuestionVersionStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.QuestionVersionStatus[] | ListEnumQuestionVersionStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumQuestionVersionStatusFilter<$PrismaModel> | $Enums.QuestionVersionStatus
+  }
+
+  export type NestedEnumQuestionTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuestionType | EnumQuestionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuestionTypeFilter<$PrismaModel> | $Enums.QuestionType
   }
 
   export type NestedDecimalFilter<$PrismaModel = never> = {
@@ -86902,6 +85342,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumQuestionVersionStatusFilter<$PrismaModel>
     _max?: NestedEnumQuestionVersionStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumQuestionTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.QuestionType | EnumQuestionTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.QuestionType[] | ListEnumQuestionTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumQuestionTypeWithAggregatesFilter<$PrismaModel> | $Enums.QuestionType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumQuestionTypeFilter<$PrismaModel>
+    _max?: NestedEnumQuestionTypeFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -86945,6 +85395,28 @@ export namespace Prisma {
     _sum?: NestedDecimalFilter<$PrismaModel>
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
+  }
+  export type NestedJsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedBoolNullableFilter<$PrismaModel = never> = {
@@ -87034,6 +85506,19 @@ export namespace Prisma {
     _sum?: NestedBigIntNullableFilter<$PrismaModel>
     _min?: NestedBigIntNullableFilter<$PrismaModel>
     _max?: NestedBigIntNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedEnumClassificationStatusFilter<$PrismaModel = never> = {
@@ -87533,6 +86018,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -87569,7 +86055,6 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     retiredAt?: Date | string | null
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
@@ -87581,7 +86066,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -87639,6 +86124,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -87675,7 +86161,6 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
@@ -87688,7 +86173,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -87952,7 +86437,7 @@ export namespace Prisma {
     questionId?: StringFilter<"QuestionVersion"> | string
     versionNumber?: IntFilter<"QuestionVersion"> | number
     versionStatus?: EnumQuestionVersionStatusFilter<"QuestionVersion"> | $Enums.QuestionVersionStatus
-    typeId?: StringFilter<"QuestionVersion"> | string
+    type?: EnumQuestionTypeFilter<"QuestionVersion"> | $Enums.QuestionType
     title?: StringNullableFilter<"QuestionVersion"> | string | null
     body?: StringFilter<"QuestionVersion"> | string
     defaultTimeSeconds?: IntNullableFilter<"QuestionVersion"> | number | null
@@ -88005,6 +86490,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -88041,7 +86527,6 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
@@ -88054,7 +86539,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -88251,128 +86736,6 @@ export namespace Prisma {
     metadata?: JsonFilter<"QuestionWorkflowEvent">
   }
 
-  export type QuestionVersionCreateWithoutTypeInput = {
-    id?: string
-    versionNumber: number
-    versionStatus?: $Enums.QuestionVersionStatus
-    title?: string | null
-    body: string
-    defaultTimeSeconds?: number | null
-    defaultMaxScore?: Decimal | DecimalJsLike | number | string
-    defaultMinScore?: Decimal | DecimalJsLike | number | string
-    languageCode?: string
-    tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
-    explanation?: string | null
-    payload?: JsonNullValueInput | InputJsonValue
-    answerConfig?: JsonNullValueInput | InputJsonValue
-    presentationConfig?: JsonNullValueInput | InputJsonValue
-    rubric?: JsonNullValueInput | InputJsonValue
-    scoringConfig?: JsonNullValueInput | InputJsonValue
-    negativeMarkingConfig?: JsonNullValueInput | InputJsonValue
-    partialCreditPolicy?: JsonNullValueInput | InputJsonValue
-    securityClassification?: string | null
-    exposurePolicy?: JsonNullValueInput | InputJsonValue
-    confidentialUntil?: Date | string | null
-    checksum?: string | null
-    contentHash?: string | null
-    answerKeyHash?: string | null
-    changeSummary?: string | null
-    reviewComment?: string | null
-    changeRequestReason?: string | null
-    createdBy: string
-    createdAt?: Date | string
-    updatedBy?: string | null
-    updatedAt?: Date | string
-    reviewedBy?: string | null
-    reviewedAt?: Date | string | null
-    publishedBy?: string | null
-    publishedAt?: Date | string | null
-    retiredAt?: Date | string | null
-    question: QuestionCreateNestedOneWithoutVersionsInput
-    currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
-    media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
-    validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
-    pinnedSectionQuestions?: SectionQuestionCreateNestedManyWithoutPinnedQuestionVersionInput
-    revisionQuestions?: QuizRevisionQuestionCreateNestedManyWithoutQuestionVersionInput
-  }
-
-  export type QuestionVersionUncheckedCreateWithoutTypeInput = {
-    id?: string
-    questionId: string
-    versionNumber: number
-    versionStatus?: $Enums.QuestionVersionStatus
-    title?: string | null
-    body: string
-    defaultTimeSeconds?: number | null
-    defaultMaxScore?: Decimal | DecimalJsLike | number | string
-    defaultMinScore?: Decimal | DecimalJsLike | number | string
-    languageCode?: string
-    tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
-    explanation?: string | null
-    payload?: JsonNullValueInput | InputJsonValue
-    answerConfig?: JsonNullValueInput | InputJsonValue
-    presentationConfig?: JsonNullValueInput | InputJsonValue
-    rubric?: JsonNullValueInput | InputJsonValue
-    scoringConfig?: JsonNullValueInput | InputJsonValue
-    negativeMarkingConfig?: JsonNullValueInput | InputJsonValue
-    partialCreditPolicy?: JsonNullValueInput | InputJsonValue
-    securityClassification?: string | null
-    exposurePolicy?: JsonNullValueInput | InputJsonValue
-    confidentialUntil?: Date | string | null
-    checksum?: string | null
-    contentHash?: string | null
-    answerKeyHash?: string | null
-    changeSummary?: string | null
-    reviewComment?: string | null
-    changeRequestReason?: string | null
-    createdBy: string
-    createdAt?: Date | string
-    updatedBy?: string | null
-    updatedAt?: Date | string
-    reviewedBy?: string | null
-    reviewedAt?: Date | string | null
-    publishedBy?: string | null
-    publishedAt?: Date | string | null
-    retiredAt?: Date | string | null
-    currentForQuestion?: QuestionUncheckedCreateNestedOneWithoutCurrentPublishedVersionInput
-    options?: QuestionOptionVersionUncheckedCreateNestedManyWithoutQuestionVersionInput
-    media?: QuestionMediaUncheckedCreateNestedManyWithoutQuestionVersionInput
-    validatedClassifications?: TopicQuestionClassificationUncheckedCreateNestedManyWithoutValidatedQuestionVersionInput
-    pinnedSectionQuestions?: SectionQuestionUncheckedCreateNestedManyWithoutPinnedQuestionVersionInput
-    revisionQuestions?: QuizRevisionQuestionUncheckedCreateNestedManyWithoutQuestionVersionInput
-  }
-
-  export type QuestionVersionCreateOrConnectWithoutTypeInput = {
-    where: QuestionVersionWhereUniqueInput
-    create: XOR<QuestionVersionCreateWithoutTypeInput, QuestionVersionUncheckedCreateWithoutTypeInput>
-  }
-
-  export type QuestionVersionCreateManyTypeInputEnvelope = {
-    data: QuestionVersionCreateManyTypeInput | QuestionVersionCreateManyTypeInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type QuestionVersionUpsertWithWhereUniqueWithoutTypeInput = {
-    where: QuestionVersionWhereUniqueInput
-    update: XOR<QuestionVersionUpdateWithoutTypeInput, QuestionVersionUncheckedUpdateWithoutTypeInput>
-    create: XOR<QuestionVersionCreateWithoutTypeInput, QuestionVersionUncheckedCreateWithoutTypeInput>
-  }
-
-  export type QuestionVersionUpdateWithWhereUniqueWithoutTypeInput = {
-    where: QuestionVersionWhereUniqueInput
-    data: XOR<QuestionVersionUpdateWithoutTypeInput, QuestionVersionUncheckedUpdateWithoutTypeInput>
-  }
-
-  export type QuestionVersionUpdateManyWithWhereWithoutTypeInput = {
-    where: QuestionVersionScalarWhereInput
-    data: XOR<QuestionVersionUpdateManyMutationInput, QuestionVersionUncheckedUpdateManyWithoutTypeInput>
-  }
-
   export type QuestionCreateWithoutVersionsInput = {
     id?: string
     tenantId?: string | null
@@ -88501,47 +86864,6 @@ export namespace Prisma {
   export type QuestionCreateOrConnectWithoutCurrentPublishedVersionInput = {
     where: QuestionWhereUniqueInput
     create: XOR<QuestionCreateWithoutCurrentPublishedVersionInput, QuestionUncheckedCreateWithoutCurrentPublishedVersionInput>
-  }
-
-  export type QuestionTypeCreateWithoutVersionsInput = {
-    id?: string
-    code: string
-    name: string
-    description?: string | null
-    schemaVersion?: number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: string | null
-    isGrid?: boolean
-    icon?: string | null
-    isActive?: boolean
-  }
-
-  export type QuestionTypeUncheckedCreateWithoutVersionsInput = {
-    id?: string
-    code: string
-    name: string
-    description?: string | null
-    schemaVersion?: number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: boolean
-    supportsManualGrading?: boolean
-    supportsPartialCredit?: boolean
-    defaultLanguageCode?: string | null
-    isGrid?: boolean
-    icon?: string | null
-    isActive?: boolean
-  }
-
-  export type QuestionTypeCreateOrConnectWithoutVersionsInput = {
-    where: QuestionTypeWhereUniqueInput
-    create: XOR<QuestionTypeCreateWithoutVersionsInput, QuestionTypeUncheckedCreateWithoutVersionsInput>
   }
 
   export type QuestionOptionVersionCreateWithoutQuestionVersionInput = {
@@ -88944,53 +87266,6 @@ export namespace Prisma {
     workflowEvents?: QuestionWorkflowEventUncheckedUpdateManyWithoutQuestionNestedInput
   }
 
-  export type QuestionTypeUpsertWithoutVersionsInput = {
-    update: XOR<QuestionTypeUpdateWithoutVersionsInput, QuestionTypeUncheckedUpdateWithoutVersionsInput>
-    create: XOR<QuestionTypeCreateWithoutVersionsInput, QuestionTypeUncheckedCreateWithoutVersionsInput>
-    where?: QuestionTypeWhereInput
-  }
-
-  export type QuestionTypeUpdateToOneWithWhereWithoutVersionsInput = {
-    where?: QuestionTypeWhereInput
-    data: XOR<QuestionTypeUpdateWithoutVersionsInput, QuestionTypeUncheckedUpdateWithoutVersionsInput>
-  }
-
-  export type QuestionTypeUpdateWithoutVersionsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    schemaVersion?: IntFieldUpdateOperationsInput | number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsManualGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsPartialCredit?: BoolFieldUpdateOperationsInput | boolean
-    defaultLanguageCode?: NullableStringFieldUpdateOperationsInput | string | null
-    isGrid?: BoolFieldUpdateOperationsInput | boolean
-    icon?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-  }
-
-  export type QuestionTypeUncheckedUpdateWithoutVersionsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    code?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    schemaVersion?: IntFieldUpdateOperationsInput | number
-    answerSchema?: JsonNullValueInput | InputJsonValue
-    renderSchema?: JsonNullValueInput | InputJsonValue
-    gradingSchema?: JsonNullValueInput | InputJsonValue
-    supportsAutoGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsManualGrading?: BoolFieldUpdateOperationsInput | boolean
-    supportsPartialCredit?: BoolFieldUpdateOperationsInput | boolean
-    defaultLanguageCode?: NullableStringFieldUpdateOperationsInput | string | null
-    isGrid?: BoolFieldUpdateOperationsInput | boolean
-    icon?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-  }
-
   export type QuestionOptionVersionUpsertWithWhereUniqueWithoutQuestionVersionInput = {
     where: QuestionOptionVersionWhereUniqueInput
     update: XOR<QuestionOptionVersionUpdateWithoutQuestionVersionInput, QuestionOptionVersionUncheckedUpdateWithoutQuestionVersionInput>
@@ -89124,6 +87399,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -89161,7 +87437,6 @@ export namespace Prisma {
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
     pinnedSectionQuestions?: SectionQuestionCreateNestedManyWithoutPinnedQuestionVersionInput
@@ -89173,7 +87448,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -89236,6 +87511,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -89273,7 +87549,6 @@ export namespace Prisma {
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
     pinnedSectionQuestions?: SectionQuestionUpdateManyWithoutPinnedQuestionVersionNestedInput
@@ -89285,7 +87560,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -89332,6 +87607,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -89369,7 +87645,6 @@ export namespace Prisma {
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
     pinnedSectionQuestions?: SectionQuestionCreateNestedManyWithoutPinnedQuestionVersionInput
@@ -89381,7 +87656,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -89444,6 +87719,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -89481,7 +87757,6 @@ export namespace Prisma {
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
     pinnedSectionQuestions?: SectionQuestionUpdateManyWithoutPinnedQuestionVersionNestedInput
@@ -89493,7 +87768,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -92856,6 +91131,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -92893,7 +91169,6 @@ export namespace Prisma {
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     pinnedSectionQuestions?: SectionQuestionCreateNestedManyWithoutPinnedQuestionVersionInput
@@ -92905,7 +91180,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -93331,6 +91606,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -93368,7 +91644,6 @@ export namespace Prisma {
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     pinnedSectionQuestions?: SectionQuestionUpdateManyWithoutPinnedQuestionVersionNestedInput
@@ -93380,7 +91655,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -94585,6 +92860,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -94622,7 +92898,6 @@ export namespace Prisma {
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
@@ -94634,7 +92909,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -94847,6 +93122,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -94884,7 +93160,6 @@ export namespace Prisma {
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
@@ -94896,7 +93171,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -96565,6 +94840,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -96602,7 +94878,6 @@ export namespace Prisma {
     retiredAt?: Date | string | null
     question: QuestionCreateNestedOneWithoutVersionsInput
     currentForQuestion?: QuestionCreateNestedOneWithoutCurrentPublishedVersionInput
-    type: QuestionTypeCreateNestedOneWithoutVersionsInput
     options?: QuestionOptionVersionCreateNestedManyWithoutQuestionVersionInput
     media?: QuestionMediaCreateNestedManyWithoutQuestionVersionInput
     validatedClassifications?: TopicQuestionClassificationCreateNestedManyWithoutValidatedQuestionVersionInput
@@ -96614,7 +94889,7 @@ export namespace Prisma {
     questionId: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -96860,6 +95135,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -96897,7 +95173,6 @@ export namespace Prisma {
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
@@ -96909,7 +95184,7 @@ export namespace Prisma {
     questionId?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -103566,7 +101841,7 @@ export namespace Prisma {
     id?: string
     versionNumber: number
     versionStatus?: $Enums.QuestionVersionStatus
-    typeId: string
+    type: $Enums.QuestionType
     title?: string | null
     body: string
     defaultTimeSeconds?: number | null
@@ -103682,6 +101957,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -103718,7 +101994,6 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    type?: QuestionTypeUpdateOneRequiredWithoutVersionsNestedInput
     options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
     media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
     validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
@@ -103730,7 +102005,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -103778,7 +102053,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    typeId?: StringFieldUpdateOperationsInput | string
+    type?: EnumQuestionTypeFieldUpdateOperationsInput | $Enums.QuestionType
     title?: NullableStringFieldUpdateOperationsInput | string | null
     body?: StringFieldUpdateOperationsInput | string
     defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
@@ -104040,186 +102315,6 @@ export namespace Prisma {
     actorRole?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: JsonNullValueInput | InputJsonValue
-  }
-
-  export type QuestionVersionCreateManyTypeInput = {
-    id?: string
-    questionId: string
-    versionNumber: number
-    versionStatus?: $Enums.QuestionVersionStatus
-    title?: string | null
-    body: string
-    defaultTimeSeconds?: number | null
-    defaultMaxScore?: Decimal | DecimalJsLike | number | string
-    defaultMinScore?: Decimal | DecimalJsLike | number | string
-    languageCode?: string
-    tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
-    explanation?: string | null
-    payload?: JsonNullValueInput | InputJsonValue
-    answerConfig?: JsonNullValueInput | InputJsonValue
-    presentationConfig?: JsonNullValueInput | InputJsonValue
-    rubric?: JsonNullValueInput | InputJsonValue
-    scoringConfig?: JsonNullValueInput | InputJsonValue
-    negativeMarkingConfig?: JsonNullValueInput | InputJsonValue
-    partialCreditPolicy?: JsonNullValueInput | InputJsonValue
-    securityClassification?: string | null
-    exposurePolicy?: JsonNullValueInput | InputJsonValue
-    confidentialUntil?: Date | string | null
-    checksum?: string | null
-    contentHash?: string | null
-    answerKeyHash?: string | null
-    changeSummary?: string | null
-    reviewComment?: string | null
-    changeRequestReason?: string | null
-    createdBy: string
-    createdAt?: Date | string
-    updatedBy?: string | null
-    updatedAt?: Date | string
-    reviewedBy?: string | null
-    reviewedAt?: Date | string | null
-    publishedBy?: string | null
-    publishedAt?: Date | string | null
-    retiredAt?: Date | string | null
-  }
-
-  export type QuestionVersionUpdateWithoutTypeInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    versionNumber?: IntFieldUpdateOperationsInput | number
-    versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    title?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    defaultMaxScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    languageCode?: StringFieldUpdateOperationsInput | string
-    tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    explanation?: NullableStringFieldUpdateOperationsInput | string | null
-    payload?: JsonNullValueInput | InputJsonValue
-    answerConfig?: JsonNullValueInput | InputJsonValue
-    presentationConfig?: JsonNullValueInput | InputJsonValue
-    rubric?: JsonNullValueInput | InputJsonValue
-    scoringConfig?: JsonNullValueInput | InputJsonValue
-    negativeMarkingConfig?: JsonNullValueInput | InputJsonValue
-    partialCreditPolicy?: JsonNullValueInput | InputJsonValue
-    securityClassification?: NullableStringFieldUpdateOperationsInput | string | null
-    exposurePolicy?: JsonNullValueInput | InputJsonValue
-    confidentialUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    checksum?: NullableStringFieldUpdateOperationsInput | string | null
-    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
-    answerKeyHash?: NullableStringFieldUpdateOperationsInput | string | null
-    changeSummary?: NullableStringFieldUpdateOperationsInput | string | null
-    reviewComment?: NullableStringFieldUpdateOperationsInput | string | null
-    changeRequestReason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdBy?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    publishedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    question?: QuestionUpdateOneRequiredWithoutVersionsNestedInput
-    currentForQuestion?: QuestionUpdateOneWithoutCurrentPublishedVersionNestedInput
-    options?: QuestionOptionVersionUpdateManyWithoutQuestionVersionNestedInput
-    media?: QuestionMediaUpdateManyWithoutQuestionVersionNestedInput
-    validatedClassifications?: TopicQuestionClassificationUpdateManyWithoutValidatedQuestionVersionNestedInput
-    pinnedSectionQuestions?: SectionQuestionUpdateManyWithoutPinnedQuestionVersionNestedInput
-    revisionQuestions?: QuizRevisionQuestionUpdateManyWithoutQuestionVersionNestedInput
-  }
-
-  export type QuestionVersionUncheckedUpdateWithoutTypeInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    questionId?: StringFieldUpdateOperationsInput | string
-    versionNumber?: IntFieldUpdateOperationsInput | number
-    versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    title?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    defaultMaxScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    languageCode?: StringFieldUpdateOperationsInput | string
-    tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    explanation?: NullableStringFieldUpdateOperationsInput | string | null
-    payload?: JsonNullValueInput | InputJsonValue
-    answerConfig?: JsonNullValueInput | InputJsonValue
-    presentationConfig?: JsonNullValueInput | InputJsonValue
-    rubric?: JsonNullValueInput | InputJsonValue
-    scoringConfig?: JsonNullValueInput | InputJsonValue
-    negativeMarkingConfig?: JsonNullValueInput | InputJsonValue
-    partialCreditPolicy?: JsonNullValueInput | InputJsonValue
-    securityClassification?: NullableStringFieldUpdateOperationsInput | string | null
-    exposurePolicy?: JsonNullValueInput | InputJsonValue
-    confidentialUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    checksum?: NullableStringFieldUpdateOperationsInput | string | null
-    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
-    answerKeyHash?: NullableStringFieldUpdateOperationsInput | string | null
-    changeSummary?: NullableStringFieldUpdateOperationsInput | string | null
-    reviewComment?: NullableStringFieldUpdateOperationsInput | string | null
-    changeRequestReason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdBy?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    publishedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    currentForQuestion?: QuestionUncheckedUpdateOneWithoutCurrentPublishedVersionNestedInput
-    options?: QuestionOptionVersionUncheckedUpdateManyWithoutQuestionVersionNestedInput
-    media?: QuestionMediaUncheckedUpdateManyWithoutQuestionVersionNestedInput
-    validatedClassifications?: TopicQuestionClassificationUncheckedUpdateManyWithoutValidatedQuestionVersionNestedInput
-    pinnedSectionQuestions?: SectionQuestionUncheckedUpdateManyWithoutPinnedQuestionVersionNestedInput
-    revisionQuestions?: QuizRevisionQuestionUncheckedUpdateManyWithoutQuestionVersionNestedInput
-  }
-
-  export type QuestionVersionUncheckedUpdateManyWithoutTypeInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    questionId?: StringFieldUpdateOperationsInput | string
-    versionNumber?: IntFieldUpdateOperationsInput | number
-    versionStatus?: EnumQuestionVersionStatusFieldUpdateOperationsInput | $Enums.QuestionVersionStatus
-    title?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    defaultTimeSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    defaultMaxScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
-    languageCode?: StringFieldUpdateOperationsInput | string
-    tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    explanation?: NullableStringFieldUpdateOperationsInput | string | null
-    payload?: JsonNullValueInput | InputJsonValue
-    answerConfig?: JsonNullValueInput | InputJsonValue
-    presentationConfig?: JsonNullValueInput | InputJsonValue
-    rubric?: JsonNullValueInput | InputJsonValue
-    scoringConfig?: JsonNullValueInput | InputJsonValue
-    negativeMarkingConfig?: JsonNullValueInput | InputJsonValue
-    partialCreditPolicy?: JsonNullValueInput | InputJsonValue
-    securityClassification?: NullableStringFieldUpdateOperationsInput | string | null
-    exposurePolicy?: JsonNullValueInput | InputJsonValue
-    confidentialUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    checksum?: NullableStringFieldUpdateOperationsInput | string | null
-    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
-    answerKeyHash?: NullableStringFieldUpdateOperationsInput | string | null
-    changeSummary?: NullableStringFieldUpdateOperationsInput | string | null
-    reviewComment?: NullableStringFieldUpdateOperationsInput | string | null
-    changeRequestReason?: NullableStringFieldUpdateOperationsInput | string | null
-    createdBy?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    publishedBy?: NullableStringFieldUpdateOperationsInput | string | null
-    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    retiredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type QuestionOptionVersionCreateManyQuestionVersionInput = {
@@ -109508,10 +107603,6 @@ export namespace Prisma {
      */
     export type QuestionCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = QuestionCountOutputTypeDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use QuestionTypeCountOutputTypeDefaultArgs instead
-     */
-    export type QuestionTypeCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = QuestionTypeCountOutputTypeDefaultArgs<ExtArgs>
-    /**
      * @deprecated Use QuestionVersionCountOutputTypeDefaultArgs instead
      */
     export type QuestionVersionCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = QuestionVersionCountOutputTypeDefaultArgs<ExtArgs>
@@ -109615,10 +107706,6 @@ export namespace Prisma {
      * @deprecated Use QuestionDefaultArgs instead
      */
     export type QuestionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = QuestionDefaultArgs<ExtArgs>
-    /**
-     * @deprecated Use QuestionTypeDefaultArgs instead
-     */
-    export type QuestionTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = QuestionTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use QuestionVersionDefaultArgs instead
      */

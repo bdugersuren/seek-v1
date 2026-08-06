@@ -12,6 +12,8 @@ RUN npm install -g pnpm
 COPY scripts/service-entrypoint.sh /usr/local/bin/service-entrypoint.sh
 COPY services/assessment/package.json /app/services/assessment/package.json
 COPY services/assessment/prisma /app/services/assessment/prisma
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/packages/contracts /app/packages/contracts
 COPY --from=builder /app/services/assessment/dist /app/services/assessment/dist
 EXPOSE 3070
 ENV SERVICE_DIR=/app/services/assessment

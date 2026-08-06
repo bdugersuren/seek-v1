@@ -21,6 +21,14 @@ describe("AssessmentWorkflowService", () => {
         update: jest.fn(),
         findUnique: jest.fn(),
       },
+      questionVersion: {
+        findFirst: jest.fn(),
+        update: jest.fn(),
+      },
+      question: {
+        update: jest.fn(),
+      },
+      $transaction: jest.fn((cb) => cb(mockPrisma)),
     };
     service = new AssessmentWorkflowService(mockPrisma as any);
   });

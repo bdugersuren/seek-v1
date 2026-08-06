@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -14,7 +15,13 @@ import {
   Textarea,
   useToast,
 } from "@seek/ui";
-import { getBlueprintSummary, isBlueprintSectionValid } from "./api";
+import {
+  getBlueprintSummary,
+  isBlueprintSectionValid,
+  createBlueprint,
+  updateBlueprint,
+  fetchQuestions,
+} from "./api";
 import {
   competencyLabels,
   difficultyLabels,
@@ -29,6 +36,7 @@ import type {
   BlueprintTopicMapping,
   CompetencyType,
   DifficultyLevel,
+  QuestionBankItem,
 } from "./types";
 
 type WizardStep = 1 | 2 | 3 | 4;
@@ -131,10 +139,28 @@ export function BlueprintEditor({
   blueprint?: Blueprint;
   mode?: "new" | "edit";
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [step, setStep] = useState<WizardStep>(1);
   const [submitted, setSubmitted] = useState(false);
   const [poolSectionId, setPoolSectionId] = useState<string | null>(null);
+
+  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const data = await fetchQuestions();
+        if (active) {
+          setQuestions(data);
+        }
+      } catch (err) {
+        console.error("Failed to load questions in BlueprintEditor", err);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
   const [state, setState] = useState<BlueprintWizardState>(() =>
     buildInitialState(mode, blueprint),
   );
@@ -143,20 +169,63 @@ export function BlueprintEditor({
   const setPartial = (patch: Partial<BlueprintWizardState>) =>
     setState((current) => ({ ...current, ...patch }));
 
-  const save = () => showToast("Blueprint mock state-д хадгалагдлаа.", "success");
-  const submit = () => {
+  const save = async () => {
+    try {
+      const bpData: Blueprint = {
+        id: state.id,
+        title: state.title,
+        description: state.description,
+        topicId: state.topicId,
+        topicName: state.topicName,
+        passScore: state.passScore,
+        totalDurationMinutes: state.totalDurationMinutes,
+        status: state.status,
+        sections: state.sections,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (mode === "edit") {
+        await updateBlueprint(bpData.id, bpData);
+      } else {
+        await createBlueprint(bpData);
+      }
+      showToast("Blueprint амжилттай хадгалагдлаа.", "success");
+      router.push("/assessor/blueprints");
+    } catch (err: any) {
+      showToast("Blueprint хадгалахад алдаа гарлаа.", "danger");
+    }
+  };
+
+  const submit = async () => {
     if (!validation.ready) {
       showToast("Батлуулахын өмнө checklist дээрх дутуу хэсгүүдийг гүйцээнэ үү.", "warning");
       return;
     }
-    setSubmitted(true);
-    setPartial({ status: "ready" });
-    showToast(
-      mode === "edit"
-        ? "Дахин батлуулах хүсэлт mock workflow-д бүртгэгдлээ."
-        : "Батлуулах хүсэлт mock workflow-д бүртгэгдлээ.",
-      "success",
-    );
+    try {
+      setSubmitted(true);
+      const bpData: Blueprint = {
+        id: state.id,
+        title: state.title,
+        description: state.description,
+        topicId: state.topicId,
+        topicName: state.topicName,
+        passScore: state.passScore,
+        totalDurationMinutes: state.totalDurationMinutes,
+        status: "ready",
+        sections: state.sections,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (mode === "edit") {
+        await updateBlueprint(bpData.id, bpData);
+      } else {
+        await createBlueprint(bpData);
+      }
+      showToast("Батлуулахаар амжилттай илгээлээ.", "success");
+      router.push("/assessor/blueprints");
+    } catch (err: any) {
+      showToast("Илгээхэд алдаа гарлаа.", "danger");
+    }
   };
 
   return (
@@ -165,7 +234,7 @@ export function BlueprintEditor({
         <div className="flex flex-col gap-seek-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-seek-3">
             <Link
-              href="/blueprints"
+              href="/assessor/blueprints"
               className="grid h-11 w-11 place-items-center rounded-seek-md border border-border bg-surface shadow-seek-sm hover:bg-surface-hover"
               aria-label="Буцах"
             >
@@ -195,6 +264,7 @@ export function BlueprintEditor({
           {step === 3 && (
             <SectionsStep
               sections={state.sections}
+              questions={questions}
               setSections={(sections) => setPartial({ sections })}
               openPool={(sectionId) => setPoolSectionId(sectionId)}
             />
@@ -241,6 +311,7 @@ export function BlueprintEditor({
       {poolSectionId && (
         <QuestionPoolModal
           section={state.sections.find((section) => section.id === poolSectionId)!}
+          questions={questions}
           onClose={() => setPoolSectionId(null)}
           onApply={(selectedQuestionIds) =>
             setPartial({
@@ -471,10 +542,12 @@ function TopicExplorerTree({
 
 function SectionsStep({
   sections,
+  questions,
   setSections,
   openPool,
 }: {
   sections: BlueprintSection[];
+  questions: QuestionBankItem[];
   setSections: (sections: BlueprintSection[]) => void;
   openPool: (sectionId: string) => void;
 }) {
@@ -510,7 +583,7 @@ function SectionsStep({
         {sections.map((section) => {
           const valid = isBlueprintSectionValid(section);
           const expanded = expandedIds.includes(section.id);
-          const selectedQuestions = mockQuestionBank.filter((question) =>
+          const selectedQuestions = questions.filter((question: QuestionBankItem) =>
             section.selectedQuestionIds.includes(question.id),
           );
           return (
@@ -596,7 +669,7 @@ function SectionsStep({
               </div>
               {expanded && (
                 <div className="space-y-3 border-t border-border bg-muted-background/40 p-seek-4">
-                  {selectedQuestions.map((question) => (
+                  {selectedQuestions.map((question: QuestionBankItem) => (
                     <div
                       key={question.id}
                       className="flex flex-col gap-seek-2 rounded-seek-lg border border-border bg-surface p-seek-3 shadow-seek-sm sm:flex-row sm:items-center sm:justify-between"
@@ -700,17 +773,19 @@ function ApprovalStep({
 
 function QuestionPoolModal({
   section,
+  questions,
   onClose,
   onApply,
 }: {
   section: BlueprintSection;
+  questions: QuestionBankItem[];
   onClose: () => void;
   onApply: (selectedQuestionIds: string[]) => void;
 }) {
   const [selected, setSelected] = useState(section.selectedQuestionIds);
   const [query, setQuery] = useState("");
-  const available = mockQuestionBank.filter(
-    (question) =>
+  const available = questions.filter(
+    (question: QuestionBankItem) =>
       (question.status === "approved" || question.status === "published") &&
       (question.title.toLowerCase().includes(query.toLowerCase()) || question.code.toLowerCase().includes(query.toLowerCase())),
   );

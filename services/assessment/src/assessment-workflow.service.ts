@@ -47,22 +47,54 @@ export class AssessmentWorkflowService {
     let previousStatus: string | null = null;
 
     if (aggregateType === "question") {
-      const lastEvent = await this.prisma.questionWorkflowEvent.findFirst({
-        where: { questionId: aggregateId },
-        orderBy: { occurredAt: "desc" },
-      });
-      previousStatus = lastEvent?.newStatus || null;
+      const event = await this.prisma.$transaction(async (tx) => {
+        const lastEvent = await tx.questionWorkflowEvent.findFirst({
+          where: { questionId: aggregateId },
+          orderBy: { occurredAt: "desc" },
+        });
+        const prev = lastEvent?.newStatus || null;
 
-      const event = await this.prisma.questionWorkflowEvent.create({
-        data: {
-          questionId: aggregateId,
-          previousStatus,
-          newStatus: body.newStatus,
-          action: body.action,
-          comment: body.comment,
-          actorUserId: body.actorUserId,
-          metadata: (body.metadata as any) || {},
-        },
+        const ev = await tx.questionWorkflowEvent.create({
+          data: {
+            questionId: aggregateId,
+            previousStatus: prev,
+            newStatus: body.newStatus,
+            action: body.action,
+            comment: body.comment,
+            actorUserId: body.actorUserId,
+            metadata: (body.metadata as any) || {},
+          },
+        });
+
+        // Sync state to QuestionVersion & Question
+        const latestVersion = await tx.questionVersion.findFirst({
+          where: { questionId: aggregateId },
+          orderBy: { versionNumber: "desc" },
+        });
+
+        if (latestVersion) {
+          let mappedStatus = latestVersion.versionStatus;
+          if (body.newStatus === "approved") mappedStatus = "APPROVED" as any;
+          if (body.newStatus === "published") mappedStatus = "PUBLISHED" as any;
+          if (body.newStatus === "draft") mappedStatus = "DRAFT" as any;
+
+          await tx.questionVersion.update({
+            where: { id: latestVersion.id },
+            data: { versionStatus: mappedStatus },
+          });
+
+          if (body.newStatus === "approved" || body.newStatus === "published") {
+            await tx.question.update({
+              where: { id: aggregateId },
+              data: {
+                currentPublishedVersionId: latestVersion.id,
+                lifecycleStatus: "ACTIVE",
+              },
+            });
+          }
+        }
+
+        return ev;
       });
 
       return {

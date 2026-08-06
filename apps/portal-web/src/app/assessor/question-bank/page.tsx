@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -31,9 +32,12 @@ import {
   statusLabels,
 } from "@/features/assessor-workspace/mock-data";
 import { QuestionPreviewModal as SharedQuestionPreviewModal } from "@/features/assessor-workspace/QuestionPreviewModal";
+import { CreateQuestionModal } from "@/features/assessor-workspace/CreateQuestionModal";
 import {
   canEditQuestion,
   getQuestionStats,
+  fetchQuestions,
+  sendQuestionWorkflow,
 } from "@/features/assessor-workspace/api";
 import type {
   DifficultyLevel,
@@ -126,6 +130,7 @@ const statusVariant: Record<
 const pageSizeOptions = [10, 20, 50, 100];
 
 export default function QuestionBankPage() {
+  const router = useRouter();
   const [view, setView] = useState<"cards" | "table">("cards");
   const [query, setQuery] = useState("");
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
@@ -150,12 +155,35 @@ export default function QuestionBankPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [preview, setPreview] = useState<QuestionBankItem | null>(null);
+  const [createModalIsOpen, setCreateModalIsOpen] = useState(false);
   const { showToast } = useToast();
   const { showDialog } = useDialog();
 
+  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await fetchQuestions({ ownerUserId: "mock-assessor" });
+        if (active) {
+          setQuestions(data);
+        }
+      } catch (err) {
+        console.error("Failed to load questions", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
+
   const filteredQuestions = useMemo(
     () =>
-      mockQuestionBank.filter((question) => {
+      questions.filter((question) => {
         const matchQuery = [question.code, question.title, question.stem]
           .join(" ")
           .toLowerCase()
@@ -180,6 +208,7 @@ export default function QuestionBankPage() {
         );
       }),
     [
+      questions,
       query,
       selectedDifficulties,
       selectedQuestionTypes,
@@ -197,10 +226,10 @@ export default function QuestionBankPage() {
   const allVisibleSelected =
     visibleQuestionIds.length > 0 &&
     visibleQuestionIds.every((id) => selectedQuestionIds.includes(id));
-  const stats = getQuestionStats(mockQuestionBank);
-  const typeCounts = countBy(mockQuestionBank, (question) => question.type);
-  const difficultyCounts = countBy(mockQuestionBank, (question) => question.difficulty);
-  const statusCounts = countBy(mockQuestionBank, (question) => question.status);
+  const stats = getQuestionStats(questions);
+  const typeCounts = countBy(questions, (question) => question.type);
+  const difficultyCounts = countBy(questions, (question) => question.difficulty);
+  const statusCounts = countBy(questions, (question) => question.status);
 
   const resetFilters = () => {
     setQuery("");
@@ -244,24 +273,45 @@ export default function QuestionBankPage() {
   const requestApproval = (question: QuestionBankItem) => {
     showDialog({
       title: "Батлуулах хүсэлт илгээх үү?",
-      description: `${question.code} даалгаварт workflow comment хавсаргана. Prototype тул mock state-д demo notification харуулна.`,
+      description: `${question.code} даалгаварт батлуулах хүсэлт илгээх гэж байна.`,
       confirmLabel: "Хүсэлт илгээх",
       cancelLabel: "Болих",
-      onConfirm: () =>
-        showToast("Батлуулах хүсэлтийн comment бүртгэгдлээ.", "success"),
+      onConfirm: async () => {
+        try {
+          await sendQuestionWorkflow(question.id, "approval_requested");
+          showToast("Батлуулах хүсэлт амжилттай илгээгдлээ.", "success");
+          const data = await fetchQuestions({ ownerUserId: "mock-assessor" });
+          setQuestions(data);
+        } catch (err: any) {
+          showToast(err.message || "Хүсэлт илгээхэд алдаа гарлаа.", "danger");
+        }
+      },
     });
   };
 
   const runBulkAction = (label: string) => {
+    let action = "approval_requested";
+    if (label === "Нийтлэх") action = "publish";
+    if (label === "Архивлах") action = "archived";
+    if (label === "Устгах") action = "deleted";
+
     showDialog({
       title: `${selectedQuestionIds.length} даалгаврыг "${label}" төлөв рүү шилжүүлэх үү?`,
-      description:
-        "Prototype дээр workflow comment шаарддаг bulk action загварыг toast/dialog-р баталгаажуулж байна.",
+      description: "Сонгосон даалгавруудын төлөвийг шинэчилж байна.",
       confirmLabel: label,
       cancelLabel: "Болих",
-      onConfirm: () => {
-        showToast(`${selectedQuestionIds.length} даалгаварт bulk workflow action бүртгэгдлээ.`, "success");
-        setSelectedQuestionIds([]);
+      onConfirm: async () => {
+        try {
+          await Promise.all(
+            selectedQuestionIds.map((id) => sendQuestionWorkflow(id, action))
+          );
+          showToast("Төлөв амжилттай шинэчлэгдлээ.", "success");
+          setSelectedQuestionIds([]);
+          const data = await fetchQuestions({ ownerUserId: "mock-assessor" });
+          setQuestions(data);
+        } catch (err: any) {
+          showToast("Төлөв шинэчлэхэд алдаа гарлаа.", "danger");
+        }
       },
     });
   };
@@ -374,9 +424,7 @@ export default function QuestionBankPage() {
             title="Даалгаврын сан"
             subtitle="Асуулт үүсгэх, ангилах, workflow төлөвөөр баталгаажуулах хэсэг."
           />
-          <Link href="/question-bank/new" className="inline-flex">
-            <Button type="button">+ Даалгавар нэмэх</Button>
-          </Link>
+          <Button type="button" onClick={() => setCreateModalIsOpen(true)}>+ Даалгавар нэмэх</Button>
         </div>
 
         <div className="grid gap-seek-3 md:grid-cols-4">
@@ -493,11 +541,13 @@ export default function QuestionBankPage() {
                         >
                           Харах
                         </Button>
-                        <Link href={`/question-bank/${question.id}`}>
-                          <Button type="button" size="sm" variant="secondary">
-                            Засах
-                          </Button>
-                        </Link>
+                        {(!question.ownerUserId || question.ownerUserId === "mock-assessor") && (
+                          <Link href={`/assessor/question-bank/${question.id}`}>
+                            <Button type="button" size="sm" variant="secondary">
+                              Засах
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -533,6 +583,17 @@ export default function QuestionBankPage() {
         <SharedQuestionPreviewModal
           question={preview}
           onClose={() => setPreview(null)}
+        />
+      )}
+
+      {createModalIsOpen && (
+        <CreateQuestionModal
+          isOpen={createModalIsOpen}
+          onClose={() => setCreateModalIsOpen(false)}
+          onSuccess={(questionId) => {
+            setCreateModalIsOpen(false);
+            router.push(`/assessor/question-bank/${questionId}`);
+          }}
         />
       )}
     </div>
@@ -617,7 +678,7 @@ function QuestionCard({
         <Button type="button" size="sm" variant="outline" onClick={onPreview}>
           Харах
         </Button>
-        <Link href={`/question-bank/${question.id}`}>
+        <Link href={`/assessor/question-bank/${question.id}`}>
           <Button
             type="button"
             size="sm"

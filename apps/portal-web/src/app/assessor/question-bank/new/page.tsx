@@ -1,7 +1,13 @@
 "use client";
 
-import { QuestionEditor } from "@/features/assessor-workspace/QuestionEditor";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function NewQuestionPage() {
-  return <QuestionEditor mode="new" />;
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/assessor/question-bank");
+  }, [router]);
+
+  return <div className="p-seek-5 text-center text-sm text-muted-foreground">Шилжүүлж байна...</div>;
 }

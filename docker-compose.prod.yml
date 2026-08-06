@@ -3,15 +3,15 @@
 # `next start` from the image built by each frontend Dockerfile.
 
 services:
-  node-modules-init:
-    image: node:18-slim
-    container_name: seed-node_modules
-    working_dir: /app
-    command: sh -c "apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/* && npm install -g pnpm && pnpm install --frozen-lockfile --force"
-    volumes:
-      - .:/app
-      - shared_node_modules:/app/node_modules
-      - pnpm_store:/root/.local/share/pnpm/store
+#  node-modules-init:
+#    image: node:18-slim
+#    container_name: seed-node_modules
+#    working_dir: /app
+#    command: sh -c "apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/* && npm install -g pnpm && pnpm install --frozen-lockfile --force"
+#    volumes:
+#      - .:/app
+#      - shared_node_modules:/app/node_modules
+#      - pnpm_store:/root/.local/share/pnpm/store
 
   auth:
     environment:
@@ -33,9 +33,6 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is required in production}
       SMTP_HELO_DOMAIN: ${SMTP_HELO_DOMAIN:-seek.mn}
     volumes: !reset []
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
 #  auth-migrate:
 #    volumes:
@@ -58,11 +55,6 @@ services:
       NODE_ENV: production
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
       AUTH_COOKIE_SECURE: "true"
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
   profile:
     environment:
@@ -70,80 +62,59 @@ services:
       FILE_SERVICE_URL: http://file:3140
       INTEGRATION_SERVICE_URL: http://integration:3130
     volumes: !reset []
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
   organisation:
     environment:
       NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
   assessment:
     environment:
       NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
-  commerce:
-    environment:
-      NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
+#  commerce:
+#    environment:
+#      NODE_ENV: production
+#    volumes:
+#      - shared_node_modules:/app/node_modules
+#    depends_on:
+#      node-modules-init:
+#        condition: service_completed_successfully
 
   execution:
     environment:
       NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
   file:
     environment:
       NODE_ENV: production
     volumes: !reset []
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
 
-  notification:
-    environment:
-      NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
-
-  reporting:
-    environment:
-      NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
-
-  integration:
-    environment:
-      NODE_ENV: production
-    volumes:
-      - shared_node_modules:/app/node_modules
-    depends_on:
-      node-modules-init:
-        condition: service_completed_successfully
+#  notification:
+#    environment:
+#      NODE_ENV: production
+#    volumes:
+#      - shared_node_modules:/app/node_modules
+#    depends_on:
+#      node-modules-init:
+#        condition: service_completed_successfully
+#
+#  reporting:
+#    environment:
+#      NODE_ENV: production
+#    volumes:
+#      - shared_node_modules:/app/node_modules
+#    depends_on:
+#      node-modules-init:
+#        condition: service_completed_successfully
+#
+#  integration:
+#    environment:
+#      NODE_ENV: production
+#    volumes:
+#      - shared_node_modules:/app/node_modules
+#    depends_on:
+#      node-modules-init:
+#        condition: service_completed_successfully
 
   portal-web:
     build:
@@ -174,6 +145,6 @@ services:
       - NEXT_PUBLIC_MOCK_MODE=false
     volumes: !reset []
     command: pnpm --filter @seek/assessment-web start
-volumes:
-  shared_node_modules:
-  pnpm_store:
+#volumes:
+#  shared_node_modules:
+#  pnpm_store:

@@ -4,8 +4,8 @@ RUN npm install -g pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
 
-ARG NEXT_PUBLIC_API_URL=http://quiz-api.seek.mn/api
-ARG NEXT_PUBLIC_ASSESSMENT_WEB_URL=http://localhost:8082
+ARG NEXT_PUBLIC_API_URL=https://quiz-api.seek.mn/api
+ARG NEXT_PUBLIC_ASSESSMENT_WEB_URL=https://quiz.seek.mn
 ARG INTERNAL_API_URL=http://gateway:3010/api
 ARG NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL

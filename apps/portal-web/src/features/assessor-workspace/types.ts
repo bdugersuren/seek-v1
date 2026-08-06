@@ -11,17 +11,19 @@ export type QuestionWorkflowStatus =
   | "deleted";
 
 export type QuestionType =
-  | "single_choice"
-  | "multiple_choice"
-  | "matching"
-  | "ordering"
-  | "fill_blank"
-  | "matrix"
-  | "numeric"
-  | "likert"
-  | "sjt"
-  | "case_bundle"
-  | "essay";
+  | "SINGLE_CHOICE"
+  | "MULTIPLE_CHOICE"
+  | "TRUE_FALSE"
+  | "ORDERING"
+  | "MATCHING"
+  | "SHORT_TEXT"
+  | "FILL_BLANK"
+  | "MATRIX"
+  | "NUMERIC"
+  | "LIKERT"
+  | "SJT"
+  | "CASE_BUNDLE"
+  | "ESSAY";
 
 export type BloomLevel =
   | "remember"
@@ -58,6 +60,7 @@ export interface QuestionOption {
   contentHtml?: string;
   isCorrect?: boolean;
   score?: number;
+  matchValue?: string;
 }
 
 export interface QuestionMedia {
@@ -80,6 +83,7 @@ export interface QuestionBankItem {
   code: string;
   title: string;
   stem: string;
+  ownerUserId?: string;
   contentJson?: unknown;
   contentHtml?: string;
   contentMarkdown?: string;
@@ -98,6 +102,8 @@ export interface QuestionBankItem {
   answerKey: string;
   rubric: string;
   feedback: string;
+  scoringMode?: string;
+  scoringConfig?: any;
   media: QuestionMedia[];
   createdBy: string;
   updatedBy: string;

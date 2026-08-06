@@ -13,7 +13,8 @@ RUN npm install -g pnpm
 COPY scripts/service-entrypoint.sh /usr/local/bin/service-entrypoint.sh
 COPY services/execution/package.json /app/services/execution/package.json
 COPY services/execution/prisma /app/services/execution/prisma
-COPY --from=builder /app/packages/contracts/dist /app/packages/contracts/dist
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/packages/contracts /app/packages/contracts
 COPY --from=builder /app/services/execution/dist /app/services/execution/dist
 EXPOSE 3090
 ENV SERVICE_DIR=/app/services/execution

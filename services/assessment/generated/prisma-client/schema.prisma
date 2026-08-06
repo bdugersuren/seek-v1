@@ -322,25 +322,20 @@ model Question {
   @@map("question")
 }
 
-model QuestionType {
-  id                    String            @id @default(cuid())
-  code                  String            @unique
-  name                  String
-  description           String?
-  schemaVersion         Int               @default(1)
-  answerSchema          Json              @default("{}")
-  renderSchema          Json              @default("{}")
-  gradingSchema         Json              @default("{}")
-  supportsAutoGrading   Boolean           @default(true)
-  supportsManualGrading Boolean           @default(false)
-  supportsPartialCredit Boolean           @default(false)
-  defaultLanguageCode   String?
-  isGrid                Boolean           @default(false)
-  icon                  String?
-  isActive              Boolean           @default(true)
-  versions              QuestionVersion[]
-
-  @@map("question_type")
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  ORDERING
+  MATCHING
+  SHORT_TEXT
+  FILL_BLANK
+  MATRIX
+  NUMERIC
+  LIKERT
+  SJT
+  CASE_BUNDLE
+  ESSAY
 }
 
 model QuestionVersion {
@@ -348,7 +343,7 @@ model QuestionVersion {
   questionId             String
   versionNumber          Int
   versionStatus          QuestionVersionStatus @default(DRAFT)
-  typeId                 String
+  type                   QuestionType
   title                  String?
   body                   String                @db.Text
   defaultTimeSeconds     Int?
@@ -387,7 +382,6 @@ model QuestionVersion {
 
   question                 Question                      @relation("QuestionVersions", fields: [questionId], references: [id], onDelete: Cascade)
   currentForQuestion       Question?                     @relation("CurrentPublishedQuestionVersion")
-  type                     QuestionType                  @relation(fields: [typeId], references: [id])
   options                  QuestionOptionVersion[]
   media                    QuestionMedia[]
   validatedClassifications TopicQuestionClassification[] @relation("ValidatedQuestionVersion")
@@ -396,7 +390,7 @@ model QuestionVersion {
 
   @@unique([questionId, versionNumber])
   @@index([questionId, versionStatus])
-  @@index([typeId])
+  @@index([type])
   @@map("question_version")
 }
 

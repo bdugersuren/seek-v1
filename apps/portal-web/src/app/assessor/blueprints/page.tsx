@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -22,7 +22,7 @@ import {
   buildTopicDescendantMap,
   type ExplorerTopicNode,
 } from "@/components/workspace";
-import { getBlueprintSummary } from "@/features/assessor-workspace/api";
+import { getBlueprintSummary, fetchBlueprints } from "@/features/assessor-workspace/api";
 import {
   mockBlueprints,
   mockQuizzes,
@@ -125,6 +125,28 @@ const blueprints: Blueprint[] = [
 ];
 
 export default function BlueprintsPage() {
+  const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await fetchBlueprints();
+        if (active) {
+          setBlueprints(data);
+        }
+      } catch (err) {
+        console.error("Failed to load blueprints", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
+
   const [query, setQuery] = useState("");
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [openTopicIds, setOpenTopicIds] = useState<string[]>([
@@ -254,7 +276,7 @@ export default function BlueprintsPage() {
             title="Blueprint"
             subtitle="Question-pool, random pick, section бүтэц болон readiness төлөвөөр удирдана."
           />
-          <Link href="/blueprints/new">
+          <Link href="/assessor/blueprints/new">
             <Button type="button">+ Blueprint үүсгэх</Button>
           </Link>
         </div>
@@ -351,11 +373,11 @@ function BlueprintCard({ blueprint, onPreview }: { blueprint: Blueprint; onPrevi
       </div>
       <div className="grid gap-2 border-t border-border bg-muted-background/50 p-seek-4 sm:grid-cols-[auto_auto_minmax(12rem,1fr)] sm:items-center">
         <Button type="button" variant="outline" onClick={onPreview}>Харах</Button>
-        <Link href={`/blueprints/${blueprint.id}`}>
+        <Link href={`/assessor/blueprints/${blueprint.id}`}>
           <Button type="button" variant="secondary">Засах</Button>
         </Link>
         {canCreateQuiz ? (
-          <Link href={`/quizzes/new?blueprintId=${blueprint.id}`}>
+          <Link href={`/assessor/quizzes/new?blueprintId=${blueprint.id}`}>
             <Button type="button" className="w-full">+ Quiz үүсгэх</Button>
           </Link>
         ) : (
@@ -418,11 +440,11 @@ function BlueprintTable({
                     <Button type="button" size="sm" variant="outline" onClick={() => onPreview(blueprint)}>
                       Харах
                     </Button>
-                    <Link href={`/blueprints/${blueprint.id}`}>
+                    <Link href={`/assessor/blueprints/${blueprint.id}`}>
                       <Button type="button" size="sm" variant="secondary">Засах</Button>
                     </Link>
                     {canCreateQuiz ? (
-                      <Link href={`/quizzes/new?blueprintId=${blueprint.id}`}>
+                      <Link href={`/assessor/quizzes/new?blueprintId=${blueprint.id}`}>
                         <Button type="button" size="sm">Quiz үүсгэх</Button>
                       </Link>
                     ) : (

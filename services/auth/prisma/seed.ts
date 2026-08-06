@@ -35,12 +35,21 @@ async function main() {
   // 2. Хэрэглэгчдийг тодорхойлох
   const developerAccounts = [
     {
+      id: "tester-user-uuid-1111-2222",
       email: process.env.AUTH_TEST_EMAIL || "tester@seek.local",
       password: process.env.AUTH_TEST_PASSWORD || "TestPassword123!",
       phoneNumber: "99112233",
       assignedRoles: ["TESTER"],
     },
     {
+      id: "candidate-user-uuid-1111-2222",
+      email: "candidate@seek.local",
+      password: "TestPassword123!",
+      phoneNumber: "99112244",
+      assignedRoles: ["CANDIDATE"],
+    },
+    {
+      id: "superadmin-user-uuid-1111-2222",
       email: process.env.AUTH_SUPERADMIN_EMAIL || "superadmin@lms.local",
       password:
         process.env.AUTH_SUPERADMIN_PASSWORD ||
@@ -72,6 +81,7 @@ async function main() {
         isPhoneVerified: true
       },
       create: {
+        id: acc.id,
         email,
         isEmailVerified: true,
         phoneNumber: acc.phoneNumber,
@@ -107,19 +117,22 @@ async function main() {
     for (const roleName of acc.assignedRoles) {
       const roleId = roleDbMap.get(roleName);
       if (roleId) {
-        await prisma.userRole.upsert({
+        const existingUserRole = await prisma.userRole.findUnique({
           where: {
             userAccountId_roleId: {
               userAccountId: user.id,
               roleId: roleId,
             },
           },
-          update: {},
-          create: {
-            userAccountId: user.id,
-            roleId: roleId,
-          },
         });
+        if (!existingUserRole) {
+          await prisma.userRole.create({
+            data: {
+              userAccountId: user.id,
+              roleId: roleId,
+            },
+          });
+        }
       }
     }
   }
