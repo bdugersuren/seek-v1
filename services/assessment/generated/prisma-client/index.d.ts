@@ -7730,8 +7730,8 @@ export namespace Prisma {
     defaultMaxScore: Decimal | null
     defaultMinScore: Decimal | null
     languageCode: string | null
-    feedbackCorrectly: string | null
-    feedbackIncorrectly: string | null
+    feedbackCorrect: string | null
+    feedbackIncorrect: string | null
     explanation: string | null
     securityClassification: string | null
     confidentialUntil: Date | null
@@ -7764,8 +7764,8 @@ export namespace Prisma {
     defaultMaxScore: Decimal | null
     defaultMinScore: Decimal | null
     languageCode: string | null
-    feedbackCorrectly: string | null
-    feedbackIncorrectly: string | null
+    feedbackCorrect: string | null
+    feedbackIncorrect: string | null
     explanation: string | null
     securityClassification: string | null
     confidentialUntil: Date | null
@@ -7799,8 +7799,8 @@ export namespace Prisma {
     defaultMinScore: number
     languageCode: number
     tags: number
-    feedbackCorrectly: number
-    feedbackIncorrectly: number
+    feedbackCorrect: number
+    feedbackIncorrect: number
     explanation: number
     payload: number
     answerConfig: number
@@ -7857,8 +7857,8 @@ export namespace Prisma {
     defaultMaxScore?: true
     defaultMinScore?: true
     languageCode?: true
-    feedbackCorrectly?: true
-    feedbackIncorrectly?: true
+    feedbackCorrect?: true
+    feedbackIncorrect?: true
     explanation?: true
     securityClassification?: true
     confidentialUntil?: true
@@ -7891,8 +7891,8 @@ export namespace Prisma {
     defaultMaxScore?: true
     defaultMinScore?: true
     languageCode?: true
-    feedbackCorrectly?: true
-    feedbackIncorrectly?: true
+    feedbackCorrect?: true
+    feedbackIncorrect?: true
     explanation?: true
     securityClassification?: true
     confidentialUntil?: true
@@ -7926,8 +7926,8 @@ export namespace Prisma {
     defaultMinScore?: true
     languageCode?: true
     tags?: true
-    feedbackCorrectly?: true
-    feedbackIncorrectly?: true
+    feedbackCorrect?: true
+    feedbackIncorrect?: true
     explanation?: true
     payload?: true
     answerConfig?: true
@@ -8056,8 +8056,8 @@ export namespace Prisma {
     defaultMinScore: Decimal
     languageCode: string
     tags: string[]
-    feedbackCorrectly: string | null
-    feedbackIncorrectly: string | null
+    feedbackCorrect: string | null
+    feedbackIncorrect: string | null
     explanation: string | null
     payload: JsonValue
     answerConfig: JsonValue
@@ -8118,8 +8118,8 @@ export namespace Prisma {
     defaultMinScore?: boolean
     languageCode?: boolean
     tags?: boolean
-    feedbackCorrectly?: boolean
-    feedbackIncorrectly?: boolean
+    feedbackCorrect?: boolean
+    feedbackIncorrect?: boolean
     explanation?: boolean
     payload?: boolean
     answerConfig?: boolean
@@ -8169,8 +8169,8 @@ export namespace Prisma {
     defaultMinScore?: boolean
     languageCode?: boolean
     tags?: boolean
-    feedbackCorrectly?: boolean
-    feedbackIncorrectly?: boolean
+    feedbackCorrect?: boolean
+    feedbackIncorrect?: boolean
     explanation?: boolean
     payload?: boolean
     answerConfig?: boolean
@@ -8213,8 +8213,8 @@ export namespace Prisma {
     defaultMinScore?: boolean
     languageCode?: boolean
     tags?: boolean
-    feedbackCorrectly?: boolean
-    feedbackIncorrectly?: boolean
+    feedbackCorrect?: boolean
+    feedbackIncorrect?: boolean
     explanation?: boolean
     payload?: boolean
     answerConfig?: boolean
@@ -8281,8 +8281,8 @@ export namespace Prisma {
       defaultMinScore: Prisma.Decimal
       languageCode: string
       tags: string[]
-      feedbackCorrectly: string | null
-      feedbackIncorrectly: string | null
+      feedbackCorrect: string | null
+      feedbackIncorrect: string | null
       explanation: string | null
       payload: Prisma.JsonValue
       answerConfig: Prisma.JsonValue
@@ -8721,8 +8721,8 @@ export namespace Prisma {
     readonly defaultMinScore: FieldRef<"QuestionVersion", 'Decimal'>
     readonly languageCode: FieldRef<"QuestionVersion", 'String'>
     readonly tags: FieldRef<"QuestionVersion", 'String[]'>
-    readonly feedbackCorrectly: FieldRef<"QuestionVersion", 'String'>
-    readonly feedbackIncorrectly: FieldRef<"QuestionVersion", 'String'>
+    readonly feedbackCorrect: FieldRef<"QuestionVersion", 'String'>
+    readonly feedbackIncorrect: FieldRef<"QuestionVersion", 'String'>
     readonly explanation: FieldRef<"QuestionVersion", 'String'>
     readonly payload: FieldRef<"QuestionVersion", 'Json'>
     readonly answerConfig: FieldRef<"QuestionVersion", 'Json'>
@@ -60596,8 +60596,8 @@ export namespace Prisma {
     defaultMinScore: 'defaultMinScore',
     languageCode: 'languageCode',
     tags: 'tags',
-    feedbackCorrectly: 'feedbackCorrectly',
-    feedbackIncorrectly: 'feedbackIncorrectly',
+    feedbackCorrect: 'feedbackCorrect',
+    feedbackIncorrect: 'feedbackIncorrect',
     explanation: 'explanation',
     payload: 'payload',
     answerConfig: 'answerConfig',
@@ -62506,8 +62506,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFilter<"QuestionVersion"> | Decimal | DecimalJsLike | number | string
     languageCode?: StringFilter<"QuestionVersion"> | string
     tags?: StringNullableListFilter<"QuestionVersion">
-    feedbackCorrectly?: StringNullableFilter<"QuestionVersion"> | string | null
-    feedbackIncorrectly?: StringNullableFilter<"QuestionVersion"> | string | null
+    feedbackCorrect?: StringNullableFilter<"QuestionVersion"> | string | null
+    feedbackIncorrect?: StringNullableFilter<"QuestionVersion"> | string | null
     explanation?: StringNullableFilter<"QuestionVersion"> | string | null
     payload?: JsonFilter<"QuestionVersion">
     answerConfig?: JsonFilter<"QuestionVersion">
@@ -62556,8 +62556,8 @@ export namespace Prisma {
     defaultMinScore?: SortOrder
     languageCode?: SortOrder
     tags?: SortOrder
-    feedbackCorrectly?: SortOrderInput | SortOrder
-    feedbackIncorrectly?: SortOrderInput | SortOrder
+    feedbackCorrect?: SortOrderInput | SortOrder
+    feedbackIncorrect?: SortOrderInput | SortOrder
     explanation?: SortOrderInput | SortOrder
     payload?: SortOrder
     answerConfig?: SortOrder
@@ -62610,8 +62610,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFilter<"QuestionVersion"> | Decimal | DecimalJsLike | number | string
     languageCode?: StringFilter<"QuestionVersion"> | string
     tags?: StringNullableListFilter<"QuestionVersion">
-    feedbackCorrectly?: StringNullableFilter<"QuestionVersion"> | string | null
-    feedbackIncorrectly?: StringNullableFilter<"QuestionVersion"> | string | null
+    feedbackCorrect?: StringNullableFilter<"QuestionVersion"> | string | null
+    feedbackIncorrect?: StringNullableFilter<"QuestionVersion"> | string | null
     explanation?: StringNullableFilter<"QuestionVersion"> | string | null
     payload?: JsonFilter<"QuestionVersion">
     answerConfig?: JsonFilter<"QuestionVersion">
@@ -62660,8 +62660,8 @@ export namespace Prisma {
     defaultMinScore?: SortOrder
     languageCode?: SortOrder
     tags?: SortOrder
-    feedbackCorrectly?: SortOrderInput | SortOrder
-    feedbackIncorrectly?: SortOrderInput | SortOrder
+    feedbackCorrect?: SortOrderInput | SortOrder
+    feedbackIncorrect?: SortOrderInput | SortOrder
     explanation?: SortOrderInput | SortOrder
     payload?: SortOrder
     answerConfig?: SortOrder
@@ -62711,8 +62711,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalWithAggregatesFilter<"QuestionVersion"> | Decimal | DecimalJsLike | number | string
     languageCode?: StringWithAggregatesFilter<"QuestionVersion"> | string
     tags?: StringNullableListFilter<"QuestionVersion">
-    feedbackCorrectly?: StringNullableWithAggregatesFilter<"QuestionVersion"> | string | null
-    feedbackIncorrectly?: StringNullableWithAggregatesFilter<"QuestionVersion"> | string | null
+    feedbackCorrect?: StringNullableWithAggregatesFilter<"QuestionVersion"> | string | null
+    feedbackIncorrect?: StringNullableWithAggregatesFilter<"QuestionVersion"> | string | null
     explanation?: StringNullableWithAggregatesFilter<"QuestionVersion"> | string | null
     payload?: JsonWithAggregatesFilter<"QuestionVersion">
     answerConfig?: JsonWithAggregatesFilter<"QuestionVersion">
@@ -68777,8 +68777,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -68827,8 +68827,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -68875,8 +68875,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -68925,8 +68925,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -68974,8 +68974,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -69016,8 +69016,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -69059,8 +69059,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -76430,8 +76430,8 @@ export namespace Prisma {
     defaultMinScore?: SortOrder
     languageCode?: SortOrder
     tags?: SortOrder
-    feedbackCorrectly?: SortOrder
-    feedbackIncorrectly?: SortOrder
+    feedbackCorrect?: SortOrder
+    feedbackIncorrect?: SortOrder
     explanation?: SortOrder
     payload?: SortOrder
     answerConfig?: SortOrder
@@ -76479,8 +76479,8 @@ export namespace Prisma {
     defaultMaxScore?: SortOrder
     defaultMinScore?: SortOrder
     languageCode?: SortOrder
-    feedbackCorrectly?: SortOrder
-    feedbackIncorrectly?: SortOrder
+    feedbackCorrect?: SortOrder
+    feedbackIncorrect?: SortOrder
     explanation?: SortOrder
     securityClassification?: SortOrder
     confidentialUntil?: SortOrder
@@ -76513,8 +76513,8 @@ export namespace Prisma {
     defaultMaxScore?: SortOrder
     defaultMinScore?: SortOrder
     languageCode?: SortOrder
-    feedbackCorrectly?: SortOrder
-    feedbackIncorrectly?: SortOrder
+    feedbackCorrect?: SortOrder
+    feedbackIncorrect?: SortOrder
     explanation?: SortOrder
     securityClassification?: SortOrder
     confidentialUntil?: SortOrder
@@ -86026,8 +86026,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -86074,8 +86074,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -86132,8 +86132,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -86181,8 +86181,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -86445,8 +86445,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFilter<"QuestionVersion"> | Decimal | DecimalJsLike | number | string
     languageCode?: StringFilter<"QuestionVersion"> | string
     tags?: StringNullableListFilter<"QuestionVersion">
-    feedbackCorrectly?: StringNullableFilter<"QuestionVersion"> | string | null
-    feedbackIncorrectly?: StringNullableFilter<"QuestionVersion"> | string | null
+    feedbackCorrect?: StringNullableFilter<"QuestionVersion"> | string | null
+    feedbackIncorrect?: StringNullableFilter<"QuestionVersion"> | string | null
     explanation?: StringNullableFilter<"QuestionVersion"> | string | null
     payload?: JsonFilter<"QuestionVersion">
     answerConfig?: JsonFilter<"QuestionVersion">
@@ -86498,8 +86498,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -86547,8 +86547,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87407,8 +87407,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87456,8 +87456,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87519,8 +87519,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87568,8 +87568,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87615,8 +87615,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87664,8 +87664,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87727,8 +87727,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -87776,8 +87776,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -91139,8 +91139,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -91188,8 +91188,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -91614,8 +91614,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -91663,8 +91663,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -92868,8 +92868,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -92917,8 +92917,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -93130,8 +93130,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -93179,8 +93179,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -94848,8 +94848,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -94897,8 +94897,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -95143,8 +95143,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -95192,8 +95192,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -101849,8 +101849,8 @@ export namespace Prisma {
     defaultMinScore?: Decimal | DecimalJsLike | number | string
     languageCode?: string
     tags?: QuestionVersionCreatetagsInput | string[]
-    feedbackCorrectly?: string | null
-    feedbackIncorrectly?: string | null
+    feedbackCorrect?: string | null
+    feedbackIncorrect?: string | null
     explanation?: string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -101965,8 +101965,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -102013,8 +102013,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue
@@ -102061,8 +102061,8 @@ export namespace Prisma {
     defaultMinScore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     languageCode?: StringFieldUpdateOperationsInput | string
     tags?: QuestionVersionUpdatetagsInput | string[]
-    feedbackCorrectly?: NullableStringFieldUpdateOperationsInput | string | null
-    feedbackIncorrectly?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackCorrect?: NullableStringFieldUpdateOperationsInput | string | null
+    feedbackIncorrect?: NullableStringFieldUpdateOperationsInput | string | null
     explanation?: NullableStringFieldUpdateOperationsInput | string | null
     payload?: JsonNullValueInput | InputJsonValue
     answerConfig?: JsonNullValueInput | InputJsonValue

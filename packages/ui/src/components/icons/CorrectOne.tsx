@@ -4,7 +4,7 @@ export interface IconProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
 }
 
-export const MultiChoose = ({ size, ...props }: IconProps) => (
+export const CorrectOne = ({ size, ...props }: IconProps) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
@@ -16,7 +16,18 @@ export const MultiChoose = ({ size, ...props }: IconProps) => (
     height={size ?? props.height ?? 24}
     {...props}
   >
-    <path d="M13 5h8" /><path d="M13 12h8" /><path d="M13 19h8" />
-    <path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" />
+
+  <circle cx="6" cy="7" r="3" />
+  <circle cx="6" cy="7" r="0.2"/>
+  <circle cx="6" cy="18" r="3" />
+  
+  <path d="M21 10h2" />
+  <path d="M21 14h2" />
+
+  {/* <path d="M21 7v6h-6"/> */}
+  {/* <path d="M8 12a9 9 0 0 0 9 9"/> */}
+  <path d="M10 10a9 9 0 0 0 7 2" />
+  <path d="M14 10 17 12 14 13.8" />
+  
   </svg>
 );

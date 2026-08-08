@@ -115,7 +115,9 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
       label: o.optionKey || "",
       content: o.value || "",
       isCorrect: o.isCorrect || false,
+      score: o.score !== undefined && o.score !== null ? Number(o.score) : undefined,
       matchValue: o.matchRules?.matchValue || o.metadata?.matchValue || o.matchValue || "",
+      acceptedValues: o.metadata?.acceptedValues || [],
     })),
     answerKey: (() => {
       const type = actV.type || "SINGLE_CHOICE";
@@ -135,6 +137,8 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
     })(),
     rubric: "",
     feedback: actV.explanation || "",
+    feedbackCorrect: actV.feedbackCorrect || "",
+    feedbackIncorrect: actV.feedbackIncorrect || "",
     media: (actV.media || []).map((m: any) => {
       let type: "image" | "audio" | "video" | "file" = "file";
       const mType = (m.mediaType || m.type || "").toLowerCase();
@@ -143,7 +147,15 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
       }
       const name = m.metadata?.name || m.name || m.storageKey.split("/").pop() || "media_file";
       const url = m.url || `/api/v1/file/objects?storageKey=${encodeURIComponent(m.storageKey)}`;
-      return { type, name, url, storageKey: m.storageKey };
+      return { 
+        type, 
+        name, 
+        url, 
+        storageKey: m.storageKey,
+        mediaType: m.mediaType || type.toUpperCase(),
+        mimeType: m.mimeType || null,
+        sizeBytes: m.sizeBytes || null,
+      };
     }),
     ownerUserId: q.ownerUserId || "",
     scoringConfig: actV.scoringConfig || actV.payload?.scoringConfig || {},
@@ -227,6 +239,9 @@ function mapToCreateQuestionDto(data: any) {
     matchRules: {
       matchValue: o.matchValue || "",
     },
+    metadata: {
+      acceptedValues: o.acceptedValues || []
+    }
   }));
 
   return {
@@ -243,6 +258,8 @@ function mapToCreateQuestionDto(data: any) {
     languageCode: "mn",
     tags: data.tags || [],
     explanation: data.feedback || data.explanation || "",
+    feedbackCorrect: data.feedbackCorrect || data.feedback || "",
+    feedbackIncorrect: data.feedbackIncorrect || "",
     payload: {
       options: payloadOptions,
       scoringMode: data.scoringMode || "all_or_nothing",
@@ -252,12 +269,12 @@ function mapToCreateQuestionDto(data: any) {
       answerKey: data.answerKey || "",
     },
     scoringConfig: data.scoringConfig || {},
-    media: (data.media || []).map((m: any) => ({
-      mediaType: m.mediaType || "IMAGE",
+    media: (data.media || []).map((m: any, index: number) => ({
+      mediaType: (m.mediaType || m.type || "IMAGE").toUpperCase(),
       storageKey: m.storageKey,
       mimeType: m.mimeType || null,
       sizeBytes: m.sizeBytes ? Number(m.sizeBytes) : null,
-      orderIndex: m.orderIndex || 1,
+      orderIndex: index + 1,
       metadata: m.metadata || {},
     })),
   };

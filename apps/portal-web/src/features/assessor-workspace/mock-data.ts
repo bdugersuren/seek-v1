@@ -17,17 +17,17 @@ export const mockAssignableUsers = [
 ];
 
 export const questionTypeLabels: Record<QuestionType, string> = {
+  TRUE_FALSE: "Үнэн / худал",
   SINGLE_CHOICE: "Нэг сонголт",
   MULTIPLE_CHOICE: "Олон сонголт",
-  TRUE_FALSE: "Үнэн / худал",
   ORDERING: "Эрэмбэлэх",
-  MATCHING: "Харгалзуулах",
-  SHORT_TEXT: "Богино хариулт",
+  MATCHING: "Харгалзуулах",  
   FILL_BLANK: "Нөхөх",
-  MATRIX: "Матриц",
   NUMERIC: "Тоон хариулт",
   LIKERT: "Likert шкал",
   SJT: "SJT",
+  MATRIX: "Матриц",
+  SHORT_TEXT: "Богино хариулт",
   CASE_BUNDLE: "Кейсэд суурилсан багц",
   ESSAY: "Бичгийн шалгалт",
 };

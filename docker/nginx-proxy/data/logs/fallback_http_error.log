@@ -1,0 +1,3 @@
+2026/08/07 12:32:21 [error] 301#301: *420 "/var/www/html/event/index.html" is not found (2: No such file or directory), client: 172.19.0.1, server: localhost-nginx-proxy-manager, request: "GET /event/ HTTP/1.1", host: "127.0.0.1"
+2026/08/07 12:32:24 [error] 302#302: *421 "/var/www/html/event/index.html" is not found (2: No such file or directory), client: 172.19.0.1, server: localhost-nginx-proxy-manager, request: "GET /event/ HTTP/1.1", host: "127.0.0.1"
+2026/08/08 01:59:40 [error] 301#301: *1 "/var/www/html/event/index.html" is not found (2: No such file or directory), client: 172.19.0.1, server: localhost-nginx-proxy-manager, request: "GET /event/ HTTP/1.1", host: "127.0.0.1"

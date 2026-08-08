@@ -1,0 +1,921 @@
+{
+  "info": {
+    "name": "SEEK-Assessment-APIs",
+    "description": "SEEK Assessment Service-ийн бүх API-уудыг шалгах, тестлэхэд зориулсан цуглуулга. Blueprints, Quizzes, Questions, Schedules, Metadata болон Database Explorer-ийн хандалтуудыг агуулсан.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Нэвтрэн орж JWT token авч, accessToken хувьсагчид автоматаар хадгалах хавтас",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('Амжилттай нэвтэрлээ', () => pm.response.to.have.status(201));",
+                  "pm.test('AccessToken олгогдлоо', () => pm.expect(response.accessToken).to.exist);",
+                  "pm.environment.set('accessToken', response.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/auth/login",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Эрүүл мэндийн байдлыг хянах API-ууд",
+      "item": [
+        {
+          "name": "Assessment Service Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/health",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assessment Service Live",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/health/live",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "health", "live"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assessment Service Ready",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/health/ready",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "health", "ready"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Blueprints",
+      "description": "Шалгалтын загваруудыг (Blueprints) удирдах хэсэг",
+      "item": [
+        {
+          "name": "Create Blueprint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.id) {",
+                  "  pm.environment.set('blueprintId', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Мэдээллийн технологийн суурь шалгалт\",\n  \"description\": \"Програмчлалын үндсэн ойлголтуудыг шалгах сорил\",\n  \"code\": \"IT-FOUNDATION-01\",\n  \"ownerUserId\": \"test-owner-id\",\n  \"structure\": {\n    \"topics\": [\n      { \"topicId\": \"topic-123\", \"questionCount\": 5, \"pointsPerQuestion\": 2 }\n    ]\n  },\n  \"metadata\": {\n    \"durationMinutes\": 60,\n    \"passingScore\": 60\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/blueprints",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "blueprints"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find All Blueprints",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/blueprints",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "blueprints"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find One Blueprint",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/blueprints/{{blueprintId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "blueprints", "{{blueprintId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Blueprint",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Шинэчлэгдсэн Мэдээллийн технологийн суурь шалгалт\",\n  \"description\": \"Мэдээллийн технологийн үндсэн ойлголтуудыг шалгах сорил (Шинэчилсэн)\",\n  \"structure\": {\n    \"topics\": [\n      { \"topicId\": \"topic-123\", \"questionCount\": 10, \"pointsPerQuestion\": 2 }\n    ]\n  },\n  \"metadata\": {\n    \"durationMinutes\": 90,\n    \"passingScore\": 70\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/blueprints/{{blueprintId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "blueprints", "{{blueprintId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transition Blueprint Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"submit_for_review\",\n  \"newStatus\": \"review_pending\",\n  \"comment\": \"Хянуулахаар илгээв.\",\n  \"actorUserId\": \"test-actor-id\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/blueprints/{{blueprintId}}/workflow",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "blueprints", "{{blueprintId}}", "workflow"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Blueprint",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/blueprints/{{blueprintId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "blueprints", "{{blueprintId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Quizzes",
+      "description": "Сорилуудыг (Quizzes) удирдах хэсэг",
+      "item": [
+        {
+          "name": "Create Quiz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.id) {",
+                  "  pm.environment.set('quizId', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Програмчлалын үндэс - Сэдэвчилсэн сорил\",\n  \"description\": \"Гол ойлголтууд болон алгоритмын сэдвийн сорил\",\n  \"blueprintId\": \"{{blueprintId}}\",\n  \"ownerUserId\": \"test-owner-id\",\n  \"settings\": {\n    \"shuffleQuestions\": true,\n    \"allowBacktrack\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/quizzes",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "quizzes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find All Quizzes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/quizzes",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "quizzes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find One Quiz",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/quizzes/{{quizId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "quizzes", "{{quizId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Quiz",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Шинэчлэгдсэн Програмчлалын үндэс - Сэдэвчилсэн сорил\",\n  \"description\": \"Гол ойлголтууд болон алгоритмын сэдвийн сорил (Зассан)\",\n  \"settings\": {\n    \"shuffleQuestions\": false,\n    \"allowBacktrack\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/quizzes/{{quizId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "quizzes", "{{quizId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transition Quiz Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\",\n  \"newStatus\": \"approved\",\n  \"comment\": \"Сорилыг батлав.\",\n  \"actorUserId\": \"test-actor-id\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/quizzes/{{quizId}}/workflow",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "quizzes", "{{quizId}}", "workflow"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Quiz",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/quizzes/{{quizId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "quizzes", "{{quizId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "description": "Сорилын хуваарь болон нийтлэл удирдах хэсэг",
+      "item": [
+        {
+          "name": "Create Schedule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.id) {",
+                  "  pm.environment.set('scheduleId', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quizId\": \"{{quizId}}\",\n  \"title\": \"2026 оны Сургуулийн шалгалт\",\n  \"startTime\": \"2026-09-01T09:00:00.000Z\",\n  \"endTime\": \"2026-09-01T11:00:00.000Z\",\n  \"ownerUserId\": \"test-owner-id\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find All Schedules",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find One Schedule",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules/{{scheduleId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules", "{{scheduleId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Schedule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"2026 оны Сургуулийн шалгалт - Зассан\",\n  \"startTime\": \"2026-09-01T10:00:00.000Z\",\n  \"endTime\": \"2026-09-01T12:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules/{{scheduleId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules", "{{scheduleId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Publish Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actorUserId\": \"test-actor-id\",\n  \"publishedRevisionHash\": \"rev-hash-12345\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules/{{scheduleId}}/publish",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules", "{{scheduleId}}", "publish"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Schedule Publication",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules/{{scheduleId}}/publication",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules", "{{scheduleId}}", "publication"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Schedule",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/schedules/{{scheduleId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "schedules", "{{scheduleId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Questions",
+      "description": "Асуултуудыг удирдах, хайх, засах хэсэг",
+      "item": [
+        {
+          "name": "Create Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.id) {",
+                  "  pm.environment.set('questionId', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SINGLE_CHOICE\",\n  \"title\": \"Хувьсагч гэж юу вэ?\",\n  \"content\": \"Програмчлалд хувьсагч гэж юу вэ?\",\n  \"options\": [\n    { \"id\": \"A\", \"label\": \"A\", \"content\": \"Өгөгдөл хадгалах санах ойн хаяг\", \"isCorrect\": true, \"score\": 1 },\n    { \"id\": \"B\", \"label\": \"B\", \"content\": \"Функцийн төрөл\", \"isCorrect\": false, \"score\": 0 }\n  ],\n  \"scoringMode\": \"per_option\",\n  \"ownerUserId\": \"test-owner-id\",\n  \"difficultyLevelId\": \"test-diff-id\",\n  \"cognitiveLevelId\": \"test-cog-id\",\n  \"topicId\": \"test-topic-id\",\n  \"metadata\": {}\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find All Questions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions?status=DRAFT&type=SINGLE_CHOICE&search=хувьсагч",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "DRAFT"
+                },
+                {
+                  "key": "type",
+                  "value": "SINGLE_CHOICE"
+                },
+                {
+                  "key": "search",
+                  "value": "хувьсагч"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find One Question",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/{{questionId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "{{questionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Хувьсагч гэж юу вэ? (Зассан)\",\n  \"content\": \"Програмчлалд хувьсагч гэж юу вэ? (Зассан асуулт)\",\n  \"options\": [\n    { \"id\": \"A\", \"label\": \"A\", \"content\": \"Өгөгдөл хадгалах санах ойн хаяг\", \"isCorrect\": true, \"score\": 2 },\n    { \"id\": \"B\", \"label\": \"B\", \"content\": \"Функцийн төрөл\", \"isCorrect\": false, \"score\": 0 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/{{questionId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "{{questionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transition Question Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"submit_for_review\",\n  \"newStatus\": \"review_pending\",\n  \"comment\": \"Асуултыг хянана уу.\",\n  \"actorUserId\": \"test-actor-id\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/{{questionId}}/workflow",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "{{questionId}}", "workflow"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Question Workflow Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/{{questionId}}/workflow",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "{{questionId}}", "workflow"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/{{questionId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "{{questionId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Metadata",
+      "description": "Сэдэв, чадамжийн хүрээ, анги танхим, хүндрэлийн түвшин гэх мэт мета-өгөгдөл удирдах хэсэг",
+      "item": [
+        {
+          "name": "Get Topics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/topics",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "topics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Topic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.id) {",
+                  "  pm.environment.set('topicId', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"ALGO-01\",\n  \"name\": \"Алгоритмын үндэс\",\n  \"description\": \"Алгоритм ба өгөгдлийн бүтэц\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/topics",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "topics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Topic",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Алгоритм ба Хүндрэл\",\n  \"description\": \"Алгоритмын үндэс сэдэвчилсэн өргөтгөл\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/topics/{{topicId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "topics", "{{topicId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Topic",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/topics/{{topicId}}",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "topics", "{{topicId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Difficulty Levels",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/difficulty-levels",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "difficulty-levels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Difficulty Level",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"HARD-01\",\n  \"name\": \"Хэцүү\",\n  \"scaleId\": \"diff-scale-id-placeholder\",\n  \"value\": 3\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/difficulty-levels",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "difficulty-levels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cognitive Levels",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/cognitive-levels",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "cognitive-levels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Cognitive Level",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"ANALYSIS-01\",\n  \"name\": \"Анализ хийх\",\n  \"frameworkId\": \"cog-framework-id-placeholder\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/cognitive-levels",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "cognitive-levels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assessment Contexts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/assessment-contexts",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "assessment-contexts"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Difficulty Scales",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/difficulty-scales",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "difficulty-scales"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Competence Frameworks",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/competence-frameworks",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "competence-frameworks"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Competence Types",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/competence-types",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "competence-types"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audience Levels",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/audience-levels",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "audience-levels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audience Types",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/metadata/audience-types",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "metadata", "audience-types"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Database Explorer",
+      "description": "Prisma-гийн өгөгдлийг загварын нэрээр харах, өөрчлөх Dynamic DB Explorer API",
+      "item": [
+        {
+          "name": "Get Db Tables",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/db/tables",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "db", "tables"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Db Data",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/db/AudienceLevel",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "db", "AudienceLevel"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Db Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"AUD-DB-TEMP\",\n  \"name\": \"Түр зуурын DB түвшин\",\n  \"orderIndex\": 999\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/api/v1/assessment/questions/db/AudienceLevel",
+              "host": ["{{gatewayBaseUrl}}"],
+              "path": ["api", "v1", "assessment", "questions", "db", "AudienceLevel"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

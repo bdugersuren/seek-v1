@@ -61,6 +61,7 @@ export interface QuestionOption {
   isCorrect?: boolean;
   score?: number;
   matchValue?: string;
+  acceptedValues?: { value: string; score: number }[];
 }
 
 export interface QuestionMedia {
@@ -102,6 +103,8 @@ export interface QuestionBankItem {
   answerKey: string;
   rubric: string;
   feedback: string;
+  feedbackCorrect?: string;
+  feedbackIncorrect?: string;
   scoringMode?: string;
   scoringConfig?: any;
   media: QuestionMedia[];

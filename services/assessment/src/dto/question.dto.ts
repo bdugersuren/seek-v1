@@ -16,6 +16,8 @@ export class CreateQuestionDto {
   scoringConfig?: Record<string, any>;
   ownerUserId?: string;
   media?: any[];
+  feedbackCorrect?: string;
+  feedbackIncorrect?: string;
 }
 
 export class UpdateQuestionDto {
@@ -35,4 +37,6 @@ export class UpdateQuestionDto {
   scoringConfig?: Record<string, any>;
   ownerUserId?: string;
   media?: any[];
+  feedbackCorrect?: string;
+  feedbackIncorrect?: string;
 }

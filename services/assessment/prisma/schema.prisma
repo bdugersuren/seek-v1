@@ -351,8 +351,8 @@ model QuestionVersion {
   defaultMinScore        Decimal               @default(0) @db.Decimal(10, 4)
   languageCode           String                @default("mn")
   tags                   String[]
-  feedbackCorrectly      String?               @db.Text
-  feedbackIncorrectly    String?               @db.Text
+  feedbackCorrect        String?               @db.Text
+  feedbackIncorrect      String?               @db.Text
   explanation            String?               @db.Text
   payload                Json                  @default("{}")
   answerConfig           Json                  @default("{}")

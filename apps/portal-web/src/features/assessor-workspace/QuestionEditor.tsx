@@ -46,6 +46,7 @@ interface EditorOption {
   isCorrect: boolean;
   score: number;
   matchValue?: string;
+  acceptedValues?: { value: string; score: number }[];
 }
 
 interface QuestionWizardState {
@@ -123,8 +124,8 @@ const questionTypeIcons: Record<QuestionType, React.ComponentType<any>> = {
 };
 
 const scoringModeIcons: Record<string, React.ComponentType<any>> = {
-  per_option: Icons.SingleChoose,
-  combination: Icons.MultiChoose,
+  per_option: Icons.CorrectOne,
+  combination: Icons.OneOption,
   position: Icons.Ordering,
   all_or_nothing: Icons.ListCheck,
   partial_per_pair: Icons.Matching,
@@ -134,16 +135,20 @@ const scoringModeIcons: Record<string, React.ComponentType<any>> = {
 };
 
 const scoringModeLabels: Record<string, string> = {
-  per_option: "Сонголтод харгалзах оноо",
+  per_option: "Харгалзах оноо",
   combination: "Хослолын оноо",
-  position: "Зөв байршил бүрийн оноо",
-  all_or_nothing: "Бүх байршил зөв бол оноо авна",
-  partial_per_pair: "Зөв харгалзаа бүрийн оноо",
-  partial_per_blank: "Нүд бүрийн оноо",
-  partial_per_cell: "Тус бүрийн оноо",
+  all_or_nothing: "Бүгд зөв бол",
   manual: "Гараар үнэлэх",
 };
 
+/**
+ * QuestionEditor - Асуулт засварлах болон шинээр үүсгэх Wizard цонхны үндсэн компонент.
+ * Энэ компонент нь 3 шаттай (StepOne: Асуултын агуулга, хариулт; StepTwo: Сэдэвтэй холбох; StepThree: Илгээх тойм).
+ * 
+ * @param mode - "new" эсвэл "edit" төлөвтэй байна.
+ * @param questionCode - Засварлах асуултын код.
+ * @param question - Засварлах асуултын объект (сонголттой).
+ */
 export function QuestionEditor({
   mode = "edit",
   questionCode,
@@ -155,6 +160,8 @@ export function QuestionEditor({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
+  
+  // Өгөгдсөн question эсвэл questionCode дээр үндэслэн засварлах эх асуултын мэдээллийг тодорхойлно.
   const sourceQuestion = useMemo(() => {
     if (question) return question;
     return mockQuestionBank.find(
@@ -163,20 +170,22 @@ export function QuestionEditor({
         q.code.toLowerCase() === questionCode?.toLowerCase(),
     );
   }, [question, questionCode]);
-  const [step, setStep] = useState<WizardStep>(1);
-  const [previewQuestion, setPreviewQuestion] = useState<QuestionBankItem | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [validationTouched, setValidationTouched] = useState(false);
-  const [tagInput, setTagInput] = useState("");
+
+  const [step, setStep] = useState<WizardStep>(1); // Одоогийн шатыг хадгалах state (1-3)
+  const [previewQuestion, setPreviewQuestion] = useState<QuestionBankItem | null>(null); // Урьдчилан харах асуулт
+  const [submitted, setSubmitted] = useState(false); // Илгээгдсэн эсэхийг хянах
+  const [validationTouched, setValidationTouched] = useState(false); // Шалгалтанд хэрэглэгч хүрсэн эсэх
+  const [tagInput, setTagInput] = useState(""); // Тагийн текст оруулах хэсэг
   const [state, setState] = useState<QuestionWizardState>(() =>
     buildInitialState(mode, sourceQuestion),
-  );
+  ); // Асуултын бүх мэдээллийг агуулсан үндсэн state
 
-  const [topics, setTopics] = useState<any[]>([]);
-  const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]);
-  const [cognitiveLevels, setCognitiveLevels] = useState<any[]>([]);
-  const [loadingMetadata, setLoadingMetadata] = useState(true);
+  const [topics, setTopics] = useState<any[]>([]); // Сэдвийн сангууд
+  const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]); // Хүндрэлийн түвшин
+  const [cognitiveLevels, setCognitiveLevels] = useState<any[]>([]); // Танин мэдэхүйн түвшин
+  const [loadingMetadata, setLoadingMetadata] = useState(true); // Мета өгөгдөл уншиж буй төлөв
 
+  // Компонент ачаалагдах үед баазаас сэдэв, хүндрэлийн түвшин, танин мэдэхүйн түвшнүүдийг уншина.
   useEffect(() => {
     async function loadMetadata() {
       try {
@@ -197,11 +206,18 @@ export function QuestionEditor({
     loadMetadata();
   }, []);
 
+  // Одоогийн state дээр үндэслэн асуултын шаардлагыг хангаж буй эсэхийг баталгаажуулна (checklist).
   const validation = validateWizard(state);
+  
+  // Асуултыг хэрэглэгчид урьдчилан харуулахын тулд State-ээс QuestionBankItem форматын объект бэлдэж previewQuestion-д хадгална.
   const preview = () => setPreviewQuestion(buildQuestionFromState(state, sourceQuestion));
+  
+  // State-ийг хэсэгчлэн шинэчлэх туслах функц
   const setPartial = (patch: Partial<QuestionWizardState>) =>
     setState((current) => ({ ...current, ...patch }));
 
+  // useEffect - Асуултын төрөл (state.type) болон оноо бодох хэлбэрээс (scoringMode) хамааран
+  // нийт авах боломжтой хамгийн их оноо (totalPoints) болон хамгийн бага оноог (correctPoints) динамикаар тооцоолно.
   useEffect(() => {
     if (state.scoringMode === "manual" && state.type !== "ESSAY") {
       return;
@@ -214,19 +230,26 @@ export function QuestionEditor({
       case "SINGLE_CHOICE":
       case "TRUE_FALSE":
       case "SJT":
+      case "LIKERT":
+        // Нэг сонголттой асуултын хувьд хамгийн их оноотой сонголтыг сонгоно.
         maxScore = Math.max(...state.options.map(o => o.score), 0);
         minScore = Math.min(...state.options.map(o => o.score), 0);
         break;
+      
       case "MULTIPLE_CHOICE":
         if (state.scoringMode === "combination") {
+          // Хослолын оноо идэвхтэй үед тохируулсан хослолуудаас хамгийн их болон бага оноог олно.
           const combos = state.scoringConfig?.combinations || [];
           maxScore = combos.length > 0 ? Math.max(...combos.map((c: any) => c.score), 0) : 0;
           minScore = combos.length > 0 ? Math.min(...combos.map((c: any) => c.score), 0) : 0;
         } else {
+          // Сонголт тус бүрийн оноо идэвхтэй үед эерэг оноонуудын нийлбэрээр max, сөрөг оноонуудын нийлбэрээр min-ийг тооцно.
           maxScore = state.options.filter(o => o.score > 0).reduce((sum, o) => sum + o.score, 0);
           minScore = state.options.filter(o => o.score <= 0).reduce((sum, o) => sum + o.score, 0);
         }
         break;
+
+
       case "ORDERING":
         if (state.scoringMode === "combination") {
           const combos = state.scoringConfig?.combinations || [];
@@ -237,6 +260,8 @@ export function QuestionEditor({
           minScore = 0;
         }
         break;
+
+
       case "MATCHING":
         if (state.scoringMode === "combination") {
           const combos = state.scoringConfig?.combinations || [];
@@ -261,18 +286,22 @@ export function QuestionEditor({
         maxScore = state.options.reduce((sum, o) => sum + o.score, 0);
         minScore = 0;
         break;
-      case "NUMERIC":
-      case "LIKERT":
+      case "NUMERIC":      
         maxScore = Math.max(...state.options.map(o => o.score), 0);
         minScore = 0;
         break;
+
+      case "SHORT_TEXT":
+      case "CASE_BUNDLE":
       case "ESSAY":
+        // Эссэ асуултын хувьд шалгуур бүрийн maxScore-ийн нийлбэрээр бодно.
         const rubrics = state.rubric || [];
         maxScore = rubrics.reduce((sum: number, r: any) => sum + (Number(r.maxScore) || 0), 0);
         minScore = 0;
         break;
     }
 
+    // Хэрэв тооцсон оноо өөрчлөгдсөн байвал state-д нийт оноог шинэчилнэ.
     if (state.totalPoints !== maxScore || state.correctPoints !== minScore) {
       setState(curr => ({
         ...curr,
@@ -282,6 +311,7 @@ export function QuestionEditor({
     }
   }, [state.options, state.scoringMode, state.scoringConfig, state.type, state.totalPoints, state.correctPoints, state.rubric]);
 
+  // goNext - Wizard-ийн дараагийн шат руу шилжих. Сэдэв заавал сонгосон байхыг шалгана.
   const goNext = () => {
     if (step === 2 && state.mappings.length === 0) {
       setValidationTouched(true);
@@ -291,6 +321,7 @@ export function QuestionEditor({
     setStep((current) => Math.min(3, current + 1) as WizardStep);
   };
 
+  // saveDraft - Ноорог байдлаар асуултын сангийн DB рүү хадгалах
   const saveDraft = async () => {
     try {
       const qData = buildQuestionFromState({ ...state, status: "draft" }, sourceQuestion);
@@ -305,6 +336,7 @@ export function QuestionEditor({
     }
   };
 
+  // requestApproval - Чанарын checklist шалгаад батлуулах хүсэлт илгээх (Status: approval_requested)
   const requestApproval = async () => {
     setValidationTouched(true);
     if (!validation.ready) {
@@ -503,9 +535,12 @@ export function QuestionEditor({
               onClick={() => setStep((step - 1) as WizardStep)}
               className="flex items-center gap-seek-2 active:scale-95 transition-all"
             >
-              <Icons.ArrowLeft className="h-4 w-4 stroke-[1.8]" />
+              <Icons.PrevIcon className="h-4 w-4 stroke-[1.8]" />
               <span>Буцах</span>
             </Button>
+            
+
+
             <Button
               type="button"
               variant="outline"
@@ -522,7 +557,7 @@ export function QuestionEditor({
                 className="flex items-center gap-seek-2 active:scale-95 transition-all"
               >
                 <span>Дараах</span>
-                <Icons.ArrowBigRight className="h-4 w-4 stroke-[1.8]" />
+                <Icons.NextIcon className="h-4 w-4 stroke-[1.8]" />
               </Button>
             ) : (
               <Button
@@ -590,6 +625,9 @@ function StepIndicator({
   );
 }
 
+/**
+ * StepOne - Wizard-ийн 1-р шат: Асуултын үндсэн мэдээлэл, төрөл, оноо бодох хэлбэр, хариултын сонголтуудыг тохируулах хуудас.
+ */
 function StepOne({
   state,
   setState,
@@ -619,48 +657,28 @@ function StepOne({
   const getScoringOptions = () => {
     switch (state.type) {
       case "SINGLE_CHOICE":
-        return [{ value: "per_option", label: "Сонголтод харгалзах оноо" }];
-      case "MULTIPLE_CHOICE":
-        return [
-          { value: "per_option", label: "Сонголтод харгалзах" },
-          { value: "combination", label: "Хослолын оноо" }
-        ];
       case "TRUE_FALSE":
-        return [{ value: "per_option", label: "Сонголтод харгалзах оноо" }];
-      case "ORDERING":
-        return [
-          { value: "position", label: "Зөв байршил бүрийн оноо" },
-          { value: "all_or_nothing", label: "Бүх байршил зөв бол оноо авна" },
-          { value: "combination", label: "Хослолын оноо" }
-        ];
-      case "MATCHING":
-        return [
-          { value: "partial_per_pair", label: "Зөв харгалзаа бүрийн оноо" },
-          { value: "all_or_nothing", label: "Бүх харгалзаа зөв бол оноо авна" },
-          { value: "combination", label: "Хослолын оноо" }
-        ];
-      case "SHORT_TEXT":
-        return [{ value: "manual", label: "Гараар үнэлэх" }];
-      case "FILL_BLANK":
-        return [
-          { value: "partial_per_blank", label: "Нүд бүрийн оноо" },
-          { value: "combination", label: "Хослолын оноо" }
-        ];
-      case "MATRIX":
-        return [
-          { value: "all_or_nothing", label: "Бүрэн зөв сонгосон" },
-          { value: "partial_per_cell", label: "Тус бүрийн оноо" }
-        ];
-      case "NUMERIC":
-      case "LIKERT":
-        return [{ value: "all_or_nothing", label: "Зөв хариулсан" }];
       case "SJT":
-        return [{ value: "per_option", label: "Сонголтод харгалзах оноо" }];
+      case "LIKERT":
+      case "NUMERIC":
+        return [{ value: "per_option", label: "Харгалзах оноо" }];
+
+      case "MULTIPLE_CHOICE":
+      case "ORDERING":
+      case "MATCHING":
+      case "FILL_BLANK":
+      case "MATRIX":
+        return [          
+          { value: "per_option", label: "Харгалзах оноо" },
+          { value: "combination", label: "Хослолын оноо" }
+        ];
+
+      case "SHORT_TEXT":
       case "CASE_BUNDLE":
       case "ESSAY":
         return [{ value: "manual", label: "Гараар үнэлэх" }];
       default:
-        return [{ value: "all_or_nothing", label: "Бүгд зөв бол оноо өгөх" }];
+        return [{ value: "all_or_nothing", label: "Бүгд зөв бол" }];
     }
   };
 
@@ -690,20 +708,30 @@ function StepOne({
     let nextScoringMode = "all_or_nothing";
 
     switch (newType) {
-      case "SINGLE_CHOICE":
+
       case "TRUE_FALSE":
+        nextScoringMode = "per_option";
+        nextOptions = [
+          { id: "A", label: "YES", content: "Тийм", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "NO", content: "Үгүй", isCorrect: false, score: 0, matchValue: "" },
+        ];
+        break;
+
+      case "SINGLE_CHOICE":
       case "SJT":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "a", label: "A", content: "", isCorrect: true, score: 1, matchValue: "" },
-          { id: "b", label: "B", content: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "A", label: "A", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "B", content: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "C", label: "C", content: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "D", label: "D", content: "", isCorrect: false, score: 0, matchValue: "" },
         ];
         break;
       case "MULTIPLE_CHOICE":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "a", label: "A", content: "", isCorrect: true, score: 1, matchValue: "" },
-          { id: "b", label: "B", content: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "A", label: "A", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "B", content: "", isCorrect: false, score: 0, matchValue: "" },
         ];
         break;
       case "ORDERING":
@@ -731,9 +759,9 @@ function StepOne({
         });
         break;
       case "FILL_BLANK":
-        nextScoringMode = "partial_per_blank";
+        nextScoringMode = "per_option";
         nextOptions = [
-          { id: "b1", label: "Хоосон 1", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "blank1", label: "blank1", content: "", isCorrect: true, score: 1, matchValue: "", acceptedValues: [{ value: "", score: 1 }] },
         ];
         break;
       case "MATRIX":
@@ -1333,6 +1361,27 @@ function StepOne({
               </div>
             )}
           </CollapsibleCard>
+        ) : state.type === "FILL_BLANK" ? (
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Хоосон бөглөх асуулт") + " (" + state.options.length + " нүдтэй)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.FillBlank}
+          >
+            <FillInBlankOptions
+              options={state.options}
+              onChange={(nextOpts: EditorOption[]) => setState({ options: nextOpts })}
+              scoringMode={state.scoringMode}
+              combinations={state.scoringConfig?.combinations || []}
+              onCombinationsChange={(newCombos: any[]) =>
+                setState({
+                  scoringConfig: {
+                    ...state.scoringConfig,
+                    combinations: newCombos,
+                  },
+                })
+              }
+            />
+          </CollapsibleCard>
         ) : (
           <CollapsibleCard
             title={(questionTypeLabels[state.type] || "Хариултын сонголтууд") + " (" + state.options.length + " сонголттой)"}
@@ -1453,6 +1502,9 @@ function StepOne({
   );
 }
 
+/**
+ * StepTwo - Wizard-ийн 2-р шат: Асуултыг сэдвийн сан, чадамжийн хүрээ болон Bloom-ийн түвшинтэй холбох mapping хуудас.
+ */
 function StepTwo({
   mappings,
   setMappings,
@@ -1625,6 +1677,9 @@ function StepTwo({
   );
 }
 
+/**
+ * StepThree - Wizard-ийн 3-р шат: Илгээхийн өмнөх эцсийн тойм, чанарын шалгах хуудас (checklist) болон workflow comment бичих хуудас.
+ */
 function StepThree({
   state,
   validation,
@@ -1828,6 +1883,7 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
         isCorrect: Boolean(option.isCorrect),
         score: option.score ?? (option.isCorrect ? question.points : 0),
         matchValue: option.matchValue || "",
+        acceptedValues: option.acceptedValues || [],
       }))
     : [
         { id: "a", label: "A", content: "x = 2", isCorrect: true, score: 1, matchValue: "" },
@@ -1843,9 +1899,12 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
     stem: question?.stem ?? "Дараах тэгшитгэлийн язгууруудыг олно уу: $$x^2 - 5x + 6 = 0$$",
     options,
     feedbackCorrect:
-      question?.feedback ??
+      question?.feedbackCorrect ||
+      question?.feedback ||
       "Виетийн теоремоор үржвэр нь 6, нийлбэр нь 5 байх тоонууд нь 2 ба 3 юм.",
-    feedbackIncorrect: "Буруу хариулсан үед язгуурын нийлбэр ба үржвэрийг дахин шалгана.",
+    feedbackIncorrect:
+      question?.feedbackIncorrect ||
+      "Буруу хариулсан үед язгуурын нийлбэр ба үржвэрийг дахин шалгана.",
     scoringMode: question?.scoringMode || "all_or_nothing",
     scoringConfig: (() => {
       const raw = question?.scoringConfig || 
@@ -1861,7 +1920,8 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
         combinations: (() => {
           if (raw.combinations && Array.isArray(raw.combinations) && raw.combinations.length > 0) {
             return raw.combinations.map((c: any) => ({
-              ids: Array.isArray(c.ids) ? c.ids : (Array.isArray(c.pairs) ? c.pairs : []),
+              answers: Array.isArray(c.answers) ? c.answers : (Array.isArray(c.ids) ? c.ids : []),
+              ids: Array.isArray(c.ids) ? c.ids : [],
               score: Number(c.score ?? 1)
             }));
           }
@@ -1905,6 +1965,7 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     isCorrect: option.isCorrect,
     score: option.score,
     matchValue: option.matchValue,
+    acceptedValues: option.acceptedValues || [],
   }));
 
   return {
@@ -1929,6 +1990,8 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     scoringMode: state.scoringMode,
     scoringConfig: state.scoringConfig,
     feedback: state.feedbackCorrect,
+    feedbackCorrect: state.feedbackCorrect,
+    feedbackIncorrect: state.feedbackIncorrect,
     media: (state.media || []).map((m: any) => {
       let type: "image" | "audio" | "video" | "file" = "file";
       const mType = (m.mediaType || m.type || "").toLowerCase();
@@ -1937,7 +2000,17 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
       }
       const name = m.name || m.metadata?.name || m.storageKey?.split("/").pop() || "media_file";
       const url = m.url || `/api/v1/file/objects?storageKey=${encodeURIComponent(m.storageKey)}`;
-      return { type, name, url, storageKey: m.storageKey };
+      return { 
+        type, 
+        name, 
+        url, 
+        storageKey: m.storageKey,
+        mediaType: m.mediaType || type.toUpperCase(),
+        mimeType: m.mimeType || null,
+        sizeBytes: m.sizeBytes || null,
+        orderIndex: m.orderIndex || 1,
+        metadata: m.metadata || {}
+      };
     }),
     createdBy: source?.createdBy ?? "Ассессор Б.",
     updatedBy: "Ассессор Б.",
@@ -2004,6 +2077,16 @@ interface CollapsibleCardProps {
   defaultExpanded?: boolean;
 }
 
+/**
+ * CollapsibleCard - Windows цонхтой ижил төстэй саарал толгойтой, 
+ * баруун талын Chevron toggle товчлуураар нээгдэж хаагддаг collapsible карт компонент.
+ * 
+ * @param title - Картны үндсэн гарчиг
+ * @param subtitle - Картны тайлбар текст
+ * @param icon - Толгой хэсэгт харагдах икон
+ * @param headerActions - Толгой хэсэгт баруун талд байрлах нэмэлт товчлуурууд
+ * @param defaultExpanded - Эхлээд карт нээлттэй байх эсэх (Default: true)
+ */
 function CollapsibleCard({
   title,
   subtitle,
@@ -2060,6 +2143,11 @@ function CollapsibleCard({
     </Card>
   );
 }
+
+
+
+
+
 
 function SectionHeader({
   title,
@@ -2123,6 +2211,14 @@ interface CombinationEntry {
   score: number;
 }
 
+/**
+ * CombinationMCBuilder - Олон сонголттой (MULTIPLE_CHOICE) асуултын хувьд 
+ * сонголтуудын хослолд оноо өгөх логикийг удирдах туслах компонент.
+ * 
+ * @param options - Боломжит асуултын сонголтууд (Badge хэлбэрээр сонгогдох)
+ * @param combinations - Одоо үүсгэгдсэн байгаа хослолууд болон тэдгээрийн оноо
+ * @param onChange - Хослолуудыг шинэчлэх callback
+ */
 function CombinationMCBuilder({
   options,
   combinations,
@@ -2287,6 +2383,269 @@ function CombinationMatchingBuilder({
       <Button type="button" variant="outline" size="sm" onClick={addCombination}>
         + Хослол нэмэх
       </Button>
+    </div>
+  );
+}
+
+function CombinationFITBBuilder({
+  blankCount,
+  combinations,
+  onChange,
+}: {
+  blankCount: number;
+  combinations: any[];
+  onChange: (c: any[]) => void;
+}) {
+  function addCombination() {
+    onChange([...combinations, { answers: Array(blankCount).fill(""), score: 1 }]);
+  }
+  function removeCombination(idx: number) {
+    onChange(combinations.filter((_, i) => i !== idx));
+  }
+  function setAnswer(combIdx: number, blankIdx: number, value: string) {
+    onChange(
+      combinations.map((c, i) =>
+        i === combIdx ? { ...c, answers: c.answers.map((a: any, bi: number) => (bi === blankIdx ? value : a)) } : c
+      )
+    );
+  }
+  function setScore(combIdx: number, score: number) {
+    onChange(combinations.map((c, i) => (i === combIdx ? { ...c, score } : c)));
+  }
+
+  return (
+    <div className="space-y-seek-3">
+      <div className="grid gap-seek-3 md:grid-cols-2">
+        {combinations.map((combo, combIdx) => {
+          const answers = combo.answers || combo.ids || [];
+          return (
+            <div key={combIdx} className="rounded-seek-md border border-border bg-slate-50/50 p-seek-3 space-y-seek-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800">Хослол {combIdx + 1}</span>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => removeCombination(combIdx)}
+                  className="h-6 w-6 p-0 flex items-center justify-center text-xs"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="space-y-seek-2">
+                {Array.from({ length: blankCount }, (_, bi) => (
+                  <div key={bi} className="flex items-center gap-seek-2">
+                    <span className="w-16 text-xs text-slate-500 font-mono">blank{bi + 1}:</span>
+                    <Input
+                      type="text"
+                      value={answers[bi] ?? ""}
+                      onChange={(e) => setAnswer(combIdx, bi, e.target.value)}
+                      placeholder={`Хоосон зайны утга`}
+                      className="flex-1 h-8 text-xs bg-white"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="pt-seek-2 border-t border-slate-100 flex items-center justify-end gap-seek-2">
+                <span className="text-xs text-slate-500">Оноо:</span>
+                <Input
+                  type="number"
+                  value={combo.score}
+                  onChange={(e) => setScore(combIdx, Number(e.target.value))}
+                  className="w-16 h-8 text-center text-xs bg-white"
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={addCombination}>
+        + Хослол нэмэх
+      </Button>
+    </div>
+  );
+}
+
+function FillInBlankOptions({
+  options,
+  onChange,
+  scoringMode,
+  combinations,
+  onCombinationsChange,
+}: {
+  options: EditorOption[];
+  onChange: (opts: EditorOption[]) => void;
+  scoringMode: string;
+  combinations: any[];
+  onCombinationsChange: (c: any[]) => void;
+}) {
+  function addBlank() {
+    const n = options.length + 1;
+    onChange([
+      ...options,
+      {
+        id: `blank${n}`,
+        label: `blank${n}`,
+        content: "",
+        isCorrect: true,
+        score: 1,
+        matchValue: "",
+        acceptedValues: [{ value: "", score: 1 }],
+      },
+    ]);
+  }
+
+  function removeBlank(idx: number) {
+    if (options.length <= 1) return;
+    onChange(
+      options
+        .filter((_, i) => i !== idx)
+        .map((o, i) => ({
+          ...o,
+          id: `blank${i + 1}`,
+          label: `blank${i + 1}`,
+        }))
+    );
+  }
+
+  function addAcceptedValue(blankIdx: number) {
+    onChange(
+      options.map((o, i) =>
+        i === blankIdx
+          ? {
+              ...o,
+              acceptedValues: [...(o.acceptedValues ?? []), { value: "", score: 1 }],
+            }
+          : o
+      )
+    );
+  }
+
+  function removeAcceptedValue(blankIdx: number, valIdx: number) {
+    onChange(
+      options.map((o, i) =>
+        i === blankIdx
+          ? {
+              ...o,
+              acceptedValues: (o.acceptedValues ?? []).filter((_, vi) => vi !== valIdx),
+            }
+          : o
+      )
+    );
+  }
+
+  function updateAcceptedValue(blankIdx: number, valIdx: number, field: "value" | "score", val: string | number) {
+    onChange(
+      options.map((o, i) =>
+        i === blankIdx
+          ? {
+              ...o,
+              acceptedValues: (o.acceptedValues ?? []).map((av, vi) => (vi === valIdx ? { ...av, [field]: val } : av)),
+            }
+          : o
+      )
+    );
+  }
+
+  return (
+    <div className="space-y-seek-4">
+      {scoringMode === "per_option" ? (
+        <>
+          <div className="space-y-seek-4">
+            {options.map((opt, idx) => (
+              <div key={opt.id} className="overflow-hidden rounded-seek-lg border border-border bg-surface shadow-seek-sm">
+                <div className="flex items-center justify-between border-b border-border bg-slate-50 px-seek-3 py-seek-2">
+                  <div className="flex items-center gap-seek-2">
+                    <Badge variant="secondary">blank{idx + 1}</Badge>
+                  </div>
+                  {options.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => removeBlank(idx)}
+                      className="h-6 px-seek-2 text-xs"
+                    >
+                      🗑 Устгах
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-seek-3 p-seek-4 bg-white">
+                  {(opt.acceptedValues ?? []).map((av, valIdx) => (
+                    <div key={valIdx} className="flex items-center gap-seek-3 pb-seek-2 border-b border-slate-50 last:border-0 last:pb-0">
+                      <div className="flex-1 min-w-0">
+                        <Input
+                          placeholder="Зөвшөөрөгдөх хариулт..."
+                          value={av.value}
+                          onChange={(e) => updateAcceptedValue(idx, valIdx, "value", e.target.value)}
+                        />
+                      </div>
+                      <div className="flex shrink-0 items-center gap-seek-2 bg-slate-50 border border-border rounded-seek-md px-seek-3 h-10 w-32">
+                        <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                        <Input
+                          type="number"
+                          step="any"
+                          value={av.score}
+                          onChange={(e) => updateAcceptedValue(idx, valIdx, "score", Number(e.target.value))}
+                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
+                        />
+                      </div>
+                      {(opt.acceptedValues ?? []).length > 1 && (
+                        <Button
+                          type="button"
+                          variant="danger"
+                          onClick={() => removeAcceptedValue(idx, valIdx)}
+                          className="shrink-0 h-10 w-10 p-0 flex items-center justify-center"
+                        >
+                          ✕
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="pt-seek-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addAcceptedValue(idx)}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                    >
+                      + Хариулт нэмэх
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button type="button" variant="outline" onClick={addBlank}>
+            + Хоосон нүд нэмэх
+          </Button>
+        </>
+      ) : (
+        <>
+          <div className="mb-seek-3 flex items-center gap-seek-2 border-b border-border pb-seek-3">
+            <span className="text-xs font-semibold text-slate-500">Хоосон нүднүүд:</span>
+            {options.map((_, idx) => (
+              <Badge key={idx} variant="secondary">
+                blank{idx + 1}
+              </Badge>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addBlank}>
+              + Нүд нэмэх
+            </Button>
+            {options.length > 1 && (
+              <Button type="button" variant="danger" size="sm" onClick={() => removeBlank(options.length - 1)}>
+                − Хасах
+              </Button>
+            )}
+          </div>
+          <CombinationFITBBuilder
+            blankCount={options.length}
+            combinations={combinations}
+            onChange={onCombinationsChange}
+          />
+        </>
+      )}
     </div>
   );
 }

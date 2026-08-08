@@ -61,6 +61,12 @@ import { BodyIcon } from "./BodyIcon";
 import { AttachmentIcon } from "./AttachmentIcon";
 import { AddRow } from "./AddRow";
 
+import { PrevIcon } from "./PrevIcon";
+import { NextIcon } from "./NextIcon";
+import { PerOption } from "./PerOption";
+import { CorrectOne } from "./CorrectOne";
+import { GroupOne } from "./GroupOne";
+import { OneOption } from "./OneOption";
 
 export const Icons = {
   Menu,
@@ -124,5 +130,12 @@ export const Icons = {
   BodyIcon,
   AttachmentIcon,
   AddRow,
+  
+  PrevIcon,
+  NextIcon,
+  PerOption,
+  CorrectOne,
+  GroupOne,
+  OneOption,
 };
 
