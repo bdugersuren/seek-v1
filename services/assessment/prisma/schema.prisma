@@ -309,6 +309,9 @@ model Question {
   deletedBy                 String?
   deleteReason              String?
 
+  parentId                String?
+  parent                  Question?                     @relation("QuestionParentChild", fields: [parentId], references: [id])
+  children                Question[]                    @relation("QuestionParentChild")
   versions                QuestionVersion[]             @relation("QuestionVersions")
   currentPublishedVersion QuestionVersion?              @relation("CurrentPublishedQuestionVersion", fields: [currentPublishedVersionId], references: [id], onDelete: SetNull)
   classifications         TopicQuestionClassification[]
@@ -319,6 +322,7 @@ model Question {
   @@index([tenantId, lifecycleStatus])
   @@index([lifecycleStatus])
   @@index([ownerOrganizationId])
+  @@index([parentId])
   @@map("question")
 }
 

@@ -1,8 +1,13 @@
 FROM node:18-slim AS builder
 WORKDIR /app
+RUN apt-get update -y && apt-get install -y openssl
 RUN npm install -g pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @seek/contracts build
+WORKDIR /app/services/file
+RUN /app/node_modules/.bin/prisma generate --schema=prisma/schema.prisma
+WORKDIR /app
 RUN pnpm --filter @seek/file build
 
 FROM node:18-slim

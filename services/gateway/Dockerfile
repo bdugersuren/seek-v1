@@ -4,6 +4,7 @@ RUN apt-get update -y && apt-get install -y openssl
 RUN npm install -g pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @seek/contracts build
 RUN pnpm --filter @seek/gateway build
 
 FROM node:18-slim

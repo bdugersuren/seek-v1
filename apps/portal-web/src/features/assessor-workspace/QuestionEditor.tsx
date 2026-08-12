@@ -416,27 +416,41 @@ export function QuestionEditor({
               })
             }
             addOption={() => {
-              setState((current) => ({
-                ...current,
-                options: [
+              setState((current) => {
+                const nextOptions = [
                   ...current.options,
                   {
-                    id: String.fromCharCode(97 + current.options.length),
-                    label: String.fromCharCode(65 + current.options.length),
+                    id: Math.random().toString(36).substring(2, 9),
+                    label: "",
                     content: "",
                     isCorrect: false,
                     score: 0,
                   },
-                ],
-              }));
+                ];
+                const updatedOptions = nextOptions.map((opt, idx) => ({
+                  ...opt,
+                  label: String.fromCharCode(65 + idx),
+                }));
+                return {
+                  ...current,
+                  options: updatedOptions,
+                };
+              });
               showToast("Шинэ хариултын сонголт амжилттай нэмэгдлээ.", "success");
             }}
-            removeOption={(index) =>
-              setState((current) => ({
-                ...current,
-                options: current.options.filter((_, optionIndex) => optionIndex !== index),
-              }))
-            }
+            removeOption={(index) => {
+              setState((current) => {
+                const nextOptions = current.options.filter((_, optionIndex) => optionIndex !== index);
+                const updatedOptions = nextOptions.map((opt, idx) => ({
+                  ...opt,
+                  label: String.fromCharCode(65 + idx),
+                }));
+                return {
+                  ...current,
+                  options: updatedOptions,
+                };
+              });
+            }}
             tagInput={tagInput}
             setTagInput={setTagInput}
             addLeftMatchingOption={() => {

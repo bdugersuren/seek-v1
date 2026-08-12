@@ -1,0 +1,5 @@
+[11/Aug/2026:02:27:02 +0000] 404 - GET http oj.know.mn "/offline" [Client 172.18.0.1] [Length 183] [Gzip 3.21] "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0" "http://oj.know.mn/problems/BS232401003/"
+[11/Aug/2026:02:27:02 +0000] 400 - GET http oj.know.mn "/favicon.ico" [Client 127.0.0.1] [Length 230] [Gzip -] "-" "-"
+[11/Aug/2026:04:11:41 +0000] 404 - GET http oj.know.mn "/auth/verify/?token=M0UdJmbf0MnEpV1Io1tJEOToU-xuR34DiMIP3BI6rjA" [Client 172.18.0.1] [Length 183] [Gzip 3.21] "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36" "-"
+[11/Aug/2026:04:11:41 +0000] 400 - GET http oj.know.mn "/favicon.ico" [Client 127.0.0.1] [Length 230] [Gzip -] "-" "-"
+[11/Aug/2026:04:19:56 +0000] 400 - GET http oj.know.mn "/favicon.ico" [Client 127.0.0.1] [Length 230] [Gzip -] "-" "-"

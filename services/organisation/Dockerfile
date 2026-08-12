@@ -3,6 +3,7 @@ WORKDIR /app
 RUN npm install -g pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @seek/contracts build
 RUN pnpm --filter @seek/organisation build
 
 FROM node:18-slim

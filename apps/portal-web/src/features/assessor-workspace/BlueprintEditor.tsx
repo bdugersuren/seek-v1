@@ -786,7 +786,7 @@ function QuestionPoolModal({
   const [query, setQuery] = useState("");
   const available = questions.filter(
     (question: QuestionBankItem) =>
-      (question.status === "approved" || question.status === "published") &&
+      (question.status === "approved" || question.status === "published" || question.status === "draft") &&
       (question.title.toLowerCase().includes(query.toLowerCase()) || question.code.toLowerCase().includes(query.toLowerCase())),
   );
 
@@ -796,7 +796,7 @@ function QuestionPoolModal({
         <div className="flex items-start justify-between gap-seek-4">
           <div>
             <Text className="text-xl font-bold">Question pool сонгох</Text>
-            <Text variant="muted" className="text-sm">{section.name} · зөвхөн approved/published даалгавар</Text>
+            <Text variant="muted" className="text-sm">{section.name} · approved/published/draft даалгавар</Text>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={onClose}>Хаах</Button>
         </div>

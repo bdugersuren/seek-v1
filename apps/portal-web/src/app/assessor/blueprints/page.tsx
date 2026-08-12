@@ -22,7 +22,7 @@ import {
   buildTopicDescendantMap,
   type ExplorerTopicNode,
 } from "@/components/workspace";
-import { getBlueprintSummary, fetchBlueprints } from "@/features/assessor-workspace/api";
+import { getBlueprintSummary, fetchBlueprints, fetchQuestions } from "@/features/assessor-workspace/api";
 import {
   mockBlueprints,
   mockQuizzes,
@@ -126,6 +126,7 @@ const blueprints: Blueprint[] = [
 
 export default function BlueprintsPage() {
   const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
+  const [questionsMap, setQuestionsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -133,9 +134,17 @@ export default function BlueprintsPage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await fetchBlueprints();
+        const [bpData, qData] = await Promise.all([
+          fetchBlueprints(),
+          fetchQuestions()
+        ]);
         if (active) {
-          setBlueprints(data);
+          setBlueprints(bpData);
+          const qMap: Record<string, any> = {};
+          qData.forEach(q => {
+            qMap[q.id] = q;
+          });
+          setQuestionsMap(qMap);
         }
       } catch (err) {
         console.error("Failed to load blueprints", err);
@@ -337,7 +346,7 @@ export default function BlueprintsPage() {
         <Pagination total={filtered.length} />
       </main>
 
-      {preview && <BlueprintPreviewModal blueprint={preview} onClose={() => setPreview(null)} />}
+      {preview && <BlueprintPreviewModal blueprint={preview} questionsMap={questionsMap} onClose={() => setPreview(null)} />}
     </div>
   );
 }
@@ -467,7 +476,7 @@ function isBlueprintApproved(blueprint: Blueprint) {
   return blueprint.status === "ready" || blueprint.status === "published";
 }
 
-function BlueprintPreviewModal({ blueprint, onClose }: { blueprint: Blueprint; onClose: () => void }) {
+function BlueprintPreviewModal({ blueprint, questionsMap, onClose }: { blueprint: Blueprint; questionsMap: Record<string, any>; onClose: () => void }) {
   const summary = getBlueprintSummary(blueprint);
   const checks = [
     { label: "Ерөнхий мэдээлэл бөглөгдсөн", ok: blueprint.title.length > 0 },
@@ -505,6 +514,21 @@ function BlueprintPreviewModal({ blueprint, onClose }: { blueprint: Blueprint; o
                 </Badge>
               </div>
               <Text variant="muted" className="mt-1 text-sm">{section.description}</Text>
+              {section.selectedQuestionIds.length > 0 && (
+                <div className="mt-seek-3 space-y-2 border-t border-border pt-seek-3">
+                  <Text className="text-xs font-semibold text-muted-foreground">Сонгосон асуултууд:</Text>
+                  <ul className="list-inside list-disc text-sm space-y-1">
+                    {section.selectedQuestionIds.map((qId) => {
+                      const q = questionsMap[qId];
+                      return (
+                        <li key={qId} className="text-foreground">
+                          {q ? `${q.code} · ${q.title} (${q.type})` : `Асуулт ID: ${qId}`}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
         </div>

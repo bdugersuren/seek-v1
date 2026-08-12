@@ -392,7 +392,7 @@ async function seedQuestions() {
     await exec(`INSERT INTO question (id, code, "lifecycleStatus", "ownerUserId", "ownerOrganizationId", "createdBy", "createdAt", "updatedAt")
       VALUES (${q(item.id)}, ${q(item.code)}, ${q(item.status === "DRAFT" ? "ACTIVE" : "ACTIVE")}, 'mock-assessor', 'org-demo', 'mock-assessor', now(), now())
       ON CONFLICT (code) DO UPDATE SET "ownerUserId" = EXCLUDED."ownerUserId", "updatedAt" = now()`);
-    await exec(`INSERT INTO question_version (id, "questionId", "versionNumber", "versionStatus", "type", title, body, "defaultTimeSeconds", "defaultMaxScore", tags, "feedbackCorrectly", explanation, payload, "answerConfig", "presentationConfig", "createdBy", "createdAt", "updatedAt")
+    await exec(`INSERT INTO question_version (id, "questionId", "versionNumber", "versionStatus", "type", title, body, "defaultTimeSeconds", "defaultMaxScore", tags, "feedbackCorrect", explanation, payload, "answerConfig", "presentationConfig", "createdBy", "createdAt", "updatedAt")
       VALUES (${q(item.versionId)}, ${q(item.id)}, 1, ${q(item.status)}, ${q(item.type.toUpperCase()) as any}, ${q(item.title)}, ${q(item.body)}, ${q(item.durationSeconds)}, ${q(item.points)}, ARRAY[${item.tags.map(q).join(",")}], ${q(item.feedback)}, ${q(item.feedback)}, ${json({ prompt: item.body })}, ${json({ answerKey: item.answerKey, options: item.options })}, ${json({ frontendType: item.type })}, 'mock-assessor', now(), now())
       ON CONFLICT ("questionId", "versionNumber") DO UPDATE SET "versionStatus" = EXCLUDED."versionStatus", title = EXCLUDED.title, body = EXCLUDED.body, payload = EXCLUDED.payload, "answerConfig" = EXCLUDED."answerConfig", "updatedAt" = now()`);
     if (item.status === "PUBLISHED") {
