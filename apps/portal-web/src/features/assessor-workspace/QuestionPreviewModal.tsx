@@ -861,7 +861,7 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
         <Text variant="muted" className="mb-2 text-sm font-semibold">
           {question.type === "NUMERIC"
             ? "Тоон хариулт шалгах:"
-            : "Хоосон зайг нөхөх тохиргоо:"}
+            : "Хоосон зайг нөхөх тохиргоо ба хувилбарууд:"}
         </Text>
         {question.type === "NUMERIC" ? (
           <div className="flex items-center gap-3">
@@ -881,16 +881,40 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
             </Badge>
           </div>
         ) : (
-          <div className="space-y-2">
-            {question.options.map((opt, idx) => (
-              <div key={opt.id || idx} className="flex items-center justify-between rounded-seek-md border border-slate-200 bg-slate-50/50 p-2.5 text-xs">
-                <span className="font-bold text-slate-700">Нүд {idx + 1}: {opt.label}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600">Зөв утгууд: {(opt.acceptedValues || []).map(v => v.value).join(", ") || opt.content || "-"}</span>
-                  <Badge variant="success">+{opt.score || 1} оноо</Badge>
+          <div className="space-y-3">
+            {question.options.map((opt, idx) => {
+              const accepted = opt.acceptedValues && opt.acceptedValues.length > 0
+                ? opt.acceptedValues
+                : [{ value: opt.content || "-", score: opt.score || 1, caseSensitive: false }];
+
+              return (
+                <div key={opt.id || idx} className="rounded-seek-md border border-slate-200 border-l-[4px] border-l-teal-500 bg-white p-3 text-xs shadow-seek-xs space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                    <span className="font-bold text-teal-900">
+                      Хоосон зай #{idx + 1} ({`{{blank_${idx + 1}}}`} / {`[[${idx + 1}]]`})
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      {accepted.length} зөвшөөрөгдөх хувилбартай
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {accepted.map((av: any, aIdx: number) => (
+                      <div key={aIdx} className="flex items-center gap-1.5 bg-slate-50 border border-border rounded-seek-md px-2.5 py-1">
+                        <span className="font-semibold text-slate-800 font-mono">"{av.value}"</span>
+                        <Badge variant="success" className="text-[10px] py-0 px-1 font-mono">
+                          +{av.score || 1} оноо
+                        </Badge>
+                        {av.caseSensitive && (
+                          <Badge variant="secondary" className="text-[9px] py-0 px-1" title="Том жижиг үсэг ялгана">
+                            Aa
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

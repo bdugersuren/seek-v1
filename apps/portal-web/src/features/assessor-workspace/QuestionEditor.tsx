@@ -236,36 +236,24 @@ export function QuestionEditor({
       case "TRUE_FALSE":
       case "SJT":
       case "LIKERT":
-        // Нэг сонголттой асуултын хувьд хамгийн их оноотой сонголтыг сонгоно.
-        maxScore = Math.max(...state.options.map(o => o.score), 0);
-        minScore = Math.min(...state.options.map(o => o.score), 0);
+        // Олон эерэг болон сөрөг оноотой сонголтууд байж болох ба шалгуулагч 1 сонголт хийнэ.
+        maxScore = state.options.length > 0 ? Math.max(...state.options.map(o => o.score), 0) : 0;
+        minScore = state.options.length > 0 ? Math.min(...state.options.map(o => o.score), 0) : 0;
         break;
-      
       case "MULTIPLE_CHOICE":
         if (state.scoringMode === "combination") {
-          // Хослолын оноо идэвхтэй үед тохируулсан хослолуудаас хамгийн их болон бага оноог олно.
           const combos = state.scoringConfig?.combinations || [];
           maxScore = combos.length > 0 ? Math.max(...combos.map((c: any) => c.score), 0) : 0;
           minScore = combos.length > 0 ? Math.min(...combos.map((c: any) => c.score), 0) : 0;
         } else {
-          // Сонголт тус бүрийн оноо идэвхтэй үед эерэг оноонуудын нийлбэрээр max, сөрөг оноонуудын нийлбэрээр min-ийг тооцно.
-          maxScore = state.options.filter(o => o.score > 0).reduce((sum, o) => sum + o.score, 0);
-          minScore = state.options.filter(o => o.score <= 0).reduce((sum, o) => sum + o.score, 0);
+          maxScore = state.options.filter(o => o.isCorrect || o.score > 0).reduce((sum, o) => sum + (o.score > 0 ? o.score : 0), 0);
+          minScore = state.options.filter(o => o.score < 0).reduce((sum, o) => sum + o.score, 0);
         }
         break;
-
-
       case "ORDERING":
-        if (state.scoringMode === "combination") {
-          const combos = state.scoringConfig?.combinations || [];
-          maxScore = combos.length > 0 ? Math.max(...combos.map((c: any) => c.score), 0) : 0;
-          minScore = combos.length > 0 ? Math.min(...combos.map((c: any) => c.score), 0) : 0;
-        } else {
-          maxScore = state.options.reduce((sum, o) => sum + o.score, 0);
-          minScore = 0;
-        }
+        maxScore = state.options.reduce((sum, o) => sum + (o.score > 0 ? o.score : 0), 0);
+        minScore = 0;
         break;
-
 
       case "MATCHING":
         if (state.scoringMode === "combination") {
@@ -273,17 +261,25 @@ export function QuestionEditor({
           maxScore = combos.length > 0 ? Math.max(...combos.map((c: any) => c.score), 0) : 0;
           minScore = combos.length > 0 ? Math.min(...combos.map((c: any) => c.score), 0) : 0;
         } else {
-          maxScore = state.options.reduce((sum, o) => sum + o.score, 0);
+          maxScore = state.options.reduce((sum, o) => sum + (o.score > 0 ? o.score : 0), 0);
           minScore = 0;
         }
         break;
+
       case "FILL_BLANK":
         if (state.scoringMode === "combination") {
           const combos = state.scoringConfig?.combinations || [];
           maxScore = combos.length > 0 ? Math.max(...combos.map((c: any) => c.score), 0) : 0;
           minScore = combos.length > 0 ? Math.min(...combos.map((c: any) => c.score), 0) : 0;
         } else {
-          maxScore = state.options.reduce((sum, o) => sum + o.score, 0);
+          // Хоосон нүд бүрийн зөвшөөрөгдөх хувилбаруудын хамгийн өндөр онооны нийлбэр
+          maxScore = state.options.reduce((sum, o) => {
+            const accepted = o.acceptedValues || [];
+            const blankMax = accepted.length > 0
+              ? Math.max(...accepted.map((av: any) => Number(av.score) || 0))
+              : (o.score || 0);
+            return sum + blankMax;
+          }, 0);
           minScore = 0;
         }
         break;
@@ -340,6 +336,18 @@ export function QuestionEditor({
       showToast("Хадгалахад алдаа гарлаа.", "danger");
     }
   };
+
+  // Ctrl+S / Cmd+S товчлуураар ноорог хадгалах
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        saveDraft();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [state, sourceQuestion, mode]);
 
   // requestApproval - Чанарын checklist шалгаад батлуулах хүсэлт илгээх (Status: approval_requested)
   const requestApproval = async () => {
@@ -817,19 +825,6 @@ function StepOne({
     });
   };
 
-  const handleUpdateOption = (index: number, patch: Partial<EditorOption>) => {
-    if ((state.type === "SINGLE_CHOICE" || state.type === "TRUE_FALSE") && patch.isCorrect) {
-      const nextOptions = state.options.map((opt, i) => ({
-        ...opt,
-        isCorrect: i === index ? true : false,
-        score: i === index ? (opt.score > 0 ? opt.score : (state.totalPoints || 1)) : (opt.score > 0 ? 0 : opt.score),
-      }));
-      setState({ options: nextOptions });
-    } else {
-      updateOption(index, patch);
-    }
-  };
-
   return (
     <div className="grid gap-seek-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
       <aside className="space-y-seek-4 xl:sticky xl:top-28 xl:self-start">
@@ -1009,18 +1004,24 @@ function StepOne({
       <main className="space-y-seek-5">
         {/* Removed grid layout for question type selectors */}
 
-        <CollapsibleCard title="Асуултын гарчиг" icon={Icons.Type}>
-          <div className="space-y-seek-3" role="group">
-          <Input
-            value={state.code}
-            onChange={(event) => setState({ title: event.target.value })}
-            placeholder="Жишээ: Квадрат тэгшитгэлийн язгуур"
-          />
-          <Input
-            value={state.title}
-            onChange={(event) => setState({ title: event.target.value })}
-            placeholder="Жишээ: Квадрат тэгшитгэлийн язгуур"
-          />
+        <CollapsibleCard title="Асуултын үндсэн мэдээлэл" icon={Icons.Type}>
+          <div className="grid gap-seek-3 sm:grid-cols-3" role="group">
+            <FieldLabel label="Асуултын код">
+              <Input
+                value={state.code}
+                onChange={(event) => setState({ code: event.target.value })}
+                placeholder="Жишээ: Q-MATH-01"
+              />
+            </FieldLabel>
+            <div className="sm:col-span-2">
+              <FieldLabel label="Асуултын гарчиг">
+                <Input
+                  value={state.title}
+                  onChange={(event) => setState({ title: event.target.value })}
+                  placeholder="Жишээ: Квадрат тэгшитгэлийн язгуур"
+                />
+              </FieldLabel>
+            </div>
           </div>
         </CollapsibleCard>
 
@@ -1098,157 +1099,49 @@ function StepOne({
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => document.getElementById('media-file-upload')?.click()}
+                className="flex items-center gap-seek-2"
               >
-                + Файл сонгох
+                <Icons.Upload className="h-4 w-4 stroke-[1.8]" />
+                <span>Файл сонгох</span>
               </Button>
-              <Text className="text-xs text-muted-foreground">Зураг, аудио, видео файлууд оруулж болно.</Text>
             </div>
 
-            <div className="grid gap-seek-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(state.media || []).map((m: any, index: number) => {
-                const downloadUrl = `/api/v1/file/objects?storageKey=${encodeURIComponent(m.storageKey)}`;
-                return (
-                  <div key={m.id || index} className="relative flex flex-col justify-between rounded-seek-md border border-border bg-muted-background/40 p-seek-3">
-                    <div className="flex items-start justify-between gap-seek-2">
-                      <div className="overflow-hidden">
-                        <Text className="truncate text-xs font-bold text-slate-800">{(m.storageKey || "").split('/').pop() || "үл мэдэгдэх файл"}</Text>
-                        <Text className="text-[10px] text-muted-foreground">{m.mediaType} • {(m.sizeBytes / 1024 / 1024).toFixed(2)} MB</Text>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        className="h-6 w-6 p-0 text-xs"
-                        onClick={() => {
-                          const nextMedia = (state.media || []).filter((_: any, i: number) => i !== index);
-                          setState({ media: nextMedia });
-                        }}
-                      >
-                        ✕
-                      </Button>
+            {state.media && state.media.length > 0 && (
+              <div className="grid gap-seek-3 sm:grid-cols-2 lg:grid-cols-3">
+                {state.media.map((m: any, idx: number) => (
+                  <div key={m.id || idx} className="flex items-center justify-between p-seek-3 rounded-seek-md border border-border bg-slate-50 text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <Icons.AttachmentIcon className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                      <span className="truncate">{m.storageKey}</span>
                     </div>
-                    
-                    <div className="mt-seek-3 flex justify-center bg-surface rounded-seek-sm p-1">
-                      {m.mediaType === "IMAGE" && (
-                        <img src={downloadUrl} alt="Preview" className="max-h-24 object-contain" />
-                      )}
-                      {m.mediaType === "AUDIO" && (
-                        <audio src={downloadUrl} controls className="w-full h-8" />
-                      )}
-                      {m.mediaType === "VIDEO" && (
-                        <video src={downloadUrl} controls className="max-h-24 w-full object-contain" />
-                      )}
-                    </div>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-xs"
+                      onClick={() => setState({ media: state.media.filter((_: any, i: number) => i !== idx) })}
+                    >
+                      ✕
+                    </Button>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </CollapsibleCard>
-
-
-
-
-
-
-
-
-
-
-
-
 
         {state.type === "ESSAY" ? (
           <CollapsibleCard
             title={(questionTypeLabels[state.type] || "Үнэлгээний рубрик (Grading Rubric)") + " (" + (state.rubric || []).length + " шалгууртай)"}
             subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
             icon={questionTypeIcons[state.type] || Icons.ListCheck}
-            headerActions={
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const currentRubric = state.rubric || [];
-                  setState({
-                    rubric: [
-                      ...currentRubric,
-                      { id: `c${currentRubric.length + 1}`, criteria: "", maxScore: 1, description: "" }
-                    ]
-                  });
-                  showToast("Үнэлгээний шалгуур амжилттай нэмэгдлээ.", "success");
-                }}
-              >
-                + Шалгуур нэмэх
-              </Button>
-            }
           >
-            
-            <div className="space-y-seek-4">
-              {(state.rubric || []).length === 0 ? (
-                <Text variant="muted" className="text-sm">Үнэлгээний рубрик хоосон байна. Багш асуултыг засахдаа шалгуур нэмнэ үү.</Text>
-              ) : (
-                (state.rubric || []).map((rub: any, index: number) => (
-                  <div key={rub.id || index} className="rounded-seek-lg border border-border bg-surface p-seek-4 space-y-seek-3">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="success">Шалгуур {index + 1}</Badge>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        size="sm"
-                        onClick={() => {
-                          const nextRubric = (state.rubric || []).filter((_: any, i: number) => i !== index);
-                          setState({ rubric: nextRubric });
-                        }}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                    
-                    <div className="grid gap-seek-4 md:grid-cols-[2fr_1fr]">
-                      <FieldLabel label="Шалгуурын нэр">
-                        <Input
-                          placeholder="Жишээ нь: Бодолтын явц"
-                          value={rub.criteria}
-                          onChange={(e) => {
-                            const nextRubric = (state.rubric || []).map((r: any, i: number) =>
-                              i === index ? { ...r, criteria: e.target.value } : r
-                            );
-                            setState({ rubric: nextRubric });
-                          }}
-                        />
-                      </FieldLabel>
-                      <FieldLabel label="Авах дээд оноо">
-                        <Input
-                          type="number"
-                          value={rub.maxScore}
-                          onChange={(e) => {
-                            const nextRubric = (state.rubric || []).map((r: any, i: number) =>
-                              i === index ? { ...r, maxScore: Number(e.target.value) } : r
-                            );
-                            setState({ rubric: nextRubric });
-                          }}
-                        />
-                      </FieldLabel>
-                    </div>
-                    
-                    <FieldLabel label="Шалгуурын тайлбар">
-                      <Textarea
-                        rows={2}
-                        placeholder="Жишээ нь: Бодолтын алхмуудыг зөв хийсэн байдал"
-                        value={rub.description}
-                        onChange={(e) => {
-                          const nextRubric = (state.rubric || []).map((r: any, i: number) =>
-                            i === index ? { ...r, description: e.target.value } : r
-                          );
-                          setState({ rubric: nextRubric });
-                        }}
-                      />
-                    </FieldLabel>
-                  </div>
-                ))
-              )}
-            </div>
+            <EssayRubricBuilder
+              rubric={state.rubric || []}
+              onChange={(nextRubric) => setState({ rubric: nextRubric })}
+            />
           </CollapsibleCard>
         ) : state.type === "NUMERIC" ? (
           <CollapsibleCard
@@ -1256,46 +1149,90 @@ function StepOne({
             subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
             icon={questionTypeIcons[state.type] || Icons.Hash}
           >
-            <div className="grid gap-seek-4 md:grid-cols-2">
-              <FieldLabel label="Зөв тоон хариулт">
-                <Input
-                  type="number"
-                  placeholder="Жишээ нь: 12.5"
-                  value={state.options[0]?.content || ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const nextOptions = [{
-                      id: "num-ans",
-                      label: "Хариулт",
-                      content: val,
-                      isCorrect: true,
-                      score: state.totalPoints,
-                      matchValue: state.options[0]?.matchValue || "0"
-                    }];
-                    setState({ options: nextOptions });
-                  }}
-                />
-              </FieldLabel>
-              <FieldLabel label="Хүлцэх алдаа (Tolerance)">
-                <Input
-                  type="number"
-                  placeholder="Жишээ нь: 0.1"
-                  value={state.options[0]?.matchValue || ""}
-                  onChange={(e) => {
-                    const tol = e.target.value;
-                    const nextOptions = [{
-                      id: "num-ans",
-                      label: "Хариулт",
-                      content: state.options[0]?.content || "",
-                      isCorrect: true,
-                      score: state.totalPoints,
-                      matchValue: tol
-                    }];
-                    setState({ options: nextOptions });
-                  }}
-                />
-              </FieldLabel>
-            </div>
+            <NumericBuilder
+              option={state.options[0] || { id: "num-ans", label: "Хариулт", content: "", isCorrect: true, score: state.totalPoints, matchValue: "0" }}
+              totalPoints={state.totalPoints}
+              onChange={(nextOpt) => setState({ options: [nextOpt] })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "TRUE_FALSE" ? (
+          <CollapsibleCard
+            title={questionTypeLabels[state.type] || "Үнэн / Худал сонголт"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.TrueFalse}
+          >
+            <TrueFalseBuilder
+              options={state.options}
+              totalPoints={state.totalPoints}
+              onChange={(nextOpts) => setState({ options: nextOpts })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "ORDERING" ? (
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Эрэмбэлэх даалгавар") + " (" + state.options.length + " алхамтай)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.Ordering}
+          >
+            <OrderingBuilder
+              options={state.options}
+              onChange={(nextOpts) => setState({ options: nextOpts })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "SHORT_TEXT" ? (
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Богино текст") + " (" + state.options.length + " түлхүүр үгтэй)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.ShortText}
+          >
+            <ShortTextBuilder
+              options={state.options}
+              onChange={(nextOpts) => setState({ options: nextOpts })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "MATRIX" ? (
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Матриц хүснэгт") + " (" + state.options.length + " мөртэй)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.Matrix}
+          >
+            <MatrixBuilder
+              options={state.options}
+              scoringConfig={state.scoringConfig || {}}
+              onChange={(nextOpts) => setState({ options: nextOpts })}
+              onScoringConfigChange={(nextCfg) => setState({ scoringConfig: nextCfg })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "LIKERT" ? (
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Ликерт хэмжүүр") + " (" + state.options.length + " түвшинтэй)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.Likert}
+          >
+            <LikertBuilder
+              options={state.options}
+              onChange={(nextOpts) => setState({ options: nextOpts })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "SJT" ? (
+          <CollapsibleCard
+            title={(questionTypeLabels[state.type] || "Нөхцөлт даалгавар (SJT)") + " (" + state.options.length + " сонголттой)"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.Sjt}
+          >
+            <SjtBuilder
+              options={state.options}
+              onChange={(nextOpts) => setState({ options: nextOpts })}
+            />
+          </CollapsibleCard>
+        ) : state.type === "CASE_BUNDLE" ? (
+          <CollapsibleCard
+            title={questionTypeLabels[state.type] || "Кэйс даалгавар"}
+            subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
+            icon={questionTypeIcons[state.type] || Icons.CaseBundle}
+          >
+            <CaseBundleBuilder
+              parentId={state.mappings?.[0]?.topicId}
+            />
           </CollapsibleCard>
         ) : state.type === "MATCHING" ? (
           <CollapsibleCard
@@ -1303,7 +1240,6 @@ function StepOne({
             subtitle={"Оноо бодох хэлбэр: " + scoringLabel}
             icon={questionTypeIcons[state.type] || Icons.Matching}
           >
-            
             <div className="grid gap-seek-5 md:grid-cols-2">
               {/* Left Side Elements */}
               <div className="space-y-seek-4">
@@ -1458,9 +1394,16 @@ function StepOne({
               </Button>
             }
           >
+            {state.type === "SINGLE_CHOICE" && (
+              <div className="mb-seek-4 rounded-seek-md border border-blue-200 bg-blue-50/50 p-seek-3 text-xs text-blue-900 flex items-center gap-2">
+                <span className="font-bold">ℹ️ Нэг сонголттой асуулт:</span>
+                <span>Та олон сонголтод ялгаатай эерэг (+2, +1) эсвэл сөрөг (-1, -2) оноо тохируулах боломжтой. Шалгуулагч тестийн үеэр зөвхөн нэг сонголт хийнэ.</span>
+              </div>
+            )}
+
             <div className="space-y-seek-4">
               {state.options.map((option, index) => {
-                const isPositive = option.score > 0 || (option.isCorrect && option.score >= 0);
+                const isPositive = option.score > 0;
                 const isNegative = option.score < 0;
 
                 const cardBorderClass = isPositive
@@ -1491,25 +1434,24 @@ function StepOne({
                         <div className="flex flex-wrap items-center justify-between gap-seek-3">
                           <div className="flex items-center gap-2">
                             <Badge variant={isPositive ? "success" : isNegative ? "danger" : "secondary"}>
-                              {isPositive ? "Эерэг оноо" : isNegative ? "Сөрөг оноо" : "Саармаг (0 оноо)"}
+                              {isPositive ? `Эерэг оноо (+${option.score})` : isNegative ? `Сөрөг оноо (${option.score})` : "0 оноо (Саармаг)"}
                             </Badge>
-                            {(state.type === "SINGLE_CHOICE" || state.type === "TRUE_FALSE") && (
+
+                            {state.type === "MULTIPLE_CHOICE" && state.scoringMode !== "combination" && (
                               <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none font-semibold text-slate-700 ml-2">
                                 <input
-                                  type="radio"
-                                  name="single_choice_correct"
+                                  type="checkbox"
                                   checked={option.isCorrect}
-                                  onChange={() => {
-                                    const nextOpts = state.options.map((o, i) => ({
-                                      ...o,
-                                      isCorrect: i === index,
-                                      score: i === index ? (o.score > 0 ? o.score : (state.totalPoints || 1)) : (o.score > 0 ? 0 : o.score),
-                                    }));
-                                    setState({ options: nextOpts });
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    updateOption(index, {
+                                      isCorrect: checked,
+                                      score: checked ? (option.score > 0 ? option.score : 1) : (option.score > 0 ? 0 : option.score),
+                                    });
                                   }}
-                                  className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                                  className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
                                 />
-                                <span>Зөв хариулт болгох</span>
+                                <span>Зөв хариулт</span>
                               </label>
                             )}
                           </div>
@@ -1524,7 +1466,13 @@ function StepOne({
                                 step="any"
                                 max={99999}
                                 value={option.score}
-                                onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
+                                onChange={(event) => {
+                                  const num = Number(event.target.value);
+                                  updateOption(index, {
+                                    score: num,
+                                    isCorrect: num > 0,
+                                  });
+                                }}
                               />
                             </div>
                             <Button
@@ -2158,15 +2106,31 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
 }
 
 function validateWizard(state: QuestionWizardState) {
+  const hasOptionsOrRubric = (() => {
+    if (state.type === "ESSAY") {
+      return Array.isArray(state.rubric) && state.rubric.length > 0;
+    }
+    if (state.type === "SHORT_TEXT" || state.type === "CASE_BUNDLE") {
+      return true;
+    }
+    if (state.type === "NUMERIC") {
+      return (state.options[0]?.content || "").trim().length > 0;
+    }
+    if (state.scoringMode === "combination") {
+      return (state.scoringConfig?.combinations || []).length > 0;
+    }
+    return state.options.some((option) => option.isCorrect && option.score > 0) || state.options.length > 0;
+  })();
+
   const items = [
     { label: "Асуултын гарчиг бөглөгдсөн", ok: state.title.trim().length > 0 },
     { label: "Асуултын агуулга бөглөгдсөн", ok: state.stem.trim().length > 0 },
     {
       label: "Зөв хариулт болон оноо тохирсон",
-      ok: state.options.some((option) => option.isCorrect && option.score > 0),
+      ok: Boolean(hasOptionsOrRubric),
     },
     { label: "Сэдвийн mapping сонгосон", ok: state.mappings.length > 0 },
-    { label: "Feedback бөглөгдсөн", ok: state.feedbackCorrect.trim().length > 0 },
+    { label: "Feedback бөглөгдсөн", ok: state.feedbackCorrect.trim().length > 0 || state.feedbackIncorrect.trim().length > 0 },
     { label: "Workflow comment бичсэн", ok: state.workflowComment.trim().length > 0 },
   ];
   return { items, ready: items.every((item) => item.ok) };
@@ -2611,8 +2575,8 @@ function FillInBlankOptions({
         content: "",
         isCorrect: true,
         score: 1,
-        matchValue: "",
-        acceptedValues: [{ value: "", score: 1 }],
+        matchValue: "insensitive",
+        acceptedValues: [{ value: "", score: 1, caseSensitive: false }],
       },
     ]);
   }
@@ -2636,7 +2600,7 @@ function FillInBlankOptions({
         i === blankIdx
           ? {
               ...o,
-              acceptedValues: [...(o.acceptedValues ?? []), { value: "", score: 1 }],
+              acceptedValues: [...(o.acceptedValues ?? []), { value: "", score: 1, caseSensitive: false }],
             }
           : o
       )
@@ -2656,7 +2620,7 @@ function FillInBlankOptions({
     );
   }
 
-  function updateAcceptedValue(blankIdx: number, valIdx: number, field: "value" | "score", val: string | number) {
+  function updateAcceptedValue(blankIdx: number, valIdx: number, field: "value" | "score" | "caseSensitive", val: any) {
     onChange(
       options.map((o, i) =>
         i === blankIdx
@@ -2671,86 +2635,117 @@ function FillInBlankOptions({
 
   return (
     <div className="space-y-seek-4">
+      {/* Help Banner */}
+      <div className="rounded-seek-md border border-teal-200 bg-teal-50/50 p-seek-3 text-xs text-teal-900 space-y-1">
+        <div className="font-bold flex items-center gap-1.5">
+          <span>ℹ️ Нөхөх асуултын заавар:</span>
+        </div>
+        <div>
+          Асуултын их бие (Stem) дотор <code>{`{{blank_1}}`}</code> эсвэл <code>{`[[1]]`}</code>, <code>{`{{blank_2}}`}</code> эсвэл <code>{`[[2]]`}</code> гэж бичиж хоосон зайг үүсгэнэ. Нүд тус бүрд олон зөвшөөрөгдөх хариулт болон ялгаатай оноо тохируулах боломжтой.
+        </div>
+      </div>
+
       {scoringMode === "per_option" ? (
         <>
           <div className="space-y-seek-4">
-            {options.map((opt, idx) => (
-              <div key={opt.id} className="overflow-hidden rounded-seek-lg border border-border border-l-[4px] border-l-emerald-500 bg-emerald-50/10 shadow-seek-sm">
-                <div className="flex items-center justify-between border-b border-border bg-emerald-50/30 px-seek-3 py-seek-2">
-                  <div className="flex items-center gap-seek-2">
-                    <Badge variant="success">Blank {idx + 1}</Badge>
-                    <span className="text-xs text-slate-500 font-medium">({(opt.acceptedValues ?? []).length} зөв хувилбартай)</span>
-                  </div>
-                  {options.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="danger"
-                      size="sm"
-                      onClick={() => removeBlank(idx)}
-                      className="h-6 px-seek-2 text-xs"
-                    >
-                      🗑 Устгах
-                    </Button>
-                  )}
-                </div>
-                <div className="space-y-seek-3 p-seek-4 bg-white">
-                  {(opt.acceptedValues ?? []).map((av, valIdx) => (
-                    <div key={valIdx} className="flex items-center gap-seek-3 pb-seek-2 border-b border-slate-100 last:border-0 last:pb-0">
-                      <div className="flex-1 min-w-0">
-                        <Input
-                          placeholder="Зөвшөөрөгдөх хариулт (жишээ нь: 4, дөрөв)..."
-                          value={av.value}
-                          onChange={(e) => updateAcceptedValue(idx, valIdx, "value", e.target.value)}
-                        />
-                      </div>
-                      <div className="flex shrink-0 items-center gap-seek-2 bg-slate-50 border border-border rounded-seek-md px-seek-3 h-10 w-32">
-                        <span className="text-xs font-semibold text-slate-500">Оноо:</span>
-                        <Input
-                          type="number"
-                          step="any"
-                          value={av.score}
-                          onChange={(e) => updateAcceptedValue(idx, valIdx, "score", Number(e.target.value))}
-                          className="w-full border-0 bg-transparent p-0 text-center text-sm font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
-                        />
-                      </div>
-                      {(opt.acceptedValues ?? []).length > 1 && (
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => removeAcceptedValue(idx, valIdx)}
-                          className="shrink-0 h-10 w-10 p-0 flex items-center justify-center"
-                        >
-                          ✕
-                        </Button>
-                      )}
+            {options.map((opt, idx) => {
+              const maxBlankScore = (opt.acceptedValues ?? []).length > 0
+                ? Math.max(...(opt.acceptedValues ?? []).map((av: any) => Number(av.score) || 0))
+                : (opt.score || 1);
+
+              return (
+                <div key={opt.id || idx} className="overflow-hidden rounded-seek-lg border border-border border-l-[5px] border-l-teal-500 bg-white shadow-seek-xs">
+                  <div className="flex items-center justify-between border-b border-border bg-teal-50/40 px-seek-4 py-seek-3">
+                    <div className="flex items-center gap-seek-2">
+                      <Badge variant="success">Хоосон зай #{idx + 1}</Badge>
+                      <code className="text-xs font-mono font-bold text-teal-800 bg-teal-100/60 px-1.5 py-0.5 rounded">
+                        {`{{blank_${idx + 1}}}`} / {`[[${idx + 1}]]`}
+                      </code>
+                      <span className="text-xs text-slate-500 font-medium ml-2">
+                        (Авах дээд оноо: <strong>{maxBlankScore}</strong> оноо, {(opt.acceptedValues ?? []).length} хувилбартай)
+                      </span>
                     </div>
-                  ))}
-                  <div className="pt-seek-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addAcceptedValue(idx)}
-                      className="text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-                    >
-                      + Хариултын хувилбар нэмэх
-                    </Button>
+                    {options.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => removeBlank(idx)}
+                        className="h-7 px-seek-2 text-xs"
+                      >
+                        ✕ Нүд хасах
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-seek-3 p-seek-4 bg-white">
+                    {(opt.acceptedValues ?? []).map((av: any, valIdx: number) => (
+                      <div key={valIdx} className="flex flex-wrap items-center gap-seek-3 pb-seek-2 border-b border-slate-100 last:border-0 last:pb-0">
+                        <div className="flex-1 min-w-[200px]">
+                          <Input
+                            placeholder="Зөвшөөрөгдөх хариулт (жишээ нь: 4, дөрөв, four)..."
+                            value={av.value}
+                            onChange={(e) => updateAcceptedValue(idx, valIdx, "value", e.target.value)}
+                          />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-seek-2 bg-slate-50 border border-border rounded-seek-md px-seek-3 h-10 w-32">
+                          <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                          <Input
+                            type="number"
+                            step="any"
+                            value={av.score}
+                            onChange={(e) => updateAcceptedValue(idx, valIdx, "score", Number(e.target.value))}
+                            className="w-full border-0 bg-transparent p-0 text-center text-sm font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
+                          />
+                        </div>
+                        <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(av.caseSensitive)}
+                            onChange={(e) => updateAcceptedValue(idx, valIdx, "caseSensitive", e.target.checked)}
+                            className="rounded text-teal-600 focus:ring-teal-500 h-3.5 w-3.5"
+                          />
+                          <span>Том/жижиг үсэг ялгах</span>
+                        </label>
+                        {(opt.acceptedValues ?? []).length > 1 && (
+                          <Button
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            onClick={() => removeAcceptedValue(idx, valIdx)}
+                            className="shrink-0 h-8 w-8 p-0 text-xs flex items-center justify-center"
+                          >
+                            ✕
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <div className="pt-seek-2 flex items-center justify-between">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addAcceptedValue(idx)}
+                        className="text-xs font-semibold text-teal-700 hover:bg-teal-50"
+                      >
+                        + Хариултын хувилбар нэмэх
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-          <Button type="button" variant="outline" onClick={addBlank}>
-            + Хоосон нүд (Blank) нэмэх
+          <Button type="button" variant="outline" onClick={addBlank} className="flex items-center gap-2">
+            <span>+ Дараагийн хоосон нүд (Blank) нэмэх</span>
           </Button>
         </>
       ) : (
         <>
-          <div className="mb-seek-3 flex items-center gap-seek-2 border-b border-border pb-seek-3">
+          <div className="mb-seek-3 flex flex-wrap items-center gap-seek-2 border-b border-border pb-seek-3">
             <span className="text-xs font-semibold text-slate-500">Хоосон нүднүүд:</span>
             {options.map((_, idx) => (
               <Badge key={idx} variant="secondary">
-                blank{idx + 1}
+                {`{{blank_${idx + 1}}}`}
               </Badge>
             ))}
             <Button type="button" variant="outline" size="sm" onClick={addBlank}>
@@ -2769,6 +2764,898 @@ function FillInBlankOptions({
           />
         </>
       )}
+    </div>
+  );
+}
+
+function TrueFalseBuilder({
+  options,
+  onChange,
+  totalPoints = 1,
+}: {
+  options: EditorOption[];
+  onChange: (opts: EditorOption[]) => void;
+  totalPoints?: number;
+}) {
+  const trueOpt = options[0] || { id: "A", label: "TRUE", content: "Үнэн", isCorrect: true, score: 1, matchValue: "" };
+  const falseOpt = options[1] || { id: "B", label: "FALSE", content: "Худал", isCorrect: false, score: 0, matchValue: "" };
+
+  const setCorrectOption = (isTrueCorrect: boolean) => {
+    const nextTrue = {
+      ...trueOpt,
+      isCorrect: isTrueCorrect,
+      score: isTrueCorrect ? (trueOpt.score > 0 ? trueOpt.score : totalPoints) : (trueOpt.score > 0 ? 0 : trueOpt.score),
+    };
+    const nextFalse = {
+      ...falseOpt,
+      isCorrect: !isTrueCorrect,
+      score: !isTrueCorrect ? (falseOpt.score > 0 ? falseOpt.score : totalPoints) : (falseOpt.score > 0 ? 0 : falseOpt.score),
+    };
+    onChange([nextTrue, nextFalse]);
+  };
+
+  const updateTrueOpt = (patch: Partial<EditorOption>) => {
+    onChange([{ ...trueOpt, ...patch }, falseOpt]);
+  };
+
+  const updateFalseOpt = (patch: Partial<EditorOption>) => {
+    onChange([trueOpt, { ...falseOpt, ...patch }]);
+  };
+
+  return (
+    <div className="grid gap-seek-4 md:grid-cols-2">
+      {/* TRUE Option */}
+      <div className={`rounded-seek-lg border overflow-hidden transition-all duration-200 shadow-seek-xs ${
+        trueOpt.isCorrect
+          ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/15"
+          : trueOpt.score < 0
+          ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/15"
+          : "border-border border-l-[5px] border-l-slate-400 bg-slate-50/20"
+      }`}>
+        <div className="flex">
+          <div className={`w-14 flex items-center justify-center font-bold text-xs tracking-wider flex-shrink-0 select-none ${
+            trueOpt.isCorrect ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"
+          }`}>
+            ҮНЭН
+          </div>
+          <div className="flex-1 p-seek-4 space-y-seek-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 cursor-pointer font-semibold text-sm text-slate-800">
+                <input
+                  type="radio"
+                  name="tf_correct_selection"
+                  checked={trueOpt.isCorrect}
+                  onChange={() => setCorrectOption(true)}
+                  className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                />
+                <span>Зөв хариулт нь Үнэн</span>
+              </label>
+              <div className="flex items-center gap-1.5 bg-white border border-border rounded-seek-md px-2 h-9 w-28 shadow-seek-xs">
+                <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                <Input
+                  className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-xs font-semibold text-center"
+                  type="number"
+                  step="any"
+                  value={trueOpt.score}
+                  onChange={(e) => updateTrueOpt({ score: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <RichEditor
+              compact
+              minHeight="4rem"
+              value={trueOpt.content}
+              placeholder="Үнэн хариултын тодотгол текст..."
+              onChange={(content) => updateTrueOpt({ content })}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* FALSE Option */}
+      <div className={`rounded-seek-lg border overflow-hidden transition-all duration-200 shadow-seek-xs ${
+        falseOpt.isCorrect
+          ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/15"
+          : falseOpt.score < 0
+          ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/15"
+          : "border-border border-l-[5px] border-l-slate-400 bg-slate-50/20"
+      }`}>
+        <div className="flex">
+          <div className={`w-14 flex items-center justify-center font-bold text-xs tracking-wider flex-shrink-0 select-none ${
+            falseOpt.isCorrect ? "bg-emerald-500 text-white" : falseOpt.score < 0 ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-700"
+          }`}>
+            ХУДАЛ
+          </div>
+          <div className="flex-1 p-seek-4 space-y-seek-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 cursor-pointer font-semibold text-sm text-slate-800">
+                <input
+                  type="radio"
+                  name="tf_correct_selection"
+                  checked={falseOpt.isCorrect}
+                  onChange={() => setCorrectOption(false)}
+                  className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                />
+                <span>Зөв хариулт нь Худал</span>
+              </label>
+              <div className="flex items-center gap-1.5 bg-white border border-border rounded-seek-md px-2 h-9 w-28 shadow-seek-xs">
+                <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                <Input
+                  className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-xs font-semibold text-center"
+                  type="number"
+                  step="any"
+                  value={falseOpt.score}
+                  onChange={(e) => updateFalseOpt({ score: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <RichEditor
+              compact
+              minHeight="4rem"
+              value={falseOpt.content}
+              placeholder="Худал хариултын тодотгол текст..."
+              onChange={(content) => updateFalseOpt({ content })}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderingBuilder({
+  options,
+  onChange,
+}: {
+  options: EditorOption[];
+  onChange: (opts: EditorOption[]) => void;
+}) {
+  const moveItem = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === options.length - 1) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    const nextOptions = [...options];
+    const temp = nextOptions[index];
+    nextOptions[index] = nextOptions[targetIndex];
+    nextOptions[targetIndex] = temp;
+    onChange(nextOptions.map((o, idx) => ({ ...o, label: String(idx + 1) })));
+  };
+
+  const addStep = () => {
+    const nextIndex = options.length + 1;
+    onChange([
+      ...options,
+      {
+        id: `ord_${Date.now()}_${nextIndex}`,
+        label: String(nextIndex),
+        content: "",
+        isCorrect: true,
+        score: 1,
+        matchValue: "",
+      },
+    ]);
+  };
+
+  const removeStep = (index: number) => {
+    if (options.length <= 2) return;
+    onChange(
+      options
+        .filter((_, idx) => idx !== index)
+        .map((o, idx) => ({ ...o, label: String(idx + 1) }))
+    );
+  };
+
+  const updateStep = (index: number, patch: Partial<EditorOption>) => {
+    onChange(options.map((o, idx) => (idx === index ? { ...o, ...patch } : o)));
+  };
+
+  return (
+    <div className="space-y-seek-4">
+      <div className="space-y-seek-3">
+        {options.map((option, index) => (
+          <div
+            key={option.id || index}
+            className="rounded-seek-lg border border-slate-200 border-l-[5px] border-l-amber-500 bg-white overflow-hidden shadow-seek-xs transition-all"
+          >
+            <div className="flex">
+              <div className="w-12 flex items-center justify-center font-bold text-base text-white bg-amber-500 flex-shrink-0 select-none">
+                {index + 1}
+              </div>
+              <div className="flex-1 p-seek-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-amber-900">Алхам {index + 1}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={index === 0}
+                      onClick={() => moveItem(index, "up")}
+                      className="h-7 w-7 p-0 text-xs"
+                      title="Дээш зөөх"
+                    >
+                      ▲
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={index === options.length - 1}
+                      onClick={() => moveItem(index, "down")}
+                      className="h-7 w-7 p-0 text-xs"
+                      title="Доош зөөх"
+                    >
+                      ▼
+                    </Button>
+                    <div className="flex items-center gap-1 bg-slate-50 border border-border rounded-seek-md px-1.5 h-7 w-24">
+                      <span className="text-[10px] font-semibold text-slate-500">Оноо:</span>
+                      <Input
+                        className="w-full border-0 bg-transparent p-0 text-center text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
+                        type="number"
+                        value={option.score}
+                        onChange={(e) => updateStep(index, { score: Number(e.target.value) })}
+                      />
+                    </div>
+                    {options.length > 2 && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => removeStep(index)}
+                        className="h-7 w-7 p-0 text-xs"
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <RichEditor
+                  compact
+                  minHeight="3.5rem"
+                  value={option.content}
+                  placeholder={`Алхам ${index + 1}-ийн агуулгыг оруулна уу...`}
+                  onChange={(content) => updateStep(index, { content })}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Button type="button" variant="outline" onClick={addStep} className="flex items-center gap-2">
+        <span>+ Шинэ алхам нэмэх</span>
+      </Button>
+    </div>
+  );
+}
+
+function ShortTextBuilder({
+  options,
+  onChange,
+}: {
+  options: EditorOption[];
+  onChange: (opts: EditorOption[]) => void;
+}) {
+  const addKeyword = () => {
+    onChange([
+      ...options,
+      {
+        id: `st_${Date.now()}_${options.length + 1}`,
+        label: `Хувилбар ${options.length + 1}`,
+        content: "",
+        isCorrect: true,
+        score: 1,
+        matchValue: "exact",
+        acceptedValues: [],
+      },
+    ]);
+  };
+
+  const removeKeyword = (index: number) => {
+    onChange(options.filter((_, idx) => idx !== index));
+  };
+
+  const updateKeyword = (index: number, patch: Partial<EditorOption>) => {
+    onChange(options.map((o, idx) => (idx === index ? { ...o, ...patch } : o)));
+  };
+
+  return (
+    <div className="space-y-seek-4">
+      <div className="space-y-seek-3">
+        {options.map((opt, index) => (
+          <div
+            key={opt.id || index}
+            className="rounded-seek-lg border border-slate-200 border-l-[5px] border-l-teal-500 bg-white p-seek-3 shadow-seek-xs space-y-seek-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-teal-900">Зөвшөөрөгдөх түлхүүр үг #{index + 1}</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-slate-50 border border-border rounded-seek-md px-2 h-8 w-28">
+                  <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                  <Input
+                    type="number"
+                    value={opt.score}
+                    onChange={(e) => updateKeyword(index, { score: Number(e.target.value) })}
+                    className="w-full border-0 bg-transparent p-0 text-center text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => removeKeyword(index)}
+                  className="h-8 w-8 p-0 text-xs"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-seek-3 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <Input
+                  value={opt.content}
+                  placeholder="Зөвшөөрөх үг / өгүүлбэр (жишээ нь: Улаанбаатар)..."
+                  onChange={(e) => updateKeyword(index, { content: e.target.value })}
+                />
+              </div>
+              <div>
+                <select
+                  value={opt.matchValue || "exact"}
+                  onChange={(e) => updateKeyword(index, { matchValue: e.target.value })}
+                  className="w-full rounded-seek-md border border-input bg-background px-seek-3 py-2 text-xs outline-none focus:border-primary"
+                >
+                  <option value="exact">Яг таарах (Exact Match)</option>
+                  <option value="contains">Агуулсан байх (Contains)</option>
+                  <option value="regex">RegEx илэрхийлэл</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Button type="button" variant="outline" onClick={addKeyword}>
+        + Түлхүүр үг нэмэх
+      </Button>
+    </div>
+  );
+}
+
+function MatrixBuilder({
+  options,
+  scoringConfig,
+  onChange,
+  onScoringConfigChange,
+}: {
+  options: EditorOption[];
+  scoringConfig: Record<string, any>;
+  onChange: (opts: EditorOption[]) => void;
+  onScoringConfigChange: (cfg: Record<string, any>) => void;
+}) {
+  const columns: Array<{ id: string; label: string }> = scoringConfig?.matrixColumns || [
+    { id: "col_1", label: "Сайн" },
+    { id: "col_2", label: "Дунд" },
+    { id: "col_3", label: "Муу" },
+  ];
+
+  const addRow = () => {
+    const nextIdx = options.length + 1;
+    onChange([
+      ...options,
+      {
+        id: `row_${Date.now()}_${nextIdx}`,
+        label: `Мөр ${nextIdx}`,
+        content: `Үнэлэх өгүүлбэр ${nextIdx}`,
+        isCorrect: true,
+        score: 1,
+        matchValue: columns[0]?.id || "col_1",
+      },
+    ]);
+  };
+
+  const removeRow = (idx: number) => {
+    if (options.length <= 1) return;
+    onChange(options.filter((_, i) => i !== idx));
+  };
+
+  const updateRow = (idx: number, patch: Partial<EditorOption>) => {
+    onChange(options.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
+  };
+
+  const addColumn = () => {
+    const nextColIdx = columns.length + 1;
+    const nextColumns = [...columns, { id: `col_${Date.now()}`, label: `Багана ${nextColIdx}` }];
+    onScoringConfigChange({ ...scoringConfig, matrixColumns: nextColumns });
+  };
+
+  const removeColumn = (colIdx: number) => {
+    if (columns.length <= 2) return;
+    const nextColumns = columns.filter((_, i) => i !== colIdx);
+    onScoringConfigChange({ ...scoringConfig, matrixColumns: nextColumns });
+  };
+
+  const updateColumnLabel = (colIdx: number, label: string) => {
+    const nextColumns = columns.map((c, i) => (i === colIdx ? { ...c, label } : c));
+    onScoringConfigChange({ ...scoringConfig, matrixColumns: nextColumns });
+  };
+
+  return (
+    <div className="space-y-seek-4">
+      {/* Column Headers Config */}
+      <div className="rounded-seek-md border border-border bg-slate-50/50 p-seek-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-700">Матрицын баганууд (Хэмжүүрийн утгууд):</span>
+          <Button type="button" variant="outline" size="sm" onClick={addColumn} className="text-xs h-7">
+            + Багана нэмэх
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {columns.map((col, cIdx) => (
+            <div key={col.id} className="flex items-center gap-1 bg-white border border-border rounded-seek-md px-2 py-1">
+              <Input
+                value={col.label}
+                onChange={(e) => updateColumnLabel(cIdx, e.target.value)}
+                className="w-24 border-0 p-0 text-xs font-semibold focus-visible:ring-0"
+              />
+              {columns.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => removeColumn(cIdx)}
+                  className="text-danger hover:text-danger-hover text-xs font-bold px-1"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Rows Matrix Table */}
+      <div className="overflow-x-auto rounded-seek-lg border border-border bg-white shadow-seek-xs">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-50 border-b border-border text-slate-700 font-bold uppercase">
+            <tr>
+              <th className="p-seek-3 min-w-[200px]">Мөр (Үнэлэх өгүүлбэр)</th>
+              {columns.map((col) => (
+                <th key={col.id} className="p-seek-3 text-center min-w-[90px]">{col.label}</th>
+              ))}
+              <th className="p-seek-3 text-center w-24">Оноо</th>
+              <th className="p-seek-3 text-center w-12">Үйлдэл</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {options.map((row, rIdx) => (
+              <tr key={row.id}>
+                <td className="p-seek-3">
+                  <Input
+                    value={row.content}
+                    placeholder="Өгүүлбэр бичих..."
+                    onChange={(e) => updateRow(rIdx, { content: e.target.value })}
+                    className="text-xs"
+                  />
+                </td>
+                {columns.map((col) => (
+                  <td key={col.id} className="p-seek-3 text-center">
+                    <input
+                      type="radio"
+                      name={`matrix_row_${row.id}`}
+                      checked={row.matchValue === col.id}
+                      onChange={() => updateRow(rIdx, { matchValue: col.id })}
+                      className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </td>
+                ))}
+                <td className="p-seek-3 text-center">
+                  <Input
+                    type="number"
+                    value={row.score}
+                    onChange={(e) => updateRow(rIdx, { score: Number(e.target.value) })}
+                    className="w-16 h-8 text-center text-xs mx-auto"
+                  />
+                </td>
+                <td className="p-seek-3 text-center">
+                  {options.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => removeRow(rIdx)}
+                      className="h-7 w-7 p-0 text-xs mx-auto"
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Button type="button" variant="outline" onClick={addRow}>
+        + Шинэ мөр нэмэх
+      </Button>
+    </div>
+  );
+}
+
+function LikertBuilder({
+  options,
+  onChange,
+}: {
+  options: EditorOption[];
+  onChange: (opts: EditorOption[]) => void;
+}) {
+  const setScale = (scaleCount: 5 | 7) => {
+    if (scaleCount === 5) {
+      onChange([
+        { id: "likert_1", label: "1", content: "Огт зөвшөөрөхгүй", isCorrect: false, score: 1 },
+        { id: "likert_2", label: "2", content: "Зөвшөөрөхгүй", isCorrect: false, score: 2 },
+        { id: "likert_3", label: "3", content: "Саармаг", isCorrect: false, score: 3 },
+        { id: "likert_4", label: "4", content: "Зөвшөөрч байна", isCorrect: false, score: 4 },
+        { id: "likert_5", label: "5", content: "Бүрэн зөвшөөрч байна", isCorrect: false, score: 5 },
+      ]);
+    } else {
+      onChange([
+        { id: "likert_1", label: "1", content: "Огт үгүй", isCorrect: false, score: 1 },
+        { id: "likert_2", label: "2", content: "Үгүй", isCorrect: false, score: 2 },
+        { id: "likert_3", label: "3", content: "Бага зэрэг үгүй", isCorrect: false, score: 3 },
+        { id: "likert_4", label: "4", content: "Саармаг", isCorrect: false, score: 4 },
+        { id: "likert_5", label: "5", content: "Бага зэрэг тийм", isCorrect: false, score: 5 },
+        { id: "likert_6", label: "6", content: "Тийм", isCorrect: false, score: 6 },
+        { id: "likert_7", label: "7", content: "Бүрэн тийм", isCorrect: false, score: 7 },
+      ]);
+    }
+  };
+
+  const updateItem = (idx: number, patch: Partial<EditorOption>) => {
+    onChange(options.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
+  };
+
+  return (
+    <div className="space-y-seek-4">
+      <div className="flex items-center gap-seek-2">
+        <span className="text-xs font-bold text-slate-700">Түвшний тоо:</span>
+        <Button
+          type="button"
+          size="sm"
+          variant={options.length === 5 ? "primary" : "outline"}
+          onClick={() => setScale(5)}
+          className="text-xs h-7"
+        >
+          5 түвшин
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={options.length === 7 ? "primary" : "outline"}
+          onClick={() => setScale(7)}
+          className="text-xs h-7"
+        >
+          7 түвшин
+        </Button>
+      </div>
+
+      <div className="grid gap-seek-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {options.map((opt, idx) => (
+          <div key={opt.id || idx} className="rounded-seek-md border border-border bg-white p-seek-3 space-y-2 shadow-seek-xs">
+            <div className="flex items-center justify-between">
+              <Badge variant="secondary">Түвшин {opt.label}</Badge>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-slate-500">Оноо:</span>
+                <Input
+                  type="number"
+                  value={opt.score}
+                  onChange={(e) => updateItem(idx, { score: Number(e.target.value) })}
+                  className="w-12 h-6 text-center text-xs p-0"
+                />
+              </div>
+            </div>
+            <Input
+              value={opt.content}
+              onChange={(e) => updateItem(idx, { content: e.target.value })}
+              className="text-xs"
+              placeholder="Түвшний тайлбар"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SjtBuilder({
+  options,
+  onChange,
+}: {
+  options: EditorOption[];
+  onChange: (opts: EditorOption[]) => void;
+}) {
+  const effectivenessLevels = [
+    { value: "best", label: "Хамгийн үр дүнтэй (+2 оноо)", defaultScore: 2 },
+    { value: "effective", label: "Үр дүнтэй (+1 оноо)", defaultScore: 1 },
+    { value: "neutral", label: "Саармаг (0 оноо)", defaultScore: 0 },
+    { value: "ineffective", label: "Үр дүнгүй (-1 оноо)", defaultScore: -1 },
+    { value: "counterproductive", label: "Сөрөг нөлөөтэй (-2 оноо)", defaultScore: -2 },
+  ];
+
+  const addOption = () => {
+    const nextIdx = options.length + 1;
+    onChange([
+      ...options,
+      {
+        id: `sjt_${Date.now()}_${nextIdx}`,
+        label: String.fromCharCode(64 + nextIdx),
+        content: "",
+        isCorrect: false,
+        score: 1,
+        matchValue: "effective",
+      },
+    ]);
+  };
+
+  const removeOption = (idx: number) => {
+    if (options.length <= 2) return;
+    onChange(options.filter((_, i) => i !== idx));
+  };
+
+  const updateOption = (idx: number, patch: Partial<EditorOption>) => {
+    onChange(options.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
+  };
+
+  return (
+    <div className="space-y-seek-4">
+      <div className="space-y-seek-3">
+        {options.map((opt, idx) => {
+          const isPositive = opt.score > 0;
+          const isNegative = opt.score < 0;
+          return (
+            <div
+              key={opt.id || idx}
+              className={`rounded-seek-lg border overflow-hidden shadow-seek-xs ${
+                isPositive
+                  ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/10"
+                  : isNegative
+                  ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/10"
+                  : "border-border border-l-[5px] border-l-slate-400 bg-slate-50/10"
+              }`}
+            >
+              <div className="flex">
+                <div className={`w-12 flex items-center justify-center font-bold text-base flex-shrink-0 select-none ${
+                  isPositive ? "bg-emerald-500 text-white" : isNegative ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-700"
+                }`}>
+                  {opt.label || String.fromCharCode(65 + idx)}
+                </div>
+                <div className="flex-1 p-seek-4 space-y-seek-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-700">Үр дүнтэй байдлын түвшин:</span>
+                      <select
+                        value={opt.matchValue || "effective"}
+                        onChange={(e) => {
+                          const level = effectivenessLevels.find((l) => l.value === e.target.value);
+                          updateOption(idx, {
+                            matchValue: e.target.value,
+                            score: level ? level.defaultScore : opt.score,
+                          });
+                        }}
+                        className="rounded-seek-md border border-input bg-background px-seek-3 py-1.5 text-xs outline-none focus:border-primary"
+                      >
+                        {effectivenessLevels.map((lvl) => (
+                          <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-white border border-border rounded-seek-md px-2 h-8 w-24">
+                        <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                        <Input
+                          type="number"
+                          value={opt.score}
+                          onChange={(e) => updateOption(idx, { score: Number(e.target.value) })}
+                          className="w-full border-0 bg-transparent p-0 text-center text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
+                        />
+                      </div>
+                      {options.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => removeOption(idx)}
+                          className="h-8 w-8 p-0 text-xs"
+                        >
+                          ✕
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <RichEditor
+                    value={opt.content}
+                    placeholder={`Нөхцөлт хариу үйлдэл / сонголт ${opt.label}-ийн агуулга...`}
+                    onChange={(content) => updateOption(idx, { content })}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <Button type="button" variant="outline" onClick={addOption}>
+        + Шинэ сонголт нэмэх
+      </Button>
+    </div>
+  );
+}
+
+function CaseBundleBuilder({
+  parentId,
+}: {
+  parentId?: string | null;
+}) {
+  return (
+    <div className="rounded-seek-lg border border-primary/20 bg-primary/5 p-seek-4 space-y-seek-3">
+      <div className="flex items-center gap-seek-2">
+        <Icons.CaseBundle className="h-5 w-5 text-primary stroke-[1.8]" />
+        <span className="font-bold text-sm text-slate-800">Кэйс даалгаврын эх бичвэр ба дэд асуултууд</span>
+      </div>
+      <Text variant="muted" className="text-xs">
+        Энэхүү асуултын их бие (Stem) хэсэгт кэйс, өгөгдөл, нийтлэл эсвэл дагалдах материалыг оруулна. Үүний дараа асуултын сангаас бусад даалгавруудыг энэхүү эх кэйс рүү <code>parentId</code> холбоосоор холбон дэд асуулт болгож ашиглана.
+      </Text>
+      {parentId && (
+        <div className="inline-flex items-center gap-2 bg-white border border-border rounded-seek-md px-3 py-1.5 text-xs font-semibold text-slate-700">
+          <span>Эх кэйсийн ID:</span>
+          <code className="text-primary font-mono">{parentId}</code>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NumericBuilder({
+  option,
+  onChange,
+  totalPoints = 1,
+}: {
+  option: EditorOption;
+  onChange: (opt: EditorOption) => void;
+  totalPoints?: number;
+}) {
+  return (
+    <div className="space-y-seek-4">
+      <div className="grid gap-seek-4 md:grid-cols-3">
+        <FieldLabel label="Зөв тоон хариулт">
+          <Input
+            type="number"
+            step="any"
+            placeholder="Жишээ нь: 12.5"
+            value={option?.content || ""}
+            onChange={(e) =>
+              onChange({
+                id: option?.id || "num-ans",
+                label: "Хариулт",
+                content: e.target.value,
+                isCorrect: true,
+                score: option?.score !== undefined ? option.score : totalPoints,
+                matchValue: option?.matchValue || "0",
+              })
+            }
+          />
+        </FieldLabel>
+        <FieldLabel label="Хүлцэх алдаа (Tolerance ±)">
+          <Input
+            type="number"
+            step="any"
+            placeholder="Жишээ нь: 0.1"
+            value={option?.matchValue || ""}
+            onChange={(e) =>
+              onChange({
+                id: option?.id || "num-ans",
+                label: "Хариулт",
+                content: option?.content || "",
+                isCorrect: true,
+                score: option?.score !== undefined ? option.score : totalPoints,
+                matchValue: e.target.value,
+              })
+            }
+          />
+        </FieldLabel>
+        <FieldLabel label="Авах дээд оноо">
+          <Input
+            type="number"
+            step="any"
+            value={option?.score !== undefined ? option.score : totalPoints}
+            onChange={(e) =>
+              onChange({
+                id: option?.id || "num-ans",
+                label: "Хариулт",
+                content: option?.content || "",
+                isCorrect: true,
+                score: Number(e.target.value),
+                matchValue: option?.matchValue || "0",
+              })
+            }
+          />
+        </FieldLabel>
+      </div>
+    </div>
+  );
+}
+
+function EssayRubricBuilder({
+  rubric,
+  onChange,
+}: {
+  rubric: any[];
+  onChange: (rubrics: any[]) => void;
+}) {
+  const addCriterion = () => {
+    onChange([
+      ...rubric,
+      {
+        id: `c_${Date.now()}_${rubric.length + 1}`,
+        criteria: "",
+        maxScore: 1,
+        description: "",
+      },
+    ]);
+  };
+
+  const removeCriterion = (idx: number) => {
+    onChange(rubric.filter((_, i) => i !== idx));
+  };
+
+  const updateCriterion = (idx: number, patch: any) => {
+    onChange(rubric.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  return (
+    <div className="space-y-seek-4">
+      {rubric.length === 0 ? (
+        <div className="rounded-seek-md border border-dashed border-border p-seek-6 text-center text-muted-foreground text-sm">
+          Үнэлгээний рубрик хоосон байна. Багш асуултыг засахдаа шалгуур нэмнэ үү.
+        </div>
+      ) : (
+        rubric.map((rub, index) => (
+          <div key={rub.id || index} className="rounded-seek-lg border border-border bg-surface p-seek-4 space-y-seek-3 shadow-seek-xs">
+            <div className="flex items-center justify-between">
+              <Badge variant="success">Шалгуур {index + 1}</Badge>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => removeCriterion(index)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="grid gap-seek-4 md:grid-cols-[2fr_1fr]">
+              <FieldLabel label="Шалгуурын нэр">
+                <Input
+                  placeholder="Жишээ нь: Бодолтын явц"
+                  value={rub.criteria}
+                  onChange={(e) => updateCriterion(index, { criteria: e.target.value })}
+                />
+              </FieldLabel>
+              <FieldLabel label="Авах дээд оноо">
+                <Input
+                  type="number"
+                  value={rub.maxScore}
+                  onChange={(e) => updateCriterion(index, { maxScore: Number(e.target.value) })}
+                />
+              </FieldLabel>
+            </div>
+            <FieldLabel label="Шалгуурын тайлбар ба түвшний удирдамж">
+              <Textarea
+                rows={2}
+                placeholder="Жишээ нь: Бодолтын алхмуудыг бүрэн зөв хийсэн байдал..."
+                value={rub.description}
+                onChange={(e) => updateCriterion(index, { description: e.target.value })}
+              />
+            </FieldLabel>
+          </div>
+        ))
+      )}
+      <Button type="button" variant="outline" onClick={addCriterion}>
+        + Шалгуур нэмэх
+      </Button>
     </div>
   );
 }

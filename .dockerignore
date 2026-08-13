@@ -10,3 +10,4 @@ docker/nginx-proxy/letsencrypt
 docker-compose*
 .git
 .github
+**/.log
