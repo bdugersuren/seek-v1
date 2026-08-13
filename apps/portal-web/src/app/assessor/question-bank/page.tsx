@@ -197,7 +197,7 @@ export default function QuestionBankPage() {
   const filteredQuestions = useMemo(
     () =>
       questions.filter((question) => {
-        const matchQuery = [question.code, question.title, question.stem]
+        const matchQuery = [question.code, question.title, question.body || question.stem]
           .join(" ")
           .toLowerCase()
           .includes(query.toLowerCase());
@@ -531,7 +531,7 @@ export default function QuestionBankPage() {
                         {question.code} · {question.title}
                       </Text>
                       <Text variant="muted" className="line-clamp-1 text-xs">
-                        {question.stem}
+                        {question.body || question.stem}
                       </Text>
                     </td>
                     <td className="p-seek-3">{question.topicName}</td>
@@ -677,7 +677,7 @@ function QuestionCard({
           {question.code} · {question.title}
         </Text>
         <Text variant="muted" className="mt-1 line-clamp-2 text-sm">
-          {question.stem}
+          {question.body || question.stem}
         </Text>
       </div>
       <div className="mt-seek-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">

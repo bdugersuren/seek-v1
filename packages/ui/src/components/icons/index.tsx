@@ -68,6 +68,17 @@ import { CorrectOne } from "./CorrectOne";
 import { GroupOne } from "./GroupOne";
 import { OneOption } from "./OneOption";
 
+import { BoldIcon} from "./BoldIcon";
+import { ItalicIcon } from "./ItalicIcon";
+import { MathInline } from "./MathInline";
+import { MathFunc } from "./MathFunc";
+import { ChartIcon } from "./ChartIcon";
+import { ImageAdd } from "./ImageAdd";
+import { HourGlass } from "./HourGlass";
+import { TableIcon } from "./TableIcon";
+import { CodeIcon } from "./CodeIcon";
+import { BulletList } from "./BulletList";
+
 export const Icons = {
   Menu,
   User,
@@ -137,5 +148,17 @@ export const Icons = {
   CorrectOne,
   GroupOne,
   OneOption,
+
+  BoldIcon,
+  ItalicIcon,
+  MathInline,
+  MathFunc,
+  ChartIcon,
+  ImageAdd,
+  HourGlass,
+  TableIcon,
+  CodeIcon,
+  BulletList,
+  
 };
 

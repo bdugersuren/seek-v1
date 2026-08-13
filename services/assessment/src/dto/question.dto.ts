@@ -23,6 +23,16 @@ export class CreateQuestionDto {
   media?: any[];
   feedbackCorrect?: string;
   feedbackIncorrect?: string;
+  topicMappings?: Array<{
+    topicId: string;
+    bloomLevel: string; // cognitiveLevelId/Code-той дүйцнэ
+    difficulty: string;  // difficultyLevelId/Code-той дүйцнэ
+    weight: number;
+    competencies?: Array<{
+      competenceId: string;
+      weight: number;
+    }>;
+  }>;
 }
 
 export class UpdateQuestionDto {
@@ -47,4 +57,14 @@ export class UpdateQuestionDto {
   media?: any[];
   feedbackCorrect?: string;
   feedbackIncorrect?: string;
+  topicMappings?: Array<{
+    topicId: string;
+    bloomLevel: string;
+    difficulty: string;
+    weight: number;
+    competencies?: Array<{
+      competenceId: string;
+      weight: number;
+    }>;
+  }>;
 }

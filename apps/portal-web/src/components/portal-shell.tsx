@@ -32,11 +32,18 @@ import type { TranslationKey } from "@/i18n/dictionaries";
 
 type PortalIcon = (typeof Icons)[keyof typeof Icons];
 
+interface NavSubItem {
+  href: string;
+  labelKey: TranslationKey;
+  icon?: PortalIcon;
+}
+
 const navItems: Array<{
   href: string;
   labelKey: TranslationKey;
   icon: PortalIcon;
   roles: PortalRole[];
+  items?: NavSubItem[];
 }> = [
   {
     href: "/dashboard",
@@ -87,16 +94,16 @@ const navItems: Array<{
     roles: ["assessor"],
   },
   {
-    href: "/topics-management",
-    labelKey: "nav.topicsManagement",
+    href: "/admin/metadata",
+    labelKey: "nav.metadata",
     icon: Icons.Menu,
-    roles: ["assessor"],
-  },
-  {
-    href: "/metadata-management",
-    labelKey: "nav.metadataManagement",
-    icon: Icons.Settings,
-    roles: ["assessor"],
+    roles: ["super_admin", "organisation_admin", "assessor"],
+    items: [
+      { href: "/admin/metadata/topics", labelKey: "nav.metadata.topics" },
+      { href: "/admin/metadata/competencies", labelKey: "nav.metadata.competencies" },
+      { href: "/admin/metadata/difficulty-scales", labelKey: "nav.metadata.difficultyScales" },
+      { href: "/admin/metadata/audience-types", labelKey: "nav.metadata.audienceTypes" },
+    ]
   },
   {
     href: "/db-management",
@@ -220,13 +227,15 @@ function getRoleHref(href: string, role: PortalRole): string {
     return href;
   }
 
+  if (href.startsWith("/admin/metadata")) {
+    return href;
+  }
+
   if (
     href === "/assessments" ||
     href === "/blueprints" ||
     href === "/question-bank" ||
     href === "/quizzes" ||
-    href === "/topics-management" ||
-    href === "/metadata-management" ||
     href === "/db-management"
   ) {
     return `/assessor${href}`;
@@ -248,6 +257,9 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [cartSummary, setCartSummary] = useState({ count: 0, total: 0 });
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    "/admin/metadata": true, // Default open for metadata
+  });
   const { locale, setLocale, t } = useI18n();
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
@@ -325,14 +337,62 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       {visibleItems.map((item) => {
         const Icon = item.icon;
         const active = isActivePath(pathname, item.href);
+        const hasSubitems = item.items && item.items.length > 0;
+        const isMenuOpen = openMenus[item.href] !== undefined ? openMenus[item.href] : pathname.startsWith(item.href);
+
+        if (hasSubitems) {
+          return (
+            <div key={item.href} className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => setOpenMenus(prev => ({ ...prev, [item.href]: !prev[item.href] }))}
+                className={`flex w-full items-center justify-between px-4 py-2 rounded-seek-md font-sans text-sm font-medium transition-all ${
+                  isMenuOpen || active
+                    ? "bg-surface-hover text-foreground"
+                    : "text-foreground hover:bg-surface-hover"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={18} />
+                  <span>{t(item.labelKey)}</span>
+                </div>
+                <Icons.ChevronRight
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${
+                    isMenuOpen ? "rotate-90" : ""
+                  }`}
+                />
+              </button>
+              {isMenuOpen && (
+                <div className="flex flex-col gap-1 pl-6 border-l border-border/60 ml-6 mt-1">
+                  {item.items!.map((sub) => {
+                    const subActive = pathname === sub.href;
+                    return (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        className={`flex items-center gap-2 px-4 py-1.5 rounded-seek-md font-sans text-xs font-medium transition-all ${
+                          subActive
+                            ? "bg-primary/10 text-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
+                        }`}
+                      >
+                        <span>{t(sub.labelKey)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
 
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center gap-3 px-4 py-2 rounded-seek-md font-sans text-sm font-medium ${
+            className={`flex items-center gap-3 px-4 py-2 rounded-seek-md font-sans text-sm font-medium transition-all ${
               active
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground font-semibold shadow-seek-sm"
                 : "text-foreground hover:bg-surface-hover"
             }`}
           >

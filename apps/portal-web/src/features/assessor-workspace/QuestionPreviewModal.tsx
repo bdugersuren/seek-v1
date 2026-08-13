@@ -11,7 +11,7 @@ import {
   Text,
   Textarea,
 } from "@seek/ui";
-import { getNextWorkflowActions } from "./api";
+import { getNextWorkflowActions, getQuestionByIdAsync } from "./api";
 import {
   bloomLabels,
   competencyLabels,
@@ -66,18 +66,53 @@ export function QuestionPreviewModal({
   question: QuestionBankItem;
   onClose: () => void;
 }) {
-  const nextActions = getNextWorkflowActions(question.status);
-  const TypeIcon = questionTypeIcons[question.type] || Icons.ListCheck;
+  const [allVersions, setAllVersions] = useState<QuestionBankItem[]>(
+    question.versions && question.versions.length > 0 ? question.versions : [question]
+  );
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [loadingVersions, setLoadingVersions] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (question.versions && question.versions.length > 1) {
+      setAllVersions(question.versions);
+      return;
+    }
+
+    if (question.id) {
+      let active = true;
+      async function loadFullHistory() {
+        try {
+          setLoadingVersions(true);
+          const fullItem = await getQuestionByIdAsync(question.id);
+          if (active && fullItem && fullItem.versions && fullItem.versions.length > 0) {
+            setAllVersions(fullItem.versions);
+          }
+        } catch (err) {
+          console.error("Failed to load question version history:", err);
+        } finally {
+          if (active) setLoadingVersions(false);
+        }
+      }
+      loadFullHistory();
+      return () => {
+        active = false;
+      };
+    }
+  }, [question.id, question.versions]);
+
+  const activeQuestion = allVersions[selectedIndex] || question;
+  const nextActions = getNextWorkflowActions(activeQuestion.status);
+  const TypeIcon = questionTypeIcons[activeQuestion.type] || Icons.ListCheck;
   const scoringMode =
-    question.scoringMode ||
-    (question.scoringConfig as any)?.scoringMode ||
-    (question.contentJson as any)?.scoringMode ||
-    (question.contentJson as any)?.payload?.scoringMode ||
+    activeQuestion.scoringMode ||
+    (activeQuestion.scoringConfig as any)?.scoringMode ||
+    (activeQuestion.contentJson as any)?.scoringMode ||
+    (activeQuestion.contentJson as any)?.payload?.scoringMode ||
     "per_option";
 
-  const totalPoints = question.points !== undefined ? question.points : (question.defaultMaxScore || 1);
-  const minPoints = question.minPoints !== undefined ? question.minPoints : (question.defaultMinScore || 0);
-  const durationSeconds = question.durationSeconds || question.defaultTimeSeconds || 60;
+  const totalPoints = activeQuestion.defaultMaxScore !== undefined ? activeQuestion.defaultMaxScore : (activeQuestion.points !== undefined ? activeQuestion.points : 1);
+  const minPoints = activeQuestion.defaultMinScore !== undefined ? activeQuestion.defaultMinScore : (activeQuestion.minPoints !== undefined ? activeQuestion.minPoints : 0);
+  const durationSeconds = activeQuestion.defaultTimeSeconds || activeQuestion.durationSeconds || 60;
 
   return (
     <div className="fixed inset-0 z-modal grid place-items-center bg-slate-900/60 backdrop-blur-sm p-seek-4 transition-all duration-300">
@@ -97,17 +132,47 @@ export function QuestionPreviewModal({
 
         {/* Modal Title Section */}
         <div className="flex items-start justify-between gap-seek-4 pr-seek-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <Badge variant={statusVariant[question.status]}>
-                {statusLabels[question.status]}
+          <div className="space-y-1.5 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={statusVariant[activeQuestion.status] || "secondary"}>
+                {statusLabels[activeQuestion.status] || activeQuestion.status}
               </Badge>
               <Badge variant="secondary" className="font-mono text-xs">
-                {question.code}
+                {activeQuestion.code}
               </Badge>
+
+              {/* Version History Selector Combobox */}
+              {allVersions.length > 1 && (
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="text-xs font-semibold text-slate-500">Хувилбар:</span>
+                  <div className="relative inline-block">
+                    <select
+                      value={selectedIndex}
+                      onChange={(e) => setSelectedIndex(Number(e.target.value))}
+                      className="rounded-seek-md border border-slate-300 bg-white pl-2.5 pr-7 py-1 text-xs font-bold text-slate-800 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-all hover:border-slate-400"
+                    >
+                      {allVersions.map((v, idx) => (
+                        <option key={v.versionNumber || idx} value={idx}>
+                          v{v.versionNumber || (allVersions.length - idx)} ({statusLabels[v.status] || v.status?.toUpperCase() || "DRAFT"}) {v.createdAt ? `• ${new Date(v.createdAt).toLocaleDateString()}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
-            <Text className="mt-seek-2.5 text-2xl font-extrabold text-slate-900">
-              {question.title || "Гарчиггүй даалгавар"}
+
+            {selectedIndex > 0 && (
+              <div className="flex items-center gap-2 rounded-seek-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-900 mt-1">
+                <Icons.Info className="h-4 w-4 shrink-0 text-amber-600" />
+                <span>
+                  Та <strong>v{activeQuestion.versionNumber || (allVersions.length - selectedIndex)}</strong> өмнөх хувилбарыг үзэж байна. (Сүүлийн идэвхтэй хувилбар: v{allVersions[0]?.versionNumber || allVersions.length})
+                </span>
+              </div>
+            )}
+
+            <Text className="mt-seek-2 text-2xl font-extrabold text-slate-900">
+              {activeQuestion.title || "Гарчиггүй даалгавар"}
             </Text>
           </div>
         </div>
@@ -122,7 +187,7 @@ export function QuestionPreviewModal({
               </div>
               <div className="min-w-0">
                 <Text variant="muted" className="text-[11px] uppercase tracking-wider font-semibold">Төрөл</Text>
-                <Text className="text-xs font-bold text-slate-800 truncate">{questionTypeLabels[question.type]}</Text>
+                <Text className="text-xs font-bold text-slate-800 truncate">{questionTypeLabels[activeQuestion.type]}</Text>
               </div>
             </div>
 
@@ -163,23 +228,23 @@ export function QuestionPreviewModal({
           {/* Context Badges Bar */}
           <div className="mt-seek-3 pt-seek-3 border-t border-slate-200/60 flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs">
-              {question.topicName || "Ерөнхий сэдэв"}
+              {activeQuestion.topicName || "Ерөнхий сэдэв"}
             </Badge>
             <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs">
-              Блум: {bloomLabels[question.bloomLevel] || question.bloomLevel}
+              Блум: {bloomLabels[activeQuestion.bloomLevel] || activeQuestion.bloomLevel}
             </Badge>
             <Badge variant="warning" className="bg-amber-50 border-amber-200 text-amber-800 text-xs">
-              Хүндрэл: {difficultyLabels[question.difficulty] || question.difficulty}
+              Хүндрэл: {difficultyLabels[activeQuestion.difficulty] || activeQuestion.difficulty}
             </Badge>
             <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs">
-              Чадамж: {competencyLabels[question.competencyType] || question.competencyType}
+              Чадамж: {competencyLabels[activeQuestion.competencyType] || activeQuestion.competencyType}
             </Badge>
           </div>
         </div>
 
         {/* Main Question Body & Interactive Learner Preview */}
         <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-white p-seek-5 shadow-seek-xs">
-          <LearnerQuestionPreview question={question} />
+          <LearnerQuestionPreview question={activeQuestion} />
         </div>
 
         {/* Feedback Cards Section (Designed to match QuestionEditor's feedback cards) */}
@@ -193,8 +258,8 @@ export function QuestionPreviewModal({
               <div className="flex-1 p-seek-3">
                 <Text className="text-xs font-bold text-success mb-1">Зөв хариулсан үеийн тайлбар:</Text>
                 <div className="text-sm text-slate-700">
-                  {question.feedbackCorrect || question.feedback ? (
-                    <RichTextPreview value={question.feedbackCorrect || question.feedback} />
+                  {activeQuestion.feedbackCorrect || activeQuestion.feedback ? (
+                    <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.feedback} />
                   ) : (
                     <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
                   )}
@@ -212,8 +277,8 @@ export function QuestionPreviewModal({
               <div className="flex-1 p-seek-3">
                 <Text className="text-xs font-bold text-danger mb-1">Буруу хариулсан үеийн тайлбар:</Text>
                 <div className="text-sm text-slate-700">
-                  {question.feedbackIncorrect ? (
-                    <RichTextPreview value={question.feedbackIncorrect} />
+                  {activeQuestion.feedbackIncorrect ? (
+                    <RichTextPreview value={activeQuestion.feedbackIncorrect} />
                   ) : (
                     <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
                   )}
@@ -224,11 +289,11 @@ export function QuestionPreviewModal({
         </div>
 
         {/* Workflow Comments if exist */}
-        {question.workflowHistory && question.workflowHistory.length > 0 && (
+        {activeQuestion.workflowHistory && activeQuestion.workflowHistory.length > 0 && (
           <div className="mt-seek-5 border-t border-border pt-seek-4">
             <Text className="mb-2 font-semibold text-sm">Хяналтын түүх (Workflow comments)</Text>
             <div className="space-y-2">
-              {question.workflowHistory.map((entry) => (
+              {activeQuestion.workflowHistory.map((entry) => (
                 <div
                   key={entry.id}
                   className="rounded-seek-md border border-border p-seek-3 text-sm bg-slate-50/40"
@@ -877,7 +942,7 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
               </Badge>
             )}
             <Badge variant="success" className="font-mono text-xs">
-              +{question.points || 1} оноо
+              +{question.defaultMaxScore || question.points || 1} оноо
             </Badge>
           </div>
         ) : (

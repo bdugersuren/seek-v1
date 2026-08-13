@@ -7,6 +7,85 @@ import { Prisma } from "../generated/prisma-client";
 export class QuestionService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async saveMappings(
+    tx: Prisma.TransactionClient,
+    questionId: string,
+    topicMappings: any[],
+  ) {
+    if (!topicMappings || !Array.isArray(topicMappings)) {
+      return;
+    }
+
+    // 1. Cascade-оор хуучин хамаарлуудыг устгана
+    await tx.topicQuestionClassification.deleteMany({
+      where: { questionId },
+    });
+
+    const dbDiffLevels = await tx.difficultyLevel.findMany();
+    const dbCogLevels = await tx.cognitiveLevel.findMany();
+    let context = await tx.assessmentContext.findFirst();
+    if (!context) {
+      const scale = await tx.difficultyScale.findFirst();
+      const audience = await tx.audienceType.findFirst();
+      const cogFramework = await tx.cognitiveFramework.findFirst();
+      const compFramework = await tx.competenceFramework.findFirst();
+      if (!scale || !audience || !cogFramework || !compFramework) {
+        throw new BadRequestException("Difficulty Scales, Audience Types, Cognitive Frameworks and Competence Frameworks must be configured in database first.");
+      }
+      context = await tx.assessmentContext.create({
+        data: {
+          code: "DEFAULT",
+          name: "Default Context",
+          difficultyScale: { connect: { id: scale.id } },
+          audienceType: { connect: { id: audience.id } },
+          cognitiveFramework: { connect: { id: cogFramework.id } },
+          competenceFramework: { connect: { id: compFramework.id } },
+        },
+      });
+    }
+
+    for (const mapping of topicMappings) {
+      let cogLevel = dbCogLevels.find(c => c.id === mapping.bloomLevel || c.code.toLowerCase() === mapping.bloomLevel.toLowerCase());
+      if (!cogLevel) {
+        cogLevel = dbCogLevels[0];
+      }
+
+      let diffLevel = dbDiffLevels.find(d => d.id === mapping.difficulty || d.code.toLowerCase() === mapping.difficulty.toLowerCase());
+      if (!diffLevel) {
+        diffLevel = dbDiffLevels[0];
+      }
+
+      if (!cogLevel || !diffLevel) {
+        throw new BadRequestException("Difficulty Levels or Cognitive Levels are not configured in the database.");
+      }
+
+      const classification = await tx.topicQuestionClassification.create({
+        data: {
+          questionId,
+          topicId: mapping.topicId,
+          assessmentContextId: context.id,
+          difficultyLevelId: diffLevel.id,
+          cognitiveLevelId: cogLevel.id,
+          weight: mapping.weight !== undefined ? new Prisma.Decimal(mapping.weight) : new Prisma.Decimal(1.0),
+          createdBy: "system_author",
+        },
+      });
+
+      if (mapping.competencies && Array.isArray(mapping.competencies)) {
+        for (const comp of mapping.competencies) {
+          await tx.topicQuestionCompetence.create({
+            data: {
+              classificationId: classification.id,
+              competenceId: comp.competenceId,
+              weight: comp.weight !== undefined ? new Prisma.Decimal(comp.weight) : new Prisma.Decimal(1.0),
+              contributionRule: {},
+            },
+          });
+        }
+      }
+    }
+  }
+
   async create(dto: CreateQuestionDto) {
     if (!dto.code || !dto.body || !dto.type) {
       throw new BadRequestException("code, body and type are required");
@@ -101,6 +180,9 @@ export class QuestionService {
         }
       }
 
+      // Save classifications and competencies
+      await this.saveMappings(tx, question.id, dto.topicMappings);
+
       return {
         ...question,
         versions: [questionVersion],
@@ -130,6 +212,13 @@ export class QuestionService {
         classifications: {
           include: {
             topic: true,
+            difficultyLevel: true,
+            cognitiveLevel: true,
+            competences: {
+              include: {
+                competence: true,
+              },
+            },
           },
         },
         currentPublishedVersion: {
@@ -140,7 +229,6 @@ export class QuestionService {
         },
         versions: {
           orderBy: { versionNumber: "desc" },
-          take: 1,
           include: {
             options: true,
             media: true,
@@ -174,6 +262,13 @@ export class QuestionService {
         classifications: {
           include: {
             topic: true,
+            difficultyLevel: true,
+            cognitiveLevel: true,
+            competences: {
+              include: {
+                competence: true,
+              },
+            },
           },
         },
         versions: {
@@ -278,6 +373,10 @@ export class QuestionService {
           }
         }
 
+        if (dto.topicMappings) {
+          await this.saveMappings(tx, question.id, dto.topicMappings);
+        }
+
         await tx.question.update({
           where: { id: question.id },
           data: { updatedAt: new Date() },
@@ -371,6 +470,10 @@ export class QuestionService {
             },
           });
         }
+      }
+
+      if (dto.topicMappings) {
+        await this.saveMappings(tx, question.id, dto.topicMappings);
       }
 
       // Update parent version counter

@@ -54,10 +54,10 @@ export interface WorkflowComment {
 
 export interface QuestionOption {
   id: string;
+  optionKey: string;
   label: string;
-  optionKey?: string;
-  content: string;
-  value?: string;
+  value: string;
+  content?: string;
   contentJson?: unknown;
   contentHtml?: string;
   isCorrect?: boolean;
@@ -77,18 +77,23 @@ export interface QuestionMedia {
 export interface QuestionTopicMapping {
   topicId: string;
   topicName: string;
-  bloomLevel: BloomLevel;
-  competencyType: CompetencyType;
-  difficulty: DifficultyLevel;
+  bloomLevel: BloomLevel | string;
+  competencyType: CompetencyType | string;
+  difficulty: DifficultyLevel | string;
   weight: number;
+  competencies?: Array<{
+    competenceId: string;
+    weight: number;
+    name?: string;
+  }>;
 }
 
 export interface QuestionBankItem {
   id: string;
   code: string;
   title: string;
-  stem: string;
-  body?: string;
+  body: string;
+  stem?: string;
   parentId?: string | null;
   ownerUserId?: string;
   contentJson?: unknown;
@@ -96,12 +101,12 @@ export interface QuestionBankItem {
   contentMarkdown?: string;
   type: QuestionType;
   status: QuestionWorkflowStatus;
-  points: number;
+  defaultMaxScore: number;
+  defaultMinScore: number;
+  defaultTimeSeconds: number;
+  points?: number;
   minPoints?: number;
-  defaultMaxScore?: number;
-  defaultMinScore?: number;
-  durationSeconds: number;
-  defaultTimeSeconds?: number;
+  durationSeconds?: number;
   bloomLevel: BloomLevel;
   competencyType: CompetencyType;
   topicId: string;
@@ -112,7 +117,8 @@ export interface QuestionBankItem {
   options: QuestionOption[];
   answerKey: string;
   rubric: any;
-  feedback: string;
+  explanation: string;
+  feedback?: string;
   feedbackCorrect?: string;
   feedbackIncorrect?: string;
   scoringMode?: string;
@@ -122,7 +128,9 @@ export interface QuestionBankItem {
   createdBy: string;
   updatedBy: string;
   createdAt: string;
-  updatedAt: string;
+  versionNumber?: number;
+  versionStatus?: string;
+  versions?: QuestionBankItem[];
   workflowHistory: WorkflowComment[];
 }
 

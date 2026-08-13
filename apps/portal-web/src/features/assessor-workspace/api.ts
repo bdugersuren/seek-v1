@@ -92,9 +92,7 @@ export function getBlueprintById(id: string): Blueprint | null {
   return mockBlueprints.find((blueprint) => blueprint.id === id) || null;
 }
 
-function mapToQuestionBankItem(q: any): QuestionBankItem {
-  const actV = q.activeVersion || q.versions?.[0] || q.currentPublishedVersion || {};
-
+function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
   const primaryClassification = q.classifications?.[0];
   const topicId = primaryClassification?.topicId || actV.topicId || (primaryClassification?.topic?.code) || "general";
   const topicName = primaryClassification?.topic?.name || actV.topicName || (primaryClassification ? "Сэдэв" : "Ерөнхий");
@@ -102,10 +100,15 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
   const topicMappings: QuestionTopicMapping[] = (q.classifications || []).map((c: any) => ({
     topicId: c.topicId,
     topicName: c.topic?.name || c.topicId,
-    bloomLevel: (c.bloomLevel?.toLowerCase() || "apply") as any,
-    competencyType: (c.competencyType?.toLowerCase() || "knowledge") as any,
-    difficulty: (c.difficulty?.toLowerCase() || "medium") as any,
+    bloomLevel: (c.cognitiveLevel?.code || c.cognitiveLevelId || "apply") as any,
+    competencyType: "knowledge" as any,
+    difficulty: (c.difficultyLevel?.code || c.difficultyLevelId || "medium") as any,
     weight: Number(c.weight || 1),
+    competencies: (c.competences || []).map((tc: any) => ({
+      competenceId: tc.competenceId,
+      weight: Number(tc.weight || 1),
+      name: tc.competence?.name || tc.competenceId,
+    })),
   }));
 
   const scoringConfig = actV.scoringConfig || actV.payload?.scoringConfig || {};
@@ -121,11 +124,11 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
     : (Array.isArray(actV.payload?.options) ? actV.payload.options : []);
 
   const options: QuestionOption[] = rawOptions.map((o: any, idx: number) => ({
-    id: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
-    label: o.optionKey || o.code || o.label || String.fromCharCode(65 + idx),
+    id: o.id || o.optionKey || o.code || `opt_${idx + 1}`,
+    label: o.label || o.optionKey || o.code || String.fromCharCode(65 + idx),
     optionKey: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
-    content: o.value || o.content || o.body || "",
     value: o.value || o.content || o.body || "",
+    content: o.value || o.content || o.body || "",
     isCorrect: Boolean(o.isCorrect),
     score: o.score !== undefined && o.score !== null ? Number(o.score) : (o.isCorrect ? 1 : 0),
     negativeScore: o.negativeScore !== undefined && o.negativeScore !== null ? Number(o.negativeScore) : 0,
@@ -134,23 +137,23 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
     metadata: o.metadata || {},
   }));
 
+  const explanation = actV.explanation || actV.feedback || "";
+
   return {
     id: q.id,
     code: q.code,
     title: actV.title || "No Title",
-    stem: actV.body || "",
     body: actV.body || "",
+    stem: actV.body || "",
     parentId: q.parentId || null,
     type: (actV.type || "SINGLE_CHOICE") as any,
     status: (q.lifecycleStatus === "ARCHIVED" ? "archived" : actV.versionStatus?.toLowerCase()) as any,
-    points: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
-    minPoints: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
     defaultMaxScore: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
     defaultMinScore: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
-    durationSeconds: actV.defaultTimeSeconds || 60,
     defaultTimeSeconds: actV.defaultTimeSeconds || 60,
-    tags: actV.tags || [],
-    contentJson: actV.payload || {},
+    points: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
+    minPoints: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
+    durationSeconds: actV.defaultTimeSeconds || 60,
     bloomLevel: (primaryClassification?.bloomLevel?.toLowerCase() || "apply") as any,
     competencyType: (primaryClassification?.competencyType?.toLowerCase() || "knowledge") as any,
     topicId,
@@ -184,8 +187,9 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
         .join(", ") || "-";
     })(),
     rubric: actV.rubric || actV.payload?.rubric || [],
-    feedback: actV.feedbackCorrect || actV.explanation || actV.feedback || "",
-    feedbackCorrect: actV.feedbackCorrect || actV.explanation || actV.feedback || "",
+    explanation,
+    feedback: explanation,
+    feedbackCorrect: actV.feedbackCorrect || "",
     feedbackIncorrect: actV.feedbackIncorrect || "",
     scoringMode,
     scoringConfig,
@@ -196,8 +200,8 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
       if (mType === "image" || mType === "audio" || mType === "video") {
         type = mType as any;
       }
-      const name = m.metadata?.name || m.name || m.storageKey.split("/").pop() || "media_file";
-      const url = m.url || `/api/v1/file/objects?storageKey=${encodeURIComponent(m.storageKey)}`;
+      const name = m.metadata?.name || m.name || m.storageKey?.split("/").pop() || "media_file";
+      const url = m.url || `/api/v1/file/objects?storageKey=${encodeURIComponent(m.storageKey || "")}`;
       return { 
         type, 
         name, 
@@ -209,12 +213,27 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
       };
     }),
     ownerUserId: q.ownerUserId || "",
-    createdBy: q.createdBy || "",
-    updatedBy: q.updatedBy || "",
-    createdAt: q.createdAt || "",
-    updatedAt: q.updatedAt || "",
+    createdBy: actV.createdBy || q.createdBy || "",
+    updatedBy: actV.updatedBy || q.updatedBy || "",
+    createdAt: actV.createdAt || q.createdAt || "",
+    updatedAt: actV.updatedAt || q.updatedAt || "",
+    versionNumber: actV.versionNumber !== undefined ? actV.versionNumber : q.version,
+    versionStatus: actV.versionStatus || q.lifecycleStatus,
     workflowHistory: [],
   };
+}
+
+function mapToQuestionBankItem(q: any): QuestionBankItem {
+  const actV = q.activeVersion || q.versions?.[0] || q.currentPublishedVersion || {};
+  const mainItem = mapVersionToQuestionBankItem(actV, q);
+
+  if (Array.isArray(q.versions) && q.versions.length > 0) {
+    mainItem.versions = q.versions.map((v: any) => mapVersionToQuestionBankItem(v, q));
+  } else {
+    mainItem.versions = [mainItem];
+  }
+
+  return mainItem;
 }
 
 function mapToBlueprint(b: any): Blueprint {
@@ -279,12 +298,12 @@ export async function fetchQuestions(filters?: any): Promise<QuestionBankItem[]>
 
 function mapToCreateQuestionDto(data: any) {
   const payloadOptions = (data.options || []).map((o: any, index: number) => ({
-    code: o.id || o.label || `opt_${index + 1}`,
-    optionKey: o.optionKey || o.label || o.id || `opt_${index + 1}`,
-    value: o.value || o.content || "",
-    body: o.value || o.content || "",
+    code: o.optionKey || o.id || o.label || `opt_${index + 1}`,
+    optionKey: o.optionKey || o.id || o.label || `opt_${index + 1}`,
+    value: o.value !== undefined ? o.value : (o.content || ""),
+    body: o.value !== undefined ? o.value : (o.content || ""),
     isCorrect: o.isCorrect || false,
-    score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.points || 1) : 0)),
+    score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.defaultMaxScore || data.points || 1) : 0)),
     negativeScore: o.negativeScore !== undefined ? Number(o.negativeScore) : 0,
     matchValue: o.matchValue || "",
     matchRules: {
@@ -308,15 +327,15 @@ function mapToCreateQuestionDto(data: any) {
     ownerUserId: data.ownerUserId || null,
     parentId: data.parentId || null,
     title: data.title || "No Title",
-    body: data.stem ? data.stem : (data.body || "Шинэ асуулт"),
+    body: data.body ? data.body : (data.stem || "Шинэ асуулт"),
     type: data.type || data.typeId || "SINGLE_CHOICE",
-    defaultTimeSeconds: Number(data.durationSeconds || data.defaultTimeSeconds || 60),
-    defaultMaxScore: Number(data.points !== undefined ? data.points : (data.defaultMaxScore || 1)),
-    defaultMinScore: Number(data.minPoints !== undefined ? data.minPoints : (data.defaultMinScore !== undefined ? data.defaultMinScore : 0)),
+    defaultTimeSeconds: Number(data.defaultTimeSeconds !== undefined ? data.defaultTimeSeconds : (data.durationSeconds || 60)),
+    defaultMaxScore: Number(data.defaultMaxScore !== undefined ? data.defaultMaxScore : (data.points !== undefined ? data.points : 1)),
+    defaultMinScore: Number(data.defaultMinScore !== undefined ? data.defaultMinScore : (data.minPoints !== undefined ? data.minPoints : 0)),
     languageCode: "mn",
     tags: data.tags || [],
-    explanation: data.feedback || data.explanation || "",
-    feedbackCorrect: data.feedbackCorrect || data.feedback || "",
+    explanation: data.explanation ? data.explanation : (data.feedback || ""),
+    feedbackCorrect: data.feedbackCorrect || "",
     feedbackIncorrect: data.feedbackIncorrect || "",
     payload: {
       options: payloadOptions,
@@ -336,6 +355,16 @@ function mapToCreateQuestionDto(data: any) {
       sizeBytes: m.sizeBytes ? Number(m.sizeBytes) : null,
       orderIndex: index + 1,
       metadata: m.metadata || {},
+    })),
+    topicMappings: (data.mappings || data.topicMappings || []).map((m: any) => ({
+      topicId: m.topicId,
+      bloomLevel: m.bloomLevel,
+      difficulty: m.difficulty,
+      weight: m.weight !== undefined ? Number(m.weight) : 1.0,
+      competencies: (m.competencies || []).map((c: any) => ({
+        competenceId: c.competenceId || c.id,
+        weight: c.weight !== undefined ? Number(c.weight) : 1.0,
+      })),
     })),
   };
 }

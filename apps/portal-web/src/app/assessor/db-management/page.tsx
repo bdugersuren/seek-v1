@@ -295,6 +295,7 @@ export default function DatabaseManagementPage() {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-border bg-slate-50">
+                          <th className="py-2 px-3 font-semibold text-slate-600 text-right">Үйлдэл</th>
                           {selectedTable.fields
                             .filter((f) => !f.isList && !f.relationName)
                             .map((f) => (
@@ -302,7 +303,7 @@ export default function DatabaseManagementPage() {
                                 {f.name}
                               </th>
                             ))}
-                          <th className="py-2 px-3 font-semibold text-slate-600 text-right">Үйлдэл</th>
+                          
                         </tr>
                       </thead>
                       <tbody>
@@ -314,6 +315,16 @@ export default function DatabaseManagementPage() {
                               onClick={() => setSelectedItem(row)}
                               className={`border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${isSelected ? 'bg-primary/5 font-semibold text-primary' : ''}`}
                             >
+                              <td className="py-2 px-3 text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(row); }}
+                                  className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-danger"
+                                  title="Устгах"
+                                >
+                                  <Icons.Trash className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
                               {selectedTable.fields
                                 .filter((f) => !f.isList && !f.relationName)
                                 .map((f) => (
@@ -325,16 +336,7 @@ export default function DatabaseManagementPage() {
                                       : <span className="text-slate-300">null</span>}
                                   </td>
                                 ))}
-                              <td className="py-2 px-3 text-right whitespace-nowrap">
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleDelete(row); }}
-                                  className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-danger"
-                                  title="Устгах"
-                                >
-                                  <Icons.Trash className="h-3.5 w-3.5" />
-                                </button>
-                              </td>
+                              
                             </tr>
                           );
                         })}

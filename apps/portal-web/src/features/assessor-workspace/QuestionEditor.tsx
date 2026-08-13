@@ -10,6 +10,7 @@ import {
   Card,
   Checkbox,
   Icons,
+  IconButton,
   Input,
   Select,
   Text,
@@ -35,13 +36,15 @@ import type {
   QuestionTopicMapping,
   QuestionType,
 } from "./types";
-import { createQuestion, updateQuestion, fetchTopics, fetchDifficultyLevels, fetchCognitiveLevels } from "./api";
+import { createQuestion, updateQuestion, fetchTopics, fetchDifficultyLevels, fetchCognitiveLevels, fetchCompetenceTypes } from "./api";
 
 type WizardStep = 1 | 2 | 3;
 
 interface EditorOption {
   id: string;
+  optionKey: string;
   label: string;
+  value: string;
   content: string;
   isCorrect: boolean;
   score: number;
@@ -53,15 +56,16 @@ interface QuestionWizardState {
   title: string;
   code: string;
   type: QuestionType;
-  stem: string;
+  body: string;
   options: EditorOption[];
+  explanation: string;
   feedbackCorrect: string;
   feedbackIncorrect: string;
   scoringMode: string;
   scoringConfig: Record<string, any>;
-  totalPoints: number;
-  correctPoints: number;
-  durationSeconds: number;
+  defaultMaxScore: number;
+  defaultMinScore: number;
+  defaultTimeSeconds: number;
   tags: string[];
   mappings: QuestionTopicMapping[];
   workflowComment: string;
@@ -188,20 +192,23 @@ export function QuestionEditor({
   const [topics, setTopics] = useState<any[]>([]); // Сэдвийн сангууд
   const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]); // Хүндрэлийн түвшин
   const [cognitiveLevels, setCognitiveLevels] = useState<any[]>([]); // Танин мэдэхүйн түвшин
+  const [competenceTypes, setCompetenceTypes] = useState<any[]>([]); // Ур чадварын төрлүүд
   const [loadingMetadata, setLoadingMetadata] = useState(true); // Мета өгөгдөл уншиж буй төлөв
 
   // Компонент ачаалагдах үед баазаас сэдэв, хүндрэлийн түвшин, танин мэдэхүйн түвшнүүдийг уншина.
   useEffect(() => {
     async function loadMetadata() {
       try {
-        const [t, d, c] = await Promise.all([
+        const [t, d, c, comp] = await Promise.all([
           fetchTopics(),
           fetchDifficultyLevels(),
           fetchCognitiveLevels(),
+          fetchCompetenceTypes(),
         ]);
         setTopics(t);
         setDifficultyLevels(d);
         setCognitiveLevels(c);
+        setCompetenceTypes(comp || []);
       } catch (err) {
         console.error("Metadata load failed", err);
       } finally {
@@ -303,14 +310,14 @@ export function QuestionEditor({
     }
 
     // Хэрэв тооцсон оноо өөрчлөгдсөн байвал state-д нийт оноог шинэчилнэ.
-    if (state.totalPoints !== maxScore || state.correctPoints !== minScore) {
+    if (state.defaultMaxScore !== maxScore || state.defaultMinScore !== minScore) {
       setState(curr => ({
         ...curr,
-        totalPoints: maxScore,
-        correctPoints: minScore
+        defaultMaxScore: maxScore,
+        defaultMinScore: minScore
       }));
     }
-  }, [state.options, state.scoringMode, state.scoringConfig, state.type, state.totalPoints, state.correctPoints, state.rubric]);
+  }, [state.options, state.scoringMode, state.scoringConfig, state.type, state.defaultMaxScore, state.defaultMinScore, state.rubric]);
 
   // goNext - Wizard-ийн дараагийн шат руу шилжих. Сэдэв заавал сонгосон байхыг шалгана.
   const goNext = () => {
@@ -410,18 +417,14 @@ export function QuestionEditor({
               setState((current) => {
                 const nextScore = patch.score !== undefined ? patch.score : current.options[index]?.score ?? 0;
                 const nextIsCorrect = patch.isCorrect !== undefined ? patch.isCorrect : nextScore > 0;
-                let nextOptions = current.options.map((option, optionIndex) =>
-                  optionIndex === index
-                    ? { ...option, ...patch, isCorrect: nextIsCorrect, score: nextScore }
-                    : option
-                );
-                if ((current.type === "SINGLE_CHOICE" || current.type === "TRUE_FALSE") && nextIsCorrect) {
-                  nextOptions = nextOptions.map((option, optionIndex) =>
-                    optionIndex === index
-                      ? option
-                      : { ...option, isCorrect: false, score: option.score > 0 ? 0 : option.score }
-                  );
-                }
+                let nextOptions = current.options.map((option, optionIndex) => {
+                  if (optionIndex === index) {
+                    const finalValue = patch.value !== undefined ? patch.value : (patch.content !== undefined ? patch.content : option.value);
+                    const finalContent = patch.content !== undefined ? patch.content : (patch.value !== undefined ? patch.value : option.content);
+                    return { ...option, ...patch, value: finalValue, content: finalContent, isCorrect: nextIsCorrect, score: nextScore };
+                  }
+                  return option;
+                });
                 return {
                   ...current,
                   options: nextOptions,
@@ -434,7 +437,9 @@ export function QuestionEditor({
                   ...current.options,
                   {
                     id: Math.random().toString(36).substring(2, 9),
+                    optionKey: "",
                     label: "",
+                    value: "",
                     content: "",
                     isCorrect: false,
                     score: 0,
@@ -473,7 +478,9 @@ export function QuestionEditor({
                   ...current.options,
                   {
                     id: `L${current.options.length + 1}`,
+                    optionKey: `L${current.options.length + 1}`,
                     label: `L${current.options.length + 1}`,
+                    value: "",
                     content: "",
                     isCorrect: true,
                     score: 1,
@@ -530,6 +537,7 @@ export function QuestionEditor({
             topics={topics}
             difficultyLevels={difficultyLevels}
             cognitiveLevels={cognitiveLevels}
+            competenceTypes={competenceTypes}
             loading={loadingMetadata}
           />
         )}
@@ -930,8 +938,8 @@ function StepOne({
                   <Input
                     type="number"
                     disabled={state.scoringMode !== "manual"}
-                    value={state.totalPoints}
-                    onChange={(event) => setState({ totalPoints: Number(event.target.value) })}
+                    value={state.defaultMaxScore}
+                    onChange={(event) => setState({ defaultMaxScore: Number(event.target.value) })}
                     style={{ paddingLeft: '2.5rem' }}
                   />
                 </div>
@@ -944,8 +952,8 @@ function StepOne({
                   <Input
                     type="number"
                     disabled={state.scoringMode !== "manual"}
-                    value={state.correctPoints}
-                    onChange={(event) => setState({ correctPoints: Number(event.target.value) })}
+                    value={state.defaultMinScore}
+                    onChange={(event) => setState({ defaultMinScore: Number(event.target.value) })}
                     style={{ paddingLeft: '2.5rem' }}
                   />
                 </div>
@@ -958,8 +966,8 @@ function StepOne({
                 </div>
                 <Input
                   type="number"
-                  value={state.durationSeconds}
-                  onChange={(event) => setState({ durationSeconds: Number(event.target.value) })}
+                  value={state.defaultTimeSeconds}
+                  onChange={(event) => setState({ defaultTimeSeconds: Number(event.target.value) })}
                   style={{ paddingLeft: '2.5rem' }}
                 />
               </div>
@@ -1027,9 +1035,9 @@ function StepOne({
 
         <CollapsibleCard title="Асуултын агуулга" icon={Icons.BodyIcon}>
           <RichEditor
-            value={state.stem}
+            value={state.body}
             placeholder="Асуултын агуулгыг энд оруулна уу..."
-            onChange={(markdown) => setState({ stem: markdown })}
+            onChange={(markdown) => setState({ body: markdown })}
           />
         </CollapsibleCard>
 
@@ -1103,7 +1111,7 @@ function StepOne({
                 onClick={() => document.getElementById('media-file-upload')?.click()}
                 className="flex items-center gap-seek-2"
               >
-                <Icons.Upload className="h-4 w-4 stroke-[1.8]" />
+                <Icons.FilePlus className="h-4 w-4 stroke-[1.8]" />
                 <span>Файл сонгох</span>
               </Button>
             </div>
@@ -1520,6 +1528,21 @@ function StepOne({
         <CollapsibleCard title="Хариултуудад өгөх тайлбар" subtitle="Зөв болон буруу хариулсан үед харагдах тайлбар." icon={Icons.Ad}>
           <div className="space-y-seek-5">
             <div className="space-y-1">
+              <Text className="text-xs font-semibold text-slate-700">Асуултын ерөнхий тайлбар (Explanation):</Text>
+              <div className="flex rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-blue-500">
+                <div className="w-12 bg-blue-50/20 border-r border-border flex items-center justify-center flex-shrink-0">
+                  <Icons.Info className="h-5 w-5 text-white bg-blue-500 rounded-full p-0.5" />
+                </div>
+                <div className="flex-1 p-seek-3">
+                  <RichEditor
+                    value={state.explanation}
+                    placeholder="Ерөнхий тайлбарыг энд оруулна уу..."
+                    onChange={(markdown) => setState({ explanation: markdown })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
               <Text className="text-xs font-semibold text-slate-700">Зөв хариулсан үеийн тайлбар:</Text>
               <div className="flex rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-success">
                 <div className="w-12 bg-success-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
@@ -1569,6 +1592,7 @@ function StepTwo({
   topics,
   difficultyLevels,
   cognitiveLevels,
+  competenceTypes,
   loading,
 }: {
   mappings: QuestionTopicMapping[];
@@ -1577,6 +1601,7 @@ function StepTwo({
   topics: any[];
   difficultyLevels: any[];
   cognitiveLevels: any[];
+  competenceTypes: any[];
   loading: boolean;
 }) {
   const selectedIds = mappings.map((mapping) => mapping.topicId);
@@ -1623,6 +1648,7 @@ function StepTwo({
         competencyType: "knowledge",
         difficulty: "medium",
         weight: 1,
+        competencies: [],
       },
     ]);
   };
@@ -1634,9 +1660,40 @@ function StepTwo({
       ),
     );
 
+  const addCompetence = (topicId: string, compId: string, compName: string) => {
+    const mapping = mappings.find(m => m.topicId === topicId);
+    if (!mapping) return;
+    const comps = mapping.competencies || [];
+    if (comps.some(c => c.competenceId === compId)) return;
+
+    updateMapping(topicId, {
+      competencies: [...comps, { competenceId: compId, weight: 1.0, name: compName }]
+    });
+  };
+
+  const removeCompetence = (topicId: string, compId: string) => {
+    const mapping = mappings.find(m => m.topicId === topicId);
+    if (!mapping) return;
+    const comps = mapping.competencies || [];
+
+    updateMapping(topicId, {
+      competencies: comps.filter(c => c.competenceId !== compId)
+    });
+  };
+
+  const updateCompWeight = (topicId: string, compId: string, weight: number) => {
+    const mapping = mappings.find(m => m.topicId === topicId);
+    if (!mapping) return;
+    const comps = mapping.competencies || [];
+
+    updateMapping(topicId, {
+      competencies: comps.map(c => c.competenceId === compId ? { ...c, weight } : c)
+    });
+  };
+
   return (
     <div className="grid gap-seek-5 xl:grid-cols-[20rem_minmax(0,1fr)]">
-      <CollapsibleCard title="Сэдвийн сан" subtitle="Дэд сэдэв бүрийг checkbox-оор сонгоно." icon={Icons.Menu}>
+      <CollapsibleCard title="Сэдвийн сан" subtitle="Дэд сэдэв бүрийг олноор сонгож асуултанд холбоно." icon={Icons.Menu}>
         <div className="space-y-seek-3">
           {loading ? (
             <div className="flex items-center justify-center py-seek-8">
@@ -1654,7 +1711,7 @@ function StepTwo({
       </CollapsibleCard>
 
       <main className="space-y-seek-4">
-        <CollapsibleCard title="Сонгосон дэд сэдвийн mapping" subtitle="Нэг асуулт олон дэд сэдэвтэй, өөр өөр Bloom/чадамж/түвшинтэй холбогдож болно." icon={Icons.Settings}>
+        <CollapsibleCard title="Сонгосон дэд сэдвийн mapping" subtitle="Сонгосон сэдэв бүрийн хүндрэл, танин мэдэхүйн түвшин болон үнэлэх ур чадваруудыг нарийвчлан тохируулна." icon={Icons.Settings}>
           {mappings.length === 0 ? (
             <div className="rounded-seek-lg border border-dashed border-border bg-muted-background p-seek-8 text-center">
               <Text className="font-semibold">Сэдэв сонгоогүй байна</Text>
@@ -1663,69 +1720,155 @@ function StepTwo({
               </Text>
             </div>
           ) : (
-            <div className="space-y-seek-3">
-              {mappings.map((mapping) => (
-                <div
-                  key={mapping.topicId}
-                  className="grid gap-seek-3 rounded-seek-lg border border-border bg-surface p-seek-4 lg:grid-cols-[1fr_11rem_12rem_10rem_7rem]"
-                >
-                  <div>
-                    <Text className="font-bold">{mapping.topicName}</Text>
-                    <Text variant="muted" className="text-xs">
-                      {mapping.topicId}
-                    </Text>
+            <div className="space-y-seek-4">
+              {mappings.map((mapping) => {
+                const mappingComps = mapping.competencies || [];
+
+                return (
+                  <div
+                    key={mapping.topicId}
+                    className="rounded-seek-lg border border-border bg-surface p-seek-4 shadow-seek-xs space-y-seek-4"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-border/50 pb-seek-3">
+                      <div>
+                        <Text className="font-bold text-foreground">{mapping.topicName}</Text>
+                        <Text variant="muted" className="text-xs font-mono">
+                          ID: {mapping.topicId}
+                        </Text>
+                      </div>
+                      <IconButton
+                        ariaLabel="Устгах"
+                        onClick={() => toggleTopic({ id: mapping.topicId, label: mapping.topicName })}
+                        className="text-danger hover:bg-danger-background hover:bg-surface-hover"
+                      >
+                        <Icons.Trash size={16} />
+                      </IconButton>
+                    </div>
+
+                    {/* Classifications Row */}
+                    <div className="grid gap-seek-4 sm:grid-cols-3">
+                      <label className="space-y-seek-1">
+                        <span className="font-sans text-xs font-semibold text-muted-foreground">Танин мэдэхүйн түвшин</span>
+                        <Select
+                          value={mapping.bloomLevel}
+                          onChange={(event) =>
+                            updateMapping(mapping.topicId, {
+                              bloomLevel: event.target.value,
+                            })
+                          }
+                          options={
+                            cognitiveLevels && cognitiveLevels.length > 0
+                              ? cognitiveLevels.map((c: any) => ({ value: c.code, label: c.name }))
+                              : Object.entries(bloomLabels).map(([value, label]) => ({ value, label }))
+                          }
+                        />
+                      </label>
+
+                      <label className="space-y-seek-1">
+                        <span className="font-sans text-xs font-semibold text-muted-foreground">Хүндрэлийн түвшин</span>
+                        <Select
+                          value={mapping.difficulty}
+                          onChange={(event) =>
+                            updateMapping(mapping.topicId, {
+                              difficulty: event.target.value,
+                            })
+                          }
+                          options={
+                            difficultyLevels && difficultyLevels.length > 0
+                              ? difficultyLevels.map((d: any) => ({ value: d.code, label: d.name }))
+                              : Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }))
+                          }
+                        />
+                      </label>
+
+                      <label className="space-y-seek-1">
+                        <span className="font-sans text-xs font-semibold text-muted-foreground">Жин (Weight)</span>
+                        <Input
+                          type="number"
+                          min={0.1}
+                          max={1.0}
+                          step={0.1}
+                          value={mapping.weight}
+                          onChange={(event) =>
+                            updateMapping(mapping.topicId, {
+                              weight: Number(event.target.value),
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {/* Competence Mapping Section */}
+                    <div className="bg-muted-background/40 p-seek-3 rounded-seek-md space-y-seek-3 border border-border/40">
+                      <div className="flex items-center justify-between">
+                        <Text className="text-xs font-bold text-foreground">Үнэлэх ур чадварууд (Competencies)</Text>
+                        
+                        {/* Competence Add dropdown */}
+                        <div className="relative w-48">
+                          <Select
+                            value=""
+                            aria-label="Ур чадвар нэмэх"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (!val) return;
+                              const targetComp = competenceTypes.find(c => c.id === val);
+                              if (targetComp) {
+                                addCompetence(mapping.topicId, targetComp.id, targetComp.name);
+                              }
+                            }}
+                            options={[
+                              { value: "", label: "+ Ур чадвар нэмэх" },
+                              ...competenceTypes
+                                .filter(c => !mappingComps.some(mc => mc.competenceId === c.id))
+                                .map(c => ({ value: c.id, label: c.name }))
+                            ]}
+                          />
+                        </div>
+                      </div>
+
+                      {mappingComps.length === 0 ? (
+                        <Text variant="muted" className="text-xs italic py-seek-2">
+                          Ур чадвар холбоогүй байна. Баруун талын цэснээс сонгож нэмнэ үү.
+                        </Text>
+                      ) : (
+                        <div className="space-y-seek-2">
+                          {mappingComps.map((c) => (
+                            <div 
+                              key={c.competenceId} 
+                              className="flex items-center justify-between gap-seek-4 bg-surface px-seek-3 py-seek-2 rounded border border-border/80 text-xs"
+                            >
+                              <div className="flex-1">
+                                <span className="font-medium text-foreground">{c.name}</span>
+                                <span className="ml-seek-2 font-mono text-[10px] text-muted-foreground">ID: {c.competenceId}</span>
+                              </div>
+                              <div className="flex items-center gap-seek-3">
+                                <span className="text-muted-foreground text-[10px] font-semibold">Жин:</span>
+                                <Input
+                                  type="number"
+                                  min={0.1}
+                                  max={1.0}
+                                  step={0.1}
+                                  className="w-20 text-xs h-7 py-1 px-2"
+                                  value={c.weight}
+                                  onChange={(e) => updateCompWeight(mapping.topicId, c.competenceId, Number(e.target.value))}
+                                />
+                                <IconButton
+                                  ariaLabel="Ур чадвар хасах"
+                                  onClick={() => removeCompetence(mapping.topicId, c.competenceId)}
+                                  className="text-danger hover:bg-danger-background hover:bg-surface-hover h-7 w-7"
+                                >
+                                  <Icons.Close size={14} />
+                                </IconButton>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Select
-                    value={mapping.bloomLevel}
-                    onChange={(event) =>
-                      updateMapping(mapping.topicId, {
-                        bloomLevel: event.target.value as BloomLevel,
-                      })
-                    }
-                    options={
-                      cognitiveLevels && cognitiveLevels.length > 0
-                        ? cognitiveLevels.map((c: any) => ({ value: c.code, label: c.name }))
-                        : Object.entries(bloomLabels).map(([value, label]) => ({ value, label }))
-                    }
-                  />
-                  <Select
-                    value={mapping.competencyType}
-                    onChange={(event) =>
-                      updateMapping(mapping.topicId, {
-                        competencyType: event.target.value as CompetencyType,
-                      })
-                    }
-                    options={Object.entries(competencyLabels).map(([value, label]) => ({
-                      value,
-                      label,
-                    }))}
-                  />
-                  <Select
-                    value={mapping.difficulty}
-                    onChange={(event) =>
-                      updateMapping(mapping.topicId, {
-                        difficulty: event.target.value as DifficultyLevel,
-                      })
-                    }
-                    options={
-                      difficultyLevels && difficultyLevels.length > 0
-                        ? difficultyLevels.map((d: any) => ({ value: d.code, label: d.name }))
-                        : Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }))
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    value={mapping.weight}
-                    aria-label={`${mapping.topicName} weight`}
-                    onChange={(event) =>
-                      updateMapping(mapping.topicId, {
-                        weight: Number(event.target.value),
-                      })
-                    }
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CollapsibleCard>
@@ -1765,7 +1908,7 @@ function StepThree({
           <div className="grid gap-seek-3 md:grid-cols-2 xl:grid-cols-4">
             <SummaryTile label="Гарчиг" value={state.title || "Нэргүй"} />
             <SummaryTile label="Төрөл" value={questionTypeLabels[state.type]} />
-            <SummaryTile label="Оноо/хугацаа" value={`${state.totalPoints} оноо · ${state.durationSeconds} сек`} />
+            <SummaryTile label="Оноо/хугацаа" value={`${state.defaultMaxScore} оноо · ${state.defaultTimeSeconds} сек`} />
             <SummaryTile label="Сэдэв" value={`${state.mappings.length} mapping`} />
           </div>
         </CollapsibleCard>
@@ -1935,18 +2078,20 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
   const options = question?.options.length
     ? question.options.map((option) => ({
         id: option.id,
+        optionKey: option.optionKey || option.id,
         label: option.label,
-        content: option.content,
+        value: option.value || option.content || "",
+        content: option.content || option.value || "",
         isCorrect: Boolean(option.isCorrect),
-        score: option.score ?? (option.isCorrect ? question.points : 0),
+        score: option.score ?? (option.isCorrect ? (question.defaultMaxScore ?? question.points ?? 1) : 0),
         matchValue: option.matchValue || "",
         acceptedValues: option.acceptedValues || [],
       }))
     : [
-        { id: "a", label: "A", content: "x = 2", isCorrect: true, score: 1, matchValue: "" },
-        { id: "b", label: "B", content: "x = 3", isCorrect: true, score: 1, matchValue: "" },
-        { id: "c", label: "C", content: "x = 1", isCorrect: false, score: 0, matchValue: "" },
-        { id: "d", label: "D", content: "x = 6", isCorrect: false, score: 0, matchValue: "" },
+        { id: "a", optionKey: "a", label: "A", value: "x = 2", content: "x = 2", isCorrect: true, score: 1, matchValue: "" },
+        { id: "b", optionKey: "b", label: "B", value: "x = 3", content: "x = 3", isCorrect: true, score: 1, matchValue: "" },
+        { id: "c", optionKey: "c", label: "C", value: "x = 1", content: "x = 1", isCorrect: false, score: 0, matchValue: "" },
+        { id: "d", optionKey: "d", label: "D", value: "x = 6", content: "x = 6", isCorrect: false, score: 0, matchValue: "" },
       ];
 
   const rawScoringConfig =
@@ -1966,11 +2111,11 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
     title: question?.title ?? "Квадрат тэгшитгэлийн язгуур",
     code: question?.code ?? `Q-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
     type: question?.type ?? "MULTIPLE_CHOICE",
-    stem: question?.stem ?? "Дараах тэгшитгэлийн язгууруудыг олно уу: $$x^2 - 5x + 6 = 0$$",
+    body: question?.body ?? question?.stem ?? "Дараах тэгшитгэлийн язгууруудыг олно уу: $$x^2 - 5x + 6 = 0$$",
     options,
+    explanation: question?.explanation || question?.feedback || "Виетийн теоремоор үржвэр нь 6, нийлбэр нь 5 байх тоонууд нь 2 ба 3 юм.",
     feedbackCorrect:
       question?.feedbackCorrect ||
-      question?.feedback ||
       "Виетийн теоремоор үржвэр нь 6, нийлбэр нь 5 байх тоонууд нь 2 ба 3 юм.",
     feedbackIncorrect:
       question?.feedbackIncorrect ||
@@ -1983,7 +2128,7 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
         scoringMode,
         rightOptions: raw.rightOptions || (
           question?.type === "MATCHING"
-            ? (question.options || []).map((o, idx) => ({ id: `R${idx + 1}`, value: o.matchValue })).filter(o => o.value)
+            ? (question.options || []).map((o, idx) => ({ id: `R${idx + 1}`, value: o.matchValue || o.content })).filter(o => o.value)
             : []
         ),
         combinations: (() => {
@@ -2002,9 +2147,9 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
         })()
       };
     })(),
-    totalPoints: question?.points ?? 3,
-    correctPoints: question?.points ?? 1,
-    durationSeconds: question?.durationSeconds ?? 60,
+    defaultMaxScore: question?.defaultMaxScore ?? question?.points ?? 3,
+    defaultMinScore: question?.defaultMinScore ?? question?.minPoints ?? 0,
+    defaultTimeSeconds: question?.defaultTimeSeconds ?? question?.durationSeconds ?? 60,
     tags: question?.tags ?? ["мат", "комбинаторик"],
     mappings:
       question?.topicMappings && question.topicMappings.length > 0
@@ -2030,8 +2175,10 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
   const primaryMapping = state.mappings[0];
   const options: QuestionOption[] = state.options.map((option) => ({
     id: option.id,
+    optionKey: option.optionKey || option.id,
     label: option.label,
-    content: option.content,
+    value: option.value || option.content,
+    content: option.content || option.value,
     isCorrect: option.isCorrect,
     score: option.score,
     matchValue: option.matchValue,
@@ -2042,11 +2189,16 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     id: source?.id ?? "preview-question",
     code: state.code,
     title: state.title,
-    stem: state.stem,
+    body: state.body,
+    stem: state.body,
     type: state.type,
     status: state.status,
-    points: state.totalPoints,
-    durationSeconds: state.durationSeconds,
+    defaultMaxScore: state.defaultMaxScore,
+    defaultMinScore: state.defaultMinScore,
+    defaultTimeSeconds: state.defaultTimeSeconds,
+    points: state.defaultMaxScore,
+    minPoints: state.defaultMinScore,
+    durationSeconds: state.defaultTimeSeconds,
     bloomLevel: primaryMapping?.bloomLevel ?? "apply",
     competencyType: primaryMapping?.competencyType ?? "knowledge",
     topicId: primaryMapping?.topicId ?? "unmapped",
@@ -2059,7 +2211,8 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     rubric: typeof state.rubric === 'object' ? JSON.stringify(state.rubric) : (state.rubric || "Wizard prototype rubric"),
     scoringMode: state.scoringMode,
     scoringConfig: state.scoringConfig,
-    feedback: state.feedbackCorrect,
+    explanation: state.explanation,
+    feedback: state.explanation,
     feedbackCorrect: state.feedbackCorrect,
     feedbackIncorrect: state.feedbackIncorrect,
     media: (state.media || []).map((m: any) => {
@@ -2086,6 +2239,9 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     updatedBy: "Ассессор Б.",
     createdAt: source?.createdAt ?? "2026-07-31 10:00",
     updatedAt: "2026-07-31 10:00",
+    versionNumber: source?.versionNumber,
+    versionStatus: source?.versionStatus,
+    versions: source?.versions ?? [],
     workflowHistory: [
       ...(source?.workflowHistory ?? []),
       ...(state.workflowComment
@@ -2114,7 +2270,7 @@ function validateWizard(state: QuestionWizardState) {
       return true;
     }
     if (state.type === "NUMERIC") {
-      return (state.options[0]?.content || "").trim().length > 0;
+      return (state.options[0]?.value || state.options[0]?.content || "").trim().length > 0;
     }
     if (state.scoringMode === "combination") {
       return (state.scoringConfig?.combinations || []).length > 0;
@@ -2124,13 +2280,13 @@ function validateWizard(state: QuestionWizardState) {
 
   const items = [
     { label: "Асуултын гарчиг бөглөгдсөн", ok: state.title.trim().length > 0 },
-    { label: "Асуултын агуулга бөглөгдсөн", ok: state.stem.trim().length > 0 },
+    { label: "Асуултын агуулга бөглөгдсөн", ok: state.body.trim().length > 0 },
     {
       label: "Зөв хариулт болон оноо тохирсон",
       ok: Boolean(hasOptionsOrRubric),
     },
     { label: "Сэдвийн mapping сонгосон", ok: state.mappings.length > 0 },
-    { label: "Feedback бөглөгдсөн", ok: state.feedbackCorrect.trim().length > 0 || state.feedbackIncorrect.trim().length > 0 },
+    { label: "Feedback/тайлбар бөглөгдсөн", ok: state.explanation.trim().length > 0 || state.feedbackCorrect.trim().length > 0 || state.feedbackIncorrect.trim().length > 0 },
     { label: "Workflow comment бичсэн", ok: state.workflowComment.trim().length > 0 },
   ];
   return { items, ready: items.every((item) => item.ok) };
@@ -2768,6 +2924,10 @@ function FillInBlankOptions({
   );
 }
 
+// ----------------------------------------------------------------------------------------------
+// Үнэн/Худал (True/False) асуултын хувьд зөв хариулт болон оноог тохируулах туслах компонент.
+// ----------------------------------------------------------------------------------------------
+
 function TrueFalseBuilder({
   options,
   onChange,
@@ -2780,33 +2940,51 @@ function TrueFalseBuilder({
   const trueOpt = options[0] || { id: "A", label: "TRUE", content: "Үнэн", isCorrect: true, score: 1, matchValue: "" };
   const falseOpt = options[1] || { id: "B", label: "FALSE", content: "Худал", isCorrect: false, score: 0, matchValue: "" };
 
-  const setCorrectOption = (isTrueCorrect: boolean) => {
-    const nextTrue = {
-      ...trueOpt,
-      isCorrect: isTrueCorrect,
-      score: isTrueCorrect ? (trueOpt.score > 0 ? trueOpt.score : totalPoints) : (trueOpt.score > 0 ? 0 : trueOpt.score),
-    };
+  const updateTrueOpt = (patch: Partial<EditorOption>) => {
+    const nextScore = patch.score !== undefined ? patch.score : trueOpt.score;
+    const nextIsCorrect = nextScore > 0;
+    const finalValue = patch.value !== undefined ? patch.value : (patch.content !== undefined ? patch.content : trueOpt.value);
+    const finalContent = patch.content !== undefined ? patch.content : (patch.value !== undefined ? patch.value : trueOpt.content);
+    
+    const nextTrue = { ...trueOpt, ...patch, value: finalValue, content: finalContent, isCorrect: nextIsCorrect, score: nextScore };
     const nextFalse = {
       ...falseOpt,
-      isCorrect: !isTrueCorrect,
-      score: !isTrueCorrect ? (falseOpt.score > 0 ? falseOpt.score : totalPoints) : (falseOpt.score > 0 ? 0 : falseOpt.score),
+      isCorrect: !nextIsCorrect,
+      score: nextIsCorrect ? (falseOpt.score > 0 ? 0 : falseOpt.score) : falseOpt.score,
     };
+    
+    if (!nextIsCorrect && nextFalse.score > 0) {
+      nextFalse.isCorrect = true;
+    }
+    
     onChange([nextTrue, nextFalse]);
   };
 
-  const updateTrueOpt = (patch: Partial<EditorOption>) => {
-    onChange([{ ...trueOpt, ...patch }, falseOpt]);
-  };
-
   const updateFalseOpt = (patch: Partial<EditorOption>) => {
-    onChange([trueOpt, { ...falseOpt, ...patch }]);
+    const nextScore = patch.score !== undefined ? patch.score : falseOpt.score;
+    const nextIsCorrect = nextScore > 0;
+    const finalValue = patch.value !== undefined ? patch.value : (patch.content !== undefined ? patch.content : falseOpt.value);
+    const finalContent = patch.content !== undefined ? patch.content : (patch.value !== undefined ? patch.value : falseOpt.content);
+    
+    const nextFalse = { ...falseOpt, ...patch, value: finalValue, content: finalContent, isCorrect: nextIsCorrect, score: nextScore };
+    const nextTrue = {
+      ...trueOpt,
+      isCorrect: !nextIsCorrect,
+      score: nextIsCorrect ? (trueOpt.score > 0 ? 0 : trueOpt.score) : trueOpt.score,
+    };
+    
+    if (!nextIsCorrect && nextTrue.score > 0) {
+      nextTrue.isCorrect = true;
+    }
+    
+    onChange([nextTrue, nextFalse]);
   };
 
   return (
     <div className="grid gap-seek-4 md:grid-cols-2">
       {/* TRUE Option */}
       <div className={`rounded-seek-lg border overflow-hidden transition-all duration-200 shadow-seek-xs ${
-        trueOpt.isCorrect
+        trueOpt.score > 0
           ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/15"
           : trueOpt.score < 0
           ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/15"
@@ -2814,24 +2992,14 @@ function TrueFalseBuilder({
       }`}>
         <div className="flex">
           <div className={`w-14 flex items-center justify-center font-bold text-xs tracking-wider flex-shrink-0 select-none ${
-            trueOpt.isCorrect ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"
+            trueOpt.score > 0 ? "bg-emerald-500 text-white" : trueOpt.score < 0 ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-700"
           }`}>
             ҮНЭН
           </div>
           <div className="flex-1 p-seek-4 space-y-seek-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="flex items-center gap-2 cursor-pointer font-semibold text-sm text-slate-800">
-                <input
-                  type="radio"
-                  name="tf_correct_selection"
-                  checked={trueOpt.isCorrect}
-                  onChange={() => setCorrectOption(true)}
-                  className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                />
-                <span>Зөв хариулт нь Үнэн</span>
-              </label>
               <div className="flex items-center gap-1.5 bg-white border border-border rounded-seek-md px-2 h-9 w-28 shadow-seek-xs">
-                <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                <Icons.Ad />
                 <Input
                   className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-xs font-semibold text-center"
                   type="number"
@@ -2854,7 +3022,7 @@ function TrueFalseBuilder({
 
       {/* FALSE Option */}
       <div className={`rounded-seek-lg border overflow-hidden transition-all duration-200 shadow-seek-xs ${
-        falseOpt.isCorrect
+        falseOpt.score > 0
           ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/15"
           : falseOpt.score < 0
           ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/15"
@@ -2862,24 +3030,14 @@ function TrueFalseBuilder({
       }`}>
         <div className="flex">
           <div className={`w-14 flex items-center justify-center font-bold text-xs tracking-wider flex-shrink-0 select-none ${
-            falseOpt.isCorrect ? "bg-emerald-500 text-white" : falseOpt.score < 0 ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-700"
+            falseOpt.score > 0 ? "bg-emerald-500 text-white" : falseOpt.score < 0 ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-700"
           }`}>
             ХУДАЛ
           </div>
           <div className="flex-1 p-seek-4 space-y-seek-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="flex items-center gap-2 cursor-pointer font-semibold text-sm text-slate-800">
-                <input
-                  type="radio"
-                  name="tf_correct_selection"
-                  checked={falseOpt.isCorrect}
-                  onChange={() => setCorrectOption(false)}
-                  className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                />
-                <span>Зөв хариулт нь Худал</span>
-              </label>
               <div className="flex items-center gap-1.5 bg-white border border-border rounded-seek-md px-2 h-9 w-28 shadow-seek-xs">
-                <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                <Icons.Ad />
                 <Input
                   className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-xs font-semibold text-center"
                   type="number"
@@ -3446,7 +3604,8 @@ function SjtBuilder({
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 bg-white border border-border rounded-seek-md px-2 h-8 w-24">
-                        <span className="text-xs font-semibold text-slate-500">Оноо:</span>
+                        {/* <span className="text-xs font-semibold text-slate-500">Оноо:</span> */}
+                        <Icons.Ad />
                         <Input
                           type="number"
                           value={opt.score}

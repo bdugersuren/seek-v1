@@ -124,10 +124,10 @@ export function RichEditor({
           type="button"
           disabled={disabled}
           onClick={() => insertTextAtCursor('**', '**', 'тодруулсан текст')}
-          className="flex h-7 w-7 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors font-bold text-slate-700 disabled:opacity-50"
+          className="flex h-3 w-3 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors font-bold text-slate-700 disabled:opacity-50"
           title="Bold (**текст**)"
         >
-          B
+          <Icons.BoldIcon />
         </button>
 
         {/* Italic */}
@@ -135,7 +135,7 @@ export function RichEditor({
           type="button"
           disabled={disabled}
           onClick={() => insertTextAtCursor('*', '*', 'налуу текст')}
-          className="flex h-7 w-7 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors italic font-serif text-slate-700 disabled:opacity-50"
+          className="flex h-4 w-4 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors italic font-serif text-slate-700 disabled:opacity-50"
           title="Italic (*текст*)"
         >
           I
@@ -148,10 +148,10 @@ export function RichEditor({
           type="button"
           disabled={disabled}
           onClick={() => insertTextAtCursor('$', '$', 'x^2 + y^2 = r^2')}
-          className="flex h-7 px-1.5 items-center justify-center rounded hover:bg-primary/10 hover:text-primary active:bg-primary/20 transition-colors font-mono font-semibold text-slate-700 disabled:opacity-50"
+          className="flex h-6 w-6 px-1.5 items-center justify-center rounded hover:bg-primary/10 hover:text-primary active:bg-primary/20 transition-colors font-mono font-semibold text-slate-700 disabled:opacity-50"
           title="Inline KaTeX ($...$)"
         >
-          $x$
+          <Icons.MathInline />
         </button>
 
         {/* Block Math KaTeX */}
@@ -159,10 +159,10 @@ export function RichEditor({
           type="button"
           disabled={disabled}
           onClick={() => insertTextAtCursor('\n$$\n', '\n$$\n', '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}')}
-          className="flex h-7 px-1.5 items-center justify-center rounded hover:bg-primary/10 hover:text-primary active:bg-primary/20 transition-colors font-mono font-semibold text-slate-700 disabled:opacity-50"
+          className="flex h-6 w-6 px-1.5 items-center justify-center rounded hover:bg-primary/10 hover:text-primary active:bg-primary/20 transition-colors font-mono font-semibold text-slate-700 disabled:opacity-50"
           title="Block KaTeX ($$...$$)"
         >
-          $$...$$
+          <Icons.MathFunc />
         </button>
 
         {/* Mermaid Diagram */}
@@ -174,11 +174,10 @@ export function RichEditor({
               '\n```mermaid\ngraph TD\n  A[Эхлэл] --> B{Нөхцөл}\n  B -->|Тийм| C[Үйлдэл]\n  B -->|Үгүй| D[Төгсгөл]\n```\n'
             )
           }
-          className="flex h-7 px-2 items-center justify-center gap-1 rounded hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors text-[11px] font-semibold text-slate-700 disabled:opacity-50"
+          className="flex h-7 w-7 px-2 items-center justify-center gap-1 rounded hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors text-[11px] font-semibold text-slate-700 disabled:opacity-50"
           title="Mermaid диаграм оруулах"
         >
-          <span className="font-mono text-indigo-500">❖</span>
-          <span>Mermaid</span>
+          <Icons.ChartIcon />
         </button>
 
         <div className="h-4 w-[1px] bg-slate-200 mx-0.5" />
@@ -188,15 +187,14 @@ export function RichEditor({
           type="button"
           disabled={disabled || uploading}
           onClick={() => fileInputRef.current?.click()}
-          className="flex h-7 px-2 items-center justify-center gap-1 rounded hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors text-[11px] font-semibold text-slate-700 disabled:opacity-50"
+          className="flex h-7 w-7 px-2 items-center justify-center gap-1 rounded hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 transition-colors text-[11px] font-semibold text-slate-700 disabled:opacity-50"
           title="Зураг оруулах (MinIO)"
         >
           {uploading ? (
-            <span className="animate-spin text-xs">⏳</span>
+            <Icons.HourGlass />
           ) : (
-            <Icons.AttachmentIcon className="h-3.5 w-3.5 stroke-[2] text-emerald-600" />
+            <Icons.ImageAdd />
           )}
-          <span>{uploading ? 'Хуулж байна...' : 'Зураг'}</span>
         </button>
 
         {/* Table */}
@@ -209,13 +207,10 @@ export function RichEditor({
                 '\n| Багана 1 | Багана 2 | Багана 3 |\n|---|---|---|\n| Утга A | Утга B | Утга C |\n| Утга D | Утга E | Утга F |\n\n'
               )
             }
-            className="flex h-7 px-1.5 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors text-slate-700 disabled:opacity-50"
+            className="flex h-6 w-6 px-1.5 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors text-slate-700 disabled:opacity-50"
             title="Хүснэгт оруулах"
           >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-            </svg>
+            <Icons.TableIcon />
           </button>
         )}
 
@@ -225,13 +220,10 @@ export function RichEditor({
             type="button"
             disabled={disabled}
             onClick={() => insertTextAtCursor('\n```javascript\n', '\n```\n', '// Код энд бичнэ')}
-            className="flex h-7 px-1.5 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors text-slate-700 disabled:opacity-50"
+            className="flex h-6 w-6 px-1.5 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors text-slate-700 disabled:opacity-50"
             title="Код блок (```code```)"
           >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="16 18 22 12 16 6" />
-              <polyline points="8 6 2 12 8 18" />
-            </svg>
+            <Icons.CodeIcon />
           </button>
         )}
 
@@ -241,17 +233,10 @@ export function RichEditor({
             type="button"
             disabled={disabled}
             onClick={() => insertTextAtCursor('\n- ', '', 'Жагсаалтын мөр')}
-            className="flex h-7 px-1.5 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors text-slate-700 disabled:opacity-50"
+            className="flex h-6 w-6 px-1.5 items-center justify-center rounded hover:bg-slate-200/70 active:bg-slate-300 transition-colors text-slate-700 disabled:opacity-50"
             title="Жагсаалт (- ...)"
           >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
+            <Icons.BulletList />
           </button>
         )}
       </div>
