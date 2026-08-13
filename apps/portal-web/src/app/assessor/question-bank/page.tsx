@@ -37,6 +37,7 @@ import {
   canEditQuestion,
   getQuestionStats,
   fetchQuestions,
+  getQuestionByIdAsync,
   sendQuestionWorkflow,
 } from "@/features/assessor-workspace/api";
 import type {
@@ -180,6 +181,18 @@ export default function QuestionBankPage() {
     load();
     return () => { active = false; };
   }, []);
+
+  const handlePreview = async (item: QuestionBankItem) => {
+    setPreview(item);
+    try {
+      const fresh = await getQuestionByIdAsync(item.id);
+      if (fresh) {
+        setPreview(fresh);
+      }
+    } catch (err) {
+      console.error("Failed to load fresh question preview", err);
+    }
+  };
 
   const filteredQuestions = useMemo(
     () =>
@@ -467,7 +480,7 @@ export default function QuestionBankPage() {
                 question={question}
                 selected={selectedQuestionIds.includes(question.id)}
                 onSelect={() => toggleSelection(question.id)}
-                onPreview={() => setPreview(question)}
+                onPreview={() => handlePreview(question)}
                 onRequestApproval={() => requestApproval(question)}
               />
             ))}
@@ -537,7 +550,7 @@ export default function QuestionBankPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => setPreview(question)}
+                          onClick={() => handlePreview(question)}
                         >
                           Харах
                         </Button>

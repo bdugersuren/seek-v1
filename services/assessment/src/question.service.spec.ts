@@ -45,7 +45,7 @@ describe("QuestionService", () => {
 
   describe("create", () => {
     it("should throw BadRequestException if code, body or type are missing", async () => {
-      await expect(service.create({ code: "", body: "", type: "" })).rejects.toThrow(
+      await expect(service.create({ code: "", body: "", type: "" as any })).rejects.toThrow(
         BadRequestException
       );
     });
@@ -72,6 +72,67 @@ describe("QuestionService", () => {
       expect(prisma.questionVersion.create).toHaveBeenCalled();
       expect(prisma.questionOptionVersion.create).toHaveBeenCalledTimes(2);
       expect(result).toHaveProperty("versions");
+    });
+
+    it("should support TRUE_FALSE with negative score on false option", async () => {
+      prisma.question.findUnique.mockResolvedValue(null);
+      prisma.question.create.mockResolvedValue({ id: "q-tf-1", code: "TF-01" });
+      prisma.questionVersion.create.mockResolvedValue({ id: "qv-tf-1", versionNumber: 1 });
+
+      await service.create({
+        code: "TF-01",
+        body: "Монгол улсын нийслэл нь Улаанбаатар хот юм.",
+        type: "TRUE_FALSE",
+        defaultMaxScore: 1,
+        defaultMinScore: 0,
+        payload: {
+          options: [
+            { optionKey: "TRUE", value: "Үнэн", isCorrect: true, score: 1 },
+            { optionKey: "FALSE", value: "Худал", isCorrect: false, score: -0.5, negativeScore: 0.5 },
+          ],
+        },
+      });
+
+      expect(prisma.questionOptionVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            optionKey: "FALSE",
+            score: -0.5,
+            isCorrect: false,
+          }),
+        })
+      );
+    });
+
+    it("should support ESSAY with grading rubric", async () => {
+      prisma.question.findUnique.mockResolvedValue(null);
+      prisma.question.create.mockResolvedValue({ id: "q-es-1", code: "ES-01" });
+      prisma.questionVersion.create.mockResolvedValue({ id: "qv-es-1", versionNumber: 1 });
+
+      await service.create({
+        code: "ES-01",
+        body: "Монголын түүхийн сэдвээр эссэ бичнэ үү.",
+        type: "ESSAY",
+        defaultMaxScore: 10,
+        defaultMinScore: 0,
+        rubric: [
+          { id: "crit_1", criteria: "Агуулга", maxScore: 5 },
+          { id: "crit_2", criteria: "Найруулга", maxScore: 5 },
+        ],
+      });
+
+      expect(prisma.questionVersion.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: "ESSAY",
+            defaultMaxScore: 10,
+            defaultMinScore: 0,
+            rubric: expect.arrayContaining([
+              expect.objectContaining({ criteria: "Агуулга", maxScore: 5 }),
+            ]),
+          }),
+        })
+      );
     });
   });
 

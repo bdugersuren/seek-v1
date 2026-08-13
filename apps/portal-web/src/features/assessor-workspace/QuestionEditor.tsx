@@ -127,7 +127,6 @@ const scoringModeIcons: Record<string, React.ComponentType<any>> = {
   per_option: Icons.CorrectOne,
   combination: Icons.OneOption,
   position: Icons.Ordering,
-  all_or_nothing: Icons.ListCheck,
   partial_per_pair: Icons.Matching,
   partial_per_blank: Icons.FillBlank,
   partial_per_cell: Icons.Matrix,
@@ -137,7 +136,6 @@ const scoringModeIcons: Record<string, React.ComponentType<any>> = {
 const scoringModeLabels: Record<string, string> = {
   per_option: "Харгалзах оноо",
   combination: "Хослолын оноо",
-  all_or_nothing: "Бүгд зөв бол",
   manual: "Гараар үнэлэх",
 };
 
@@ -179,6 +177,13 @@ export function QuestionEditor({
   const [state, setState] = useState<QuestionWizardState>(() =>
     buildInitialState(mode, sourceQuestion),
   ); // Асуултын бүх мэдээллийг агуулсан үндсэн state
+
+  // sourceQuestion өөрчлөгдөх үед (жишээ нь async татагдаж дуусах эсвэл өөр асуулт сонгогдох) state-ийг шинэчилнэ.
+  useEffect(() => {
+    if (sourceQuestion && mode === "edit") {
+      setState(buildInitialState(mode, sourceQuestion));
+    }
+  }, [sourceQuestion, mode]);
 
   const [topics, setTopics] = useState<any[]>([]); // Сэдвийн сангууд
   const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]); // Хүндрэлийн түвшин
@@ -396,17 +401,17 @@ export function QuestionEditor({
             updateOption={(index, patch) =>
               setState((current) => {
                 const nextScore = patch.score !== undefined ? patch.score : current.options[index]?.score ?? 0;
-                const nextIsCorrect = nextScore > 0;
+                const nextIsCorrect = patch.isCorrect !== undefined ? patch.isCorrect : nextScore > 0;
                 let nextOptions = current.options.map((option, optionIndex) =>
                   optionIndex === index
-                    ? { ...option, ...patch, isCorrect: nextIsCorrect }
+                    ? { ...option, ...patch, isCorrect: nextIsCorrect, score: nextScore }
                     : option
                 );
-                if (current.type === "SINGLE_CHOICE" && nextScore > 0) {
+                if ((current.type === "SINGLE_CHOICE" || current.type === "TRUE_FALSE") && nextIsCorrect) {
                   nextOptions = nextOptions.map((option, optionIndex) =>
                     optionIndex === index
                       ? option
-                      : { ...option, score: 0, isCorrect: false }
+                      : { ...option, isCorrect: false, score: option.score > 0 ? 0 : option.score }
                   );
                 }
                 return {
@@ -692,7 +697,7 @@ function StepOne({
       case "ESSAY":
         return [{ value: "manual", label: "Гараар үнэлэх" }];
       default:
-        return [{ value: "all_or_nothing", label: "Бүгд зөв бол" }];
+        return [{ value: "per_option", label: "Харгалзах оноо" }];
     }
   };
 
@@ -719,15 +724,15 @@ function StepOne({
 
   const handleTypeChange = (newType: QuestionType) => {
     let nextOptions = [...state.options];
-    let nextScoringMode = "all_or_nothing";
+    let nextScoringMode = "per_option";
 
     switch (newType) {
 
       case "TRUE_FALSE":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "A", label: "YES", content: "Тийм", isCorrect: true, score: 1, matchValue: "" },
-          { id: "B", label: "NO", content: "Үгүй", isCorrect: false, score: 0, matchValue: "" },
+          { id: "A", label: "TRUE", content: "Үнэн", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "FALSE", content: "Худал", isCorrect: false, score: 0, matchValue: "" },
         ];
         break;
 
@@ -749,14 +754,14 @@ function StepOne({
         ];
         break;
       case "ORDERING":
-        nextScoringMode = "position";
+        nextScoringMode = "per_option";
         nextOptions = [
           { id: "o1", label: "1", content: "", isCorrect: true, score: 1, matchValue: "" },
           { id: "o2", label: "2", content: "", isCorrect: true, score: 1, matchValue: "" },
         ];
         break;
       case "MATCHING":
-        nextScoringMode = "partial_per_pair";
+        nextScoringMode = "per_option";
         nextOptions = [
           { id: "L1", label: "L1", content: "Зүүн 1", isCorrect: true, score: 1 },
           { id: "L2", label: "L2", content: "Зүүн 2", isCorrect: true, score: 1 },
@@ -779,7 +784,7 @@ function StepOne({
         ];
         break;
       case "MATRIX":
-        nextScoringMode = "all_or_nothing";
+        nextScoringMode = "per_option";
         nextOptions = [
           { id: "mx1", label: "Мөр 1", content: "", isCorrect: true, score: 1, matchValue: "" },
         ];
@@ -791,13 +796,13 @@ function StepOne({
         nextOptions = [];
         break;
       case "NUMERIC":
-        nextScoringMode = "all_or_nothing";
+        nextScoringMode = "per_option";
         nextOptions = [
           { id: "num-ans", label: "Хариулт", content: "", isCorrect: true, score: state.totalPoints, matchValue: "0" }
         ];
         break;
       case "LIKERT":
-        nextScoringMode = "all_or_nothing";
+        nextScoringMode = "per_option";
         nextOptions = [
           { id: "a", label: "1", content: "Маш муу", isCorrect: false, score: 1, matchValue: "" },
           { id: "b", label: "2", content: "Муу", isCorrect: false, score: 2, matchValue: "" },
@@ -813,11 +818,11 @@ function StepOne({
   };
 
   const handleUpdateOption = (index: number, patch: Partial<EditorOption>) => {
-    if (state.type === "SINGLE_CHOICE" && patch.isCorrect) {
+    if ((state.type === "SINGLE_CHOICE" || state.type === "TRUE_FALSE") && patch.isCorrect) {
       const nextOptions = state.options.map((opt, i) => ({
         ...opt,
         isCorrect: i === index ? true : false,
-        score: i === index ? state.totalPoints : 0,
+        score: i === index ? (opt.score > 0 ? opt.score : (state.totalPoints || 1)) : (opt.score > 0 ? 0 : opt.score),
       }));
       setState({ options: nextOptions });
     } else {
@@ -1005,11 +1010,18 @@ function StepOne({
         {/* Removed grid layout for question type selectors */}
 
         <CollapsibleCard title="Асуултын гарчиг" icon={Icons.Type}>
+          <div className="space-y-seek-3" role="group">
+          <Input
+            value={state.code}
+            onChange={(event) => setState({ title: event.target.value })}
+            placeholder="Жишээ: Квадрат тэгшитгэлийн язгуур"
+          />
           <Input
             value={state.title}
             onChange={(event) => setState({ title: event.target.value })}
             placeholder="Жишээ: Квадрат тэгшитгэлийн язгуур"
           />
+          </div>
         </CollapsibleCard>
 
         <CollapsibleCard title="Асуултын агуулга" icon={Icons.BodyIcon}>
@@ -1302,32 +1314,56 @@ function StepOne({
                   </Button>
                 </div>
                 <div className="space-y-seek-3">
-                  {state.options.map((option, index) => (
-                    <div key={option.id} className="rounded-seek-md border border-border bg-surface p-seek-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="success">L{index + 1}</Badge>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold">Оноо:</span>
-                          <Input
-                            className="w-16 h-7 text-center text-xs"
-                            type="number"
-                            value={option.score}
-                            onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
-                          />
-                          <Button type="button" variant="danger" size="sm" 
-                            onClick={() => removeOption(index)} 
-                            className="h-6 w-6 p-0 flex items-center justify-center text-xs">
-                            <Icons.ListX />
-                          </Button>
+                  {state.options.map((option, index) => {
+                    const isPositive = option.score > 0;
+                    const isNegative = option.score < 0;
+                    const cardBorderClass = isPositive
+                      ? "border-emerald-200 border-l-[4px] border-l-emerald-500 bg-emerald-50/15"
+                      : isNegative
+                      ? "border-rose-200 border-l-[4px] border-l-rose-500 bg-rose-50/15"
+                      : "border-border border-l-[4px] border-l-slate-400 bg-slate-50/20";
+                    const indicatorBgClass = isPositive
+                      ? "bg-emerald-500 text-white font-bold"
+                      : isNegative
+                      ? "bg-rose-500 text-white font-bold"
+                      : "bg-slate-200 text-slate-700 font-bold";
+
+                    return (
+                      <div key={option.id} className={`rounded-seek-md border overflow-hidden ${cardBorderClass}`}>
+                        <div className="flex">
+                          <div className={`w-10 flex items-center justify-center text-xs tracking-wider flex-shrink-0 select-none ${indicatorBgClass}`}>
+                            L{index + 1}
+                          </div>
+                          <div className="flex-1 p-seek-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700">Сурвалж L{index + 1}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold text-slate-600">Оноо:</span>
+                                <Input
+                                  className="w-16 h-7 text-center text-xs"
+                                  type="number"
+                                  value={option.score}
+                                  onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
+                                />
+                                <Button type="button" variant="danger" size="sm" 
+                                  onClick={() => removeOption(index)} 
+                                  className="h-7 w-7 p-0 flex items-center justify-center text-xs">
+                                  <Icons.ListX className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <RichEditor
+                              compact
+                              minHeight="3.5rem"
+                              placeholder="Сурвалжийн агуулга (Markdown, $...$)..."
+                              value={option.content}
+                              onChange={(markdown) => updateOption(index, { content: markdown })}
+                            />
+                          </div>
                         </div>
                       </div>
-                      <Input
-                        placeholder="Жишээ нь: Apple"
-                        value={option.content}
-                        onChange={(e) => updateOption(index, { content: e.target.value })}
-                      />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1341,16 +1377,25 @@ function StepOne({
                 </div>
                 <div className="space-y-seek-3">
                   {(state.scoringConfig?.rightOptions || []).map((opt: any, index: number) => (
-                    <div key={opt.id} className="rounded-seek-md border border-border bg-surface p-seek-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="secondary">R{index + 1}</Badge>
-                        <Button type="button" variant="danger" size="sm" onClick={() => removeRightMatchingOption(index)} className="h-6 w-6 p-0 text-xs">✕</Button>
+                    <div key={opt.id} className="rounded-seek-md border border-slate-200 border-l-[4px] border-l-indigo-500 bg-indigo-50/15 overflow-hidden">
+                      <div className="flex">
+                        <div className="w-10 flex items-center justify-center text-xs font-bold text-white bg-indigo-500 tracking-wider flex-shrink-0 select-none">
+                          R{index + 1}
+                        </div>
+                        <div className="flex-1 p-seek-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-indigo-900">Хариулт R{index + 1}</span>
+                            <Button type="button" variant="danger" size="sm" onClick={() => removeRightMatchingOption(index)} className="h-7 w-7 p-0 text-xs">✕</Button>
+                          </div>
+                          <RichEditor
+                            compact
+                            minHeight="3.5rem"
+                            placeholder="Хариултын агуулга (Markdown, $...$)..."
+                            value={opt.value}
+                            onChange={(markdown) => updateRightMatchingOption(index, markdown)}
+                          />
+                        </div>
                       </div>
-                      <Input
-                        placeholder="Жишээ нь: Жимс"
-                        value={opt.value}
-                        onChange={(e) => updateRightMatchingOption(index, e.target.value)}
-                      />
                     </div>
                   ))}
                 </div>
@@ -1414,45 +1459,95 @@ function StepOne({
             }
           >
             <div className="space-y-seek-4">
-              {state.options.map((option, index) => (
-                <div
-                  key={`${option.id}-${index}`}
-                  className="rounded-seek-lg border border-border bg-surface p-seek-4"
-                >
-                  <div className="mb-seek-3 flex flex-wrap items-center justify-between gap-seek-3">
-                    <Badge variant={option.score > 0 ? "success" : option.score < 0 ? "danger" : "secondary"}>
-                      {option.label}
-                    </Badge>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-700">Оноо:</span>
-                      <div className="flex items-center gap-1 bg-slate-50 border border-border rounded-seek-md px-2 h-10 w-32">
-                        <Icons.MaxValue className="h-4 w-4 text-slate-400 stroke-[1.8] flex-shrink-0" />
-                        <Input
-                          className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-sm font-semibold text-center"
-                          type="number"
-                          step="any"
-                          max={99999}
-                          value={option.score}
-                          onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
+              {state.options.map((option, index) => {
+                const isPositive = option.score > 0 || (option.isCorrect && option.score >= 0);
+                const isNegative = option.score < 0;
+
+                const cardBorderClass = isPositive
+                  ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/15"
+                  : isNegative
+                  ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/15"
+                  : "border-border border-l-[5px] border-l-slate-400 bg-slate-50/20";
+
+                const indicatorBgClass = isPositive
+                  ? "bg-emerald-500 text-white shadow-sm"
+                  : isNegative
+                  ? "bg-rose-500 text-white shadow-sm"
+                  : "bg-slate-200 text-slate-700 font-bold";
+
+                return (
+                  <div
+                    key={`${option.id}-${index}`}
+                    className={`rounded-seek-lg border overflow-hidden transition-all duration-200 shadow-seek-xs ${cardBorderClass}`}
+                  >
+                    <div className="flex">
+                      {/* Left Indicator Strip */}
+                      <div className={`w-12 flex items-center justify-center font-bold text-base tracking-wider flex-shrink-0 select-none ${indicatorBgClass}`}>
+                        {option.label || `O${index + 1}`}
+                      </div>
+
+                      {/* Content & Controls */}
+                      <div className="flex-1 p-seek-4 space-y-seek-3">
+                        <div className="flex flex-wrap items-center justify-between gap-seek-3">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={isPositive ? "success" : isNegative ? "danger" : "secondary"}>
+                              {isPositive ? "Эерэг оноо" : isNegative ? "Сөрөг оноо" : "Саармаг (0 оноо)"}
+                            </Badge>
+                            {(state.type === "SINGLE_CHOICE" || state.type === "TRUE_FALSE") && (
+                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none font-semibold text-slate-700 ml-2">
+                                <input
+                                  type="radio"
+                                  name="single_choice_correct"
+                                  checked={option.isCorrect}
+                                  onChange={() => {
+                                    const nextOpts = state.options.map((o, i) => ({
+                                      ...o,
+                                      isCorrect: i === index,
+                                      score: i === index ? (o.score > 0 ? o.score : (state.totalPoints || 1)) : (o.score > 0 ? 0 : o.score),
+                                    }));
+                                    setState({ options: nextOpts });
+                                  }}
+                                  className="text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                                />
+                                <span>Зөв хариулт болгох</span>
+                              </label>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-700">Оноо:</span>
+                            <div className="flex items-center gap-1 bg-white border border-border rounded-seek-md px-2 h-9 w-28 shadow-seek-xs">
+                              <Icons.MaxValue className="h-4 w-4 text-slate-400 stroke-[1.8] flex-shrink-0" />
+                              <Input
+                                className="w-full border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-full text-sm font-semibold text-center"
+                                type="number"
+                                step="any"
+                                max={99999}
+                                value={option.score}
+                                onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="danger"
+                              className="flex items-center justify-center h-9 w-9 p-0 shadow-seek-xs"
+                              onClick={() => removeOption(index)}
+                            >
+                              <Icons.ListX className="h-5 w-5 stroke-[1.8] text-white" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <RichEditor
+                          value={option.content}
+                          placeholder={`Хариулт ${option.label}-ийн агуулгыг оруулна уу (Markdown, KaTeX $...$, Mermaid)...`}
+                          onChange={(markdown) => updateOption(index, { content: markdown })}
                         />
                       </div>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        className="flex items-center justify-center h-10 w-10 p-0 shadow-seek-sm"
-                        onClick={() => removeOption(index)}
-                      >
-                        <Icons.ListX className="h-5.5 w-5.5 stroke-[1.8] text-white" />
-                      </Button>
                     </div>
                   </div>
-                  <RichEditor
-                    value={option.content}
-                    placeholder={`Хариулт ${option.label}-ийг энд оруулна уу...`}
-                    onChange={(markdown) => updateOption(index, { content: markdown })}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {state.scoringMode === "combination" && state.type === "MULTIPLE_CHOICE" && (
@@ -1906,6 +2001,19 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
         { id: "d", label: "D", content: "x = 6", isCorrect: false, score: 0, matchValue: "" },
       ];
 
+  const rawScoringConfig =
+    question?.scoringConfig ||
+    (question as any)?.contentJson?.scoringConfig ||
+    (question as any)?.contentJson?.payload?.scoringConfig ||
+    {};
+
+  const scoringMode =
+    question?.scoringMode ||
+    rawScoringConfig.scoringMode ||
+    (question as any)?.contentJson?.scoringMode ||
+    (question as any)?.contentJson?.payload?.scoringMode ||
+    "per_option";
+
   return {
     title: question?.title ?? "Квадрат тэгшитгэлийн язгуур",
     code: question?.code ?? `Q-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
@@ -1919,13 +2027,12 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
     feedbackIncorrect:
       question?.feedbackIncorrect ||
       "Буруу хариулсан үед язгуурын нийлбэр ба үржвэрийг дахин шалгана.",
-    scoringMode: question?.scoringMode || "all_or_nothing",
+    scoringMode,
     scoringConfig: (() => {
-      const raw = question?.scoringConfig || 
-                  (question as any)?.contentJson?.scoringConfig || 
-                  (question as any)?.contentJson?.payload?.scoringConfig || {};
+      const raw = rawScoringConfig;
       return {
         ...raw,
+        scoringMode,
         rightOptions: raw.rightOptions || (
           question?.type === "MATCHING"
             ? (question.options || []).map((o, idx) => ({ id: `R${idx + 1}`, value: o.matchValue })).filter(o => o.value)
@@ -1935,13 +2042,13 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
           if (raw.combinations && Array.isArray(raw.combinations) && raw.combinations.length > 0) {
             return raw.combinations.map((c: any) => ({
               answers: Array.isArray(c.answers) ? c.answers : (Array.isArray(c.ids) ? c.ids : []),
-              ids: Array.isArray(c.ids) ? c.ids : [],
+              ids: Array.isArray(c.ids) ? c.ids : (Array.isArray(c.answers) ? c.answers : []),
               score: Number(c.score ?? 1)
             }));
           }
           if (question?.type === "MATCHING") {
             const defaultPairs = (question.options || []).map((o, idx) => `${o.id}:R${idx + 1}`);
-            return [{ ids: defaultPairs, score: 1 }];
+            return [{ ids: defaultPairs, answers: defaultPairs, score: 1 }];
           }
           return [];
         })()
@@ -1952,17 +2059,18 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
     durationSeconds: question?.durationSeconds ?? 60,
     tags: question?.tags ?? ["мат", "комбинаторик"],
     mappings:
-      question?.topicMappings ??
-      [
-        {
-          topicId: question?.topicId ?? "algebra",
-          topicName: question?.topicName ?? "Шугаман алгебр",
-          bloomLevel: question?.bloomLevel ?? "apply",
-          competencyType: question?.competencyType ?? "knowledge",
-          difficulty: question?.difficulty ?? "medium",
-          weight: 1,
-        },
-      ],
+      question?.topicMappings && question.topicMappings.length > 0
+        ? question.topicMappings
+        : [
+            {
+              topicId: question?.topicId ?? "algebra",
+              topicName: question?.topicName ?? "Шугаман алгебр",
+              bloomLevel: question?.bloomLevel ?? "apply",
+              competencyType: question?.competencyType ?? "knowledge",
+              difficulty: question?.difficulty ?? "medium",
+              weight: 1,
+            },
+          ],
     workflowComment: "",
     status: question?.status ?? "draft",
     rubric: question?.rubric ? (typeof question.rubric === 'string' ? JSON.parse(question.rubric) : question.rubric) : [],
@@ -2567,10 +2675,11 @@ function FillInBlankOptions({
         <>
           <div className="space-y-seek-4">
             {options.map((opt, idx) => (
-              <div key={opt.id} className="overflow-hidden rounded-seek-lg border border-border bg-surface shadow-seek-sm">
-                <div className="flex items-center justify-between border-b border-border bg-slate-50 px-seek-3 py-seek-2">
+              <div key={opt.id} className="overflow-hidden rounded-seek-lg border border-border border-l-[4px] border-l-emerald-500 bg-emerald-50/10 shadow-seek-sm">
+                <div className="flex items-center justify-between border-b border-border bg-emerald-50/30 px-seek-3 py-seek-2">
                   <div className="flex items-center gap-seek-2">
-                    <Badge variant="secondary">blank{idx + 1}</Badge>
+                    <Badge variant="success">Blank {idx + 1}</Badge>
+                    <span className="text-xs text-slate-500 font-medium">({(opt.acceptedValues ?? []).length} зөв хувилбартай)</span>
                   </div>
                   {options.length > 1 && (
                     <Button
@@ -2586,10 +2695,10 @@ function FillInBlankOptions({
                 </div>
                 <div className="space-y-seek-3 p-seek-4 bg-white">
                   {(opt.acceptedValues ?? []).map((av, valIdx) => (
-                    <div key={valIdx} className="flex items-center gap-seek-3 pb-seek-2 border-b border-slate-50 last:border-0 last:pb-0">
+                    <div key={valIdx} className="flex items-center gap-seek-3 pb-seek-2 border-b border-slate-100 last:border-0 last:pb-0">
                       <div className="flex-1 min-w-0">
                         <Input
-                          placeholder="Зөвшөөрөгдөх хариулт..."
+                          placeholder="Зөвшөөрөгдөх хариулт (жишээ нь: 4, дөрөв)..."
                           value={av.value}
                           onChange={(e) => updateAcceptedValue(idx, valIdx, "value", e.target.value)}
                         />
@@ -2622,9 +2731,9 @@ function FillInBlankOptions({
                       variant="outline"
                       size="sm"
                       onClick={() => addAcceptedValue(idx)}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                      className="text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                     >
-                      + Хариулт нэмэх
+                      + Хариултын хувилбар нэмэх
                     </Button>
                   </div>
                 </div>
@@ -2632,7 +2741,7 @@ function FillInBlankOptions({
             ))}
           </div>
           <Button type="button" variant="outline" onClick={addBlank}>
-            + Хоосон нүд нэмэх
+            + Хоосон нүд (Blank) нэмэх
           </Button>
         </>
       ) : (

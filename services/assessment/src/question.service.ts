@@ -22,15 +22,19 @@ export class QuestionService {
 
     return await this.prisma.$transaction(async (tx) => {
       // 1. Create parent Question
+      const questionData: any = {
+        code: dto.code,
+        lifecycleStatus: dto.lifecycleStatus || "ACTIVE",
+        visibilityScope: dto.visibilityScope || "PRIVATE",
+        ownerUserId: dto.ownerUserId || null,
+        createdBy: dto.ownerUserId || "system_author",
+        version: 1,
+      };
+      if (dto.parentId) {
+        questionData.parentId = dto.parentId;
+      }
       const question = await tx.question.create({
-        data: {
-          code: dto.code,
-          lifecycleStatus: dto.lifecycleStatus || "ACTIVE",
-          visibilityScope: dto.visibilityScope || "PRIVATE",
-          ownerUserId: dto.ownerUserId || null,
-          createdBy: dto.ownerUserId || "system_author",
-          version: 1,
-        },
+        data: questionData,
       });
 
       // 2. Create version 1 (DRAFT)
@@ -43,33 +47,37 @@ export class QuestionService {
           title: dto.title || null,
           body: dto.body,
           defaultTimeSeconds: dto.defaultTimeSeconds || null,
-          defaultMaxScore: dto.defaultMaxScore || 1,
-          defaultMinScore: dto.defaultMinScore || 0,
+          defaultMaxScore: dto.defaultMaxScore !== undefined ? dto.defaultMaxScore : 1,
+          defaultMinScore: dto.defaultMinScore !== undefined ? dto.defaultMinScore : 0,
           languageCode: dto.languageCode || "mn",
           tags: dto.tags || [],
           explanation: dto.explanation || null,
           feedbackCorrect: dto.feedbackCorrect || null,
           feedbackIncorrect: dto.feedbackIncorrect || null,
-          payload: dto.payload || {},
-          answerConfig: dto.answerConfig || {},
-          scoringConfig: dto.scoringConfig || {},
+          payload: (dto.payload as any) || {},
+          answerConfig: (dto.answerConfig as any) || {},
+          scoringConfig: (dto.scoringConfig as any) || {},
+          rubric: (dto.rubric as any) || {},
+          presentationConfig: (dto.presentationConfig as any) || {},
           createdBy: "system_author",
         },
       });
 
-      // 3. If options exist in payload (e.g. multiple_choice, single_choice options)
+      // 3. If options exist in payload (e.g. multiple_choice, single_choice, true_false options)
       if (dto.payload?.options && Array.isArray(dto.payload.options)) {
         for (let i = 0; i < dto.payload.options.length; i++) {
           const option = dto.payload.options[i];
           await tx.questionOptionVersion.create({
             data: {
               questionVersionId: questionVersion.id,
-              optionKey: option.code || option.optionKey || `opt_${i + 1}`,
-              value: option.body || option.value || "",
+              optionKey: option.optionKey || option.code || `opt_${i + 1}`,
+              value: option.value || option.body || "",
               isCorrect: option.isCorrect || false,
               orderIndex: i + 1,
-              score: option.score || option.scoreWeight || 1.0,
+              score: option.score !== undefined && option.score !== null ? option.score : (option.isCorrect ? 1.0 : 0.0),
+              negativeScore: option.negativeScore !== undefined ? option.negativeScore : 0.0,
               matchRules: option.matchRules || {},
+              metadata: option.metadata || {},
             },
           });
         }
@@ -119,6 +127,11 @@ export class QuestionService {
     const questions = await this.prisma.question.findMany({
       where: whereClause,
       include: {
+        classifications: {
+          include: {
+            topic: true,
+          },
+        },
         currentPublishedVersion: {
           include: {
             options: true,
@@ -138,7 +151,7 @@ export class QuestionService {
     });
 
     return questions.map((q) => {
-      const activeVersion = q.currentPublishedVersion || q.versions[0];
+      const activeVersion = q.versions[0] || q.currentPublishedVersion;
       return {
         id: q.id,
         code: q.code,
@@ -146,7 +159,10 @@ export class QuestionService {
         visibilityScope: q.visibilityScope,
         version: q.version,
         createdAt: q.createdAt,
+        classifications: q.classifications,
         activeVersion: activeVersion || null,
+        versions: q.versions,
+        currentPublishedVersion: q.currentPublishedVersion,
       };
     });
   }
@@ -155,6 +171,11 @@ export class QuestionService {
     const question = await this.prisma.question.findUnique({
       where: { id },
       include: {
+        classifications: {
+          include: {
+            topic: true,
+          },
+        },
         versions: {
           orderBy: { versionNumber: "desc" },
           include: {
@@ -203,9 +224,11 @@ export class QuestionService {
             explanation: dto.explanation !== undefined ? dto.explanation : lastVersion.explanation,
             feedbackCorrect: dto.feedbackCorrect !== undefined ? dto.feedbackCorrect : lastVersion.feedbackCorrect,
             feedbackIncorrect: dto.feedbackIncorrect !== undefined ? dto.feedbackIncorrect : lastVersion.feedbackIncorrect,
-            payload: dto.payload !== undefined ? dto.payload : lastVersion.payload,
-            answerConfig: dto.answerConfig !== undefined ? dto.answerConfig : lastVersion.answerConfig,
-            scoringConfig: dto.scoringConfig !== undefined ? dto.scoringConfig : lastVersion.scoringConfig,
+            payload: (dto.payload as any) !== undefined ? (dto.payload as any) : lastVersion.payload,
+            answerConfig: (dto.answerConfig as any) !== undefined ? (dto.answerConfig as any) : lastVersion.answerConfig,
+            scoringConfig: (dto.scoringConfig as any) !== undefined ? (dto.scoringConfig as any) : lastVersion.scoringConfig,
+            rubric: (dto.rubric as any) !== undefined ? (dto.rubric as any) : (lastVersion as any).rubric || {},
+            presentationConfig: (dto.presentationConfig as any) !== undefined ? (dto.presentationConfig as any) : (lastVersion as any).presentationConfig || {},
           },
         });
 
@@ -220,12 +243,14 @@ export class QuestionService {
             await tx.questionOptionVersion.create({
               data: {
                 questionVersionId: lastVersion.id,
-                optionKey: option.code || option.optionKey || `opt_${i + 1}`,
-                value: option.body || option.value || "",
+                optionKey: option.optionKey || option.code || `opt_${i + 1}`,
+                value: option.value || option.body || "",
                 isCorrect: option.isCorrect || false,
                 orderIndex: i + 1,
-                score: option.score || option.scoreWeight || 1.0,
+                score: option.score !== undefined && option.score !== null ? option.score : (option.isCorrect ? 1.0 : 0.0),
+                negativeScore: option.negativeScore !== undefined ? option.negativeScore : 0.0,
                 matchRules: option.matchRules || {},
+                metadata: option.metadata || {},
               },
             });
           }
@@ -253,11 +278,25 @@ export class QuestionService {
           }
         }
 
+        await tx.question.update({
+          where: { id: question.id },
+          data: { updatedAt: new Date() },
+        });
+
+        const fullUpdatedVersion = await tx.questionVersion.findUnique({
+          where: { id: lastVersion.id },
+          include: {
+            options: true,
+            media: true,
+          },
+        });
+
         return {
           id: question.id,
           code: question.code,
           version: question.version,
-          activeVersion: updatedVersion,
+          activeVersion: fullUpdatedVersion,
+          versions: [fullUpdatedVersion],
         };
       }
 
@@ -279,9 +318,11 @@ export class QuestionService {
           explanation: dto.explanation !== undefined ? dto.explanation : lastVersion.explanation,
           feedbackCorrect: dto.feedbackCorrect !== undefined ? dto.feedbackCorrect : lastVersion.feedbackCorrect,
           feedbackIncorrect: dto.feedbackIncorrect !== undefined ? dto.feedbackIncorrect : lastVersion.feedbackIncorrect,
-          payload: dto.payload !== undefined ? dto.payload : lastVersion.payload,
-          answerConfig: dto.answerConfig !== undefined ? dto.answerConfig : lastVersion.answerConfig,
-          scoringConfig: dto.scoringConfig !== undefined ? dto.scoringConfig : lastVersion.scoringConfig,
+          payload: (dto.payload as any) !== undefined ? (dto.payload as any) : lastVersion.payload,
+          answerConfig: (dto.answerConfig as any) !== undefined ? (dto.answerConfig as any) : lastVersion.answerConfig,
+          scoringConfig: (dto.scoringConfig as any) !== undefined ? (dto.scoringConfig as any) : lastVersion.scoringConfig,
+          rubric: (dto.rubric as any) !== undefined ? (dto.rubric as any) : (lastVersion as any).rubric || {},
+          presentationConfig: (dto.presentationConfig as any) !== undefined ? (dto.presentationConfig as any) : (lastVersion as any).presentationConfig || {},
           createdBy: "system_author",
         },
       });
@@ -301,8 +342,10 @@ export class QuestionService {
               value: option.value || option.body || "",
               isCorrect: option.isCorrect || false,
               orderIndex: i + 1,
-              score: option.score || option.scoreWeight || 1.0,
+              score: option.score !== undefined && option.score !== null ? option.score : (option.isCorrect ? 1.0 : 0.0),
+              negativeScore: option.negativeScore !== undefined ? option.negativeScore : 0.0,
               matchRules: option.matchRules || {},
+              metadata: option.metadata || {},
             },
           });
         }
@@ -333,14 +376,26 @@ export class QuestionService {
       // Update parent version counter
       await tx.question.update({
         where: { id: question.id },
-        data: { version: nextVersionNumber },
+        data: {
+          version: nextVersionNumber,
+          updatedAt: new Date(),
+        },
+      });
+
+      const fullNewVersion = await tx.questionVersion.findUnique({
+        where: { id: newVersion.id },
+        include: {
+          options: true,
+          media: true,
+        },
       });
 
       return {
         id: question.id,
         code: question.code,
         version: nextVersionNumber,
-        activeVersion: newVersion,
+        activeVersion: fullNewVersion,
+        versions: [fullNewVersion],
       };
     });
   }

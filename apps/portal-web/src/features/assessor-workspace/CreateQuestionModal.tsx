@@ -135,9 +135,11 @@ export function CreateQuestionModal({
         options: [],
         feedbackCorrect: '',
         feedbackIncorrect: '',
-        scoringMode: 'all_or_nothing',
-        scoringConfig: {},
+        scoringMode: 'per_option',
+        scoringConfig: { scoringMode: 'per_option' },
         points: 1,
+        defaultMaxScore: 1,
+        defaultMinScore: 0,
         durationSeconds: 60,
         tags: [],
       });

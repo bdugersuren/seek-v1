@@ -93,52 +93,103 @@ export function getBlueprintById(id: string): Blueprint | null {
 }
 
 function mapToQuestionBankItem(q: any): QuestionBankItem {
-  const actV = q.activeVersion || q.currentPublishedVersion || q.versions?.[0] || {};
+  const actV = q.activeVersion || q.versions?.[0] || q.currentPublishedVersion || {};
+
+  const primaryClassification = q.classifications?.[0];
+  const topicId = primaryClassification?.topicId || actV.topicId || (primaryClassification?.topic?.code) || "general";
+  const topicName = primaryClassification?.topic?.name || actV.topicName || (primaryClassification ? "Сэдэв" : "Ерөнхий");
+
+  const topicMappings: QuestionTopicMapping[] = (q.classifications || []).map((c: any) => ({
+    topicId: c.topicId,
+    topicName: c.topic?.name || c.topicId,
+    bloomLevel: (c.bloomLevel?.toLowerCase() || "apply") as any,
+    competencyType: (c.competencyType?.toLowerCase() || "knowledge") as any,
+    difficulty: (c.difficulty?.toLowerCase() || "medium") as any,
+    weight: Number(c.weight || 1),
+  }));
+
+  const scoringConfig = actV.scoringConfig || actV.payload?.scoringConfig || {};
+  const scoringMode =
+    actV.scoringMode ||
+    scoringConfig.scoringMode ||
+    actV.payload?.scoringMode ||
+    actV.payload?.scoringConfig?.scoringMode ||
+    "per_option";
+
+  const rawOptions = (Array.isArray(actV.options) && actV.options.length > 0)
+    ? actV.options
+    : (Array.isArray(actV.payload?.options) ? actV.payload.options : []);
+
+  const options: QuestionOption[] = rawOptions.map((o: any, idx: number) => ({
+    id: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
+    label: o.optionKey || o.code || o.label || String.fromCharCode(65 + idx),
+    optionKey: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
+    content: o.value || o.content || o.body || "",
+    value: o.value || o.content || o.body || "",
+    isCorrect: Boolean(o.isCorrect),
+    score: o.score !== undefined && o.score !== null ? Number(o.score) : (o.isCorrect ? 1 : 0),
+    negativeScore: o.negativeScore !== undefined && o.negativeScore !== null ? Number(o.negativeScore) : 0,
+    matchValue: o.matchRules?.matchValue || o.metadata?.matchValue || o.matchValue || "",
+    acceptedValues: o.metadata?.acceptedValues || o.acceptedValues || [],
+    metadata: o.metadata || {},
+  }));
+
   return {
     id: q.id,
     code: q.code,
     title: actV.title || "No Title",
     stem: actV.body || "",
+    body: actV.body || "",
+    parentId: q.parentId || null,
     type: (actV.type || "SINGLE_CHOICE") as any,
     status: (q.lifecycleStatus === "ARCHIVED" ? "archived" : actV.versionStatus?.toLowerCase()) as any,
-    points: Number(actV.defaultMaxScore || 1),
+    points: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
+    minPoints: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
+    defaultMaxScore: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
+    defaultMinScore: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
     durationSeconds: actV.defaultTimeSeconds || 60,
+    defaultTimeSeconds: actV.defaultTimeSeconds || 60,
     tags: actV.tags || [],
     contentJson: actV.payload || {},
-    bloomLevel: "understand",
-    competencyType: "knowledge",
-    topicId: "fractions",
-    topicName: "Fractions",
-    difficulty: "medium",
-    options: (actV.options || []).map((o: any) => ({
-      id: o.optionKey || o.id,
-      label: o.optionKey || "",
-      content: o.value || "",
-      isCorrect: o.isCorrect || false,
-      score: o.score !== undefined && o.score !== null ? Number(o.score) : undefined,
-      matchValue: o.matchRules?.matchValue || o.metadata?.matchValue || o.matchValue || "",
-      acceptedValues: o.metadata?.acceptedValues || [],
-    })),
+    bloomLevel: (primaryClassification?.bloomLevel?.toLowerCase() || "apply") as any,
+    competencyType: (primaryClassification?.competencyType?.toLowerCase() || "knowledge") as any,
+    topicId,
+    topicName,
+    topicMappings: topicMappings.length > 0 ? topicMappings : [
+      {
+        topicId,
+        topicName,
+        bloomLevel: "apply",
+        competencyType: "knowledge",
+        difficulty: "medium",
+        weight: 1,
+      },
+    ],
+    difficulty: (primaryClassification?.difficulty?.toLowerCase() || "medium") as any,
+    options,
     answerKey: (() => {
       const type = actV.type || "SINGLE_CHOICE";
       if (type === "MATCHING") {
-        return (actV.options || [])
-          .map((o: any, i: number) => `${o.value || o.content} ➔ ${o.matchValue || o.matchRules?.matchValue || ""}`)
+        return options
+          .map((o: any) => `${o.value || o.content} ➔ ${o.matchValue || ""}`)
           .join(", ");
       }
       if (type === "NUMERIC") {
-        const opt = actV.options?.[0];
+        const opt = options[0];
         return opt ? `Тоо: ${opt.value}, Хүлцэл: ±${opt.matchValue || 0}` : "-";
       }
-      return (actV.options || [])
+      return options
         .filter((o: any) => o.isCorrect)
-        .map((o: any) => o.optionKey || o.id)
+        .map((o: any) => o.label || o.optionKey || o.id)
         .join(", ") || "-";
     })(),
-    rubric: "",
-    feedback: actV.explanation || "",
-    feedbackCorrect: actV.feedbackCorrect || "",
+    rubric: actV.rubric || actV.payload?.rubric || [],
+    feedback: actV.feedbackCorrect || actV.explanation || actV.feedback || "",
+    feedbackCorrect: actV.feedbackCorrect || actV.explanation || actV.feedback || "",
     feedbackIncorrect: actV.feedbackIncorrect || "",
+    scoringMode,
+    scoringConfig,
+    presentationConfig: actV.presentationConfig || {},
     media: (actV.media || []).map((m: any) => {
       let type: "image" | "audio" | "video" | "file" = "file";
       const mType = (m.mediaType || m.type || "").toLowerCase();
@@ -158,7 +209,6 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
       };
     }),
     ownerUserId: q.ownerUserId || "",
-    scoringConfig: actV.scoringConfig || actV.payload?.scoringConfig || {},
     createdBy: q.createdBy || "",
     updatedBy: q.updatedBy || "",
     createdAt: q.createdAt || "",
@@ -230,31 +280,39 @@ export async function fetchQuestions(filters?: any): Promise<QuestionBankItem[]>
 function mapToCreateQuestionDto(data: any) {
   const payloadOptions = (data.options || []).map((o: any, index: number) => ({
     code: o.id || o.label || `opt_${index + 1}`,
-    optionKey: o.label || o.id || `opt_${index + 1}`,
-    value: o.content || o.value || "",
-    body: o.content || o.value || "",
+    optionKey: o.optionKey || o.label || o.id || `opt_${index + 1}`,
+    value: o.value || o.content || "",
+    body: o.value || o.content || "",
     isCorrect: o.isCorrect || false,
     score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.points || 1) : 0)),
+    negativeScore: o.negativeScore !== undefined ? Number(o.negativeScore) : 0,
     matchValue: o.matchValue || "",
     matchRules: {
       matchValue: o.matchValue || "",
     },
     metadata: {
-      acceptedValues: o.acceptedValues || []
+      acceptedValues: o.acceptedValues || [],
+      ...(o.metadata || {})
     }
   }));
+
+  const scoringConfig = {
+    ...(data.scoringConfig || {}),
+    scoringMode: data.scoringMode || data.scoringConfig?.scoringMode || "per_option",
+  };
 
   return {
     code: data.code,
     lifecycleStatus: "ACTIVE",
     visibilityScope: data.visibilityScope || "PRIVATE",
     ownerUserId: data.ownerUserId || null,
+    parentId: data.parentId || null,
     title: data.title || "No Title",
     body: data.stem ? data.stem : (data.body || "Шинэ асуулт"),
     type: data.type || data.typeId || "SINGLE_CHOICE",
     defaultTimeSeconds: Number(data.durationSeconds || data.defaultTimeSeconds || 60),
-    defaultMaxScore: Number(data.points || data.defaultMaxScore || 1),
-    defaultMinScore: 0,
+    defaultMaxScore: Number(data.points !== undefined ? data.points : (data.defaultMaxScore || 1)),
+    defaultMinScore: Number(data.minPoints !== undefined ? data.minPoints : (data.defaultMinScore !== undefined ? data.defaultMinScore : 0)),
     languageCode: "mn",
     tags: data.tags || [],
     explanation: data.feedback || data.explanation || "",
@@ -262,13 +320,15 @@ function mapToCreateQuestionDto(data: any) {
     feedbackIncorrect: data.feedbackIncorrect || "",
     payload: {
       options: payloadOptions,
-      scoringMode: data.scoringMode || "all_or_nothing",
-      scoringConfig: data.scoringConfig || {},
+      scoringMode: scoringConfig.scoringMode,
+      scoringConfig,
     },
     answerConfig: {
       answerKey: data.answerKey || "",
     },
-    scoringConfig: data.scoringConfig || {},
+    scoringConfig,
+    rubric: data.rubric || [],
+    presentationConfig: data.presentationConfig || {},
     media: (data.media || []).map((m: any, index: number) => ({
       mediaType: (m.mediaType || m.type || "IMAGE").toUpperCase(),
       storageKey: m.storageKey,

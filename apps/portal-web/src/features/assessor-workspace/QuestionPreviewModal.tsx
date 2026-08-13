@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useRef, useState } from "react";
 import katex from "katex";
 import {
   Badge,
@@ -18,7 +19,29 @@ import {
   questionTypeLabels,
   statusLabels,
 } from "./mock-data";
-import type { QuestionBankItem, QuestionWorkflowStatus } from "./types";
+import type { QuestionBankItem, QuestionWorkflowStatus, QuestionType } from "./types";
+
+const questionTypeIcons: Record<QuestionType, React.ComponentType<any>> = {
+  SINGLE_CHOICE: Icons.SingleChoose,
+  MULTIPLE_CHOICE: Icons.MultiChoose,
+  TRUE_FALSE: Icons.TrueFalse,
+  ORDERING: Icons.Ordering,
+  MATCHING: Icons.Matching,
+  SHORT_TEXT: Icons.ShortText,
+  FILL_BLANK: Icons.FillBlank,
+  MATRIX: Icons.Matrix,
+  NUMERIC: Icons.Numeric,
+  LIKERT: Icons.Likert,
+  SJT: Icons.Sjt,
+  CASE_BUNDLE: Icons.CaseBundle,
+  ESSAY: Icons.Essay,
+};
+
+const scoringModeLabels: Record<string, string> = {
+  per_option: "Харгалзах оноо",
+  combination: "Хослолын оноо",
+  manual: "Гараар үнэлэх",
+};
 
 const statusVariant: Record<
   QuestionWorkflowStatus,
@@ -44,10 +67,22 @@ export function QuestionPreviewModal({
   onClose: () => void;
 }) {
   const nextActions = getNextWorkflowActions(question.status);
+  const TypeIcon = questionTypeIcons[question.type] || Icons.ListCheck;
+  const scoringMode =
+    question.scoringMode ||
+    (question.scoringConfig as any)?.scoringMode ||
+    (question.contentJson as any)?.scoringMode ||
+    (question.contentJson as any)?.payload?.scoringMode ||
+    "per_option";
+
+  const totalPoints = question.points !== undefined ? question.points : (question.defaultMaxScore || 1);
+  const minPoints = question.minPoints !== undefined ? question.minPoints : (question.defaultMinScore || 0);
+  const durationSeconds = question.durationSeconds || question.defaultTimeSeconds || 60;
 
   return (
     <div className="fixed inset-0 z-modal grid place-items-center bg-slate-900/60 backdrop-blur-sm p-seek-4 transition-all duration-300">
       <Card className="max-h-[92vh] w-full max-w-4xl overflow-auto p-seek-6 shadow-2xl relative border-slate-200">
+        {/* Close Button */}
         <div className="absolute right-4 top-4">
           <Button 
             type="button" 
@@ -60,6 +95,7 @@ export function QuestionPreviewModal({
           </Button>
         </div>
 
+        {/* Modal Title Section */}
         <div className="flex items-start justify-between gap-seek-4 pr-seek-6">
           <div>
             <div className="flex items-center gap-2">
@@ -67,64 +103,148 @@ export function QuestionPreviewModal({
                 {statusLabels[question.status]}
               </Badge>
               <Badge variant="secondary" className="font-mono text-xs">
-                {questionTypeLabels[question.type]}
+                {question.code}
               </Badge>
             </div>
-            <Text className="mt-seek-2.5 text-xl font-extrabold text-slate-900">
-              {question.code} · {question.title}
-            </Text>
-            <Text variant="muted" className="mt-1 text-sm">
-              Ангилал: {competencyLabels[question.competencyType]}
+            <Text className="mt-seek-2.5 text-2xl font-extrabold text-slate-900">
+              {question.title || "Гарчиггүй даалгавар"}
             </Text>
           </div>
         </div>
 
-        <div className="mt-seek-4 rounded-seek-lg border border-slate-100 bg-slate-50/50 p-seek-4 shadow-sm">
-          <div className="mb-seek-3 flex flex-wrap items-center gap-2 border-b border-slate-100 pb-seek-3">
-            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700">{bloomLabels[question.bloomLevel]}</Badge>
-            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700">{question.topicName}</Badge>
-            <Badge variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">{difficultyLabels[question.difficulty]}</Badge>
-            <Badge variant="secondary" className="bg-primary/5 border-primary/20 text-primary font-semibold">{question.points} оноо</Badge>
+        {/* Enhanced Metadata Card (Placed right below title and above question) */}
+        <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-slate-50/80 p-seek-4 shadow-seek-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-seek-3">
+            {/* Type */}
+            <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-2.5 border border-slate-200/80 shadow-seek-xs">
+              <div className="h-8 w-8 rounded-seek-md bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+                <TypeIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <Text variant="muted" className="text-[11px] uppercase tracking-wider font-semibold">Төрөл</Text>
+                <Text className="text-xs font-bold text-slate-800 truncate">{questionTypeLabels[question.type]}</Text>
+              </div>
+            </div>
+
+            {/* Scoring Mode */}
+            <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-2.5 border border-slate-200/80 shadow-seek-xs">
+              <div className="h-8 w-8 rounded-seek-md bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                <Icons.OneOption className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <Text variant="muted" className="text-[11px] uppercase tracking-wider font-semibold">Оноо бодох</Text>
+                <Text className="text-xs font-bold text-slate-800 truncate">{scoringModeLabels[scoringMode] || scoringMode}</Text>
+              </div>
+            </div>
+
+            {/* Points (Max / Min) */}
+            <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-2.5 border border-slate-200/80 shadow-seek-xs">
+              <div className="h-8 w-8 rounded-seek-md bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                <Icons.MaxValue className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <Text variant="muted" className="text-[11px] uppercase tracking-wider font-semibold">Нийт оноо</Text>
+                <Text className="text-xs font-bold text-slate-800">{totalPoints} оноо {minPoints < 0 ? `(${minPoints})` : ""}</Text>
+              </div>
+            </div>
+
+            {/* Duration */}
+            <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-2.5 border border-slate-200/80 shadow-seek-xs">
+              <div className="h-8 w-8 rounded-seek-md bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                <Icons.Timer className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <Text variant="muted" className="text-[11px] uppercase tracking-wider font-semibold">Хугацаа</Text>
+                <Text className="text-xs font-bold text-slate-800">{durationSeconds} сек</Text>
+              </div>
+            </div>
           </div>
+
+          {/* Context Badges Bar */}
+          <div className="mt-seek-3 pt-seek-3 border-t border-slate-200/60 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs">
+              {question.topicName || "Ерөнхий сэдэв"}
+            </Badge>
+            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs">
+              Блум: {bloomLabels[question.bloomLevel] || question.bloomLevel}
+            </Badge>
+            <Badge variant="warning" className="bg-amber-50 border-amber-200 text-amber-800 text-xs">
+              Хүндрэл: {difficultyLabels[question.difficulty] || question.difficulty}
+            </Badge>
+            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700 text-xs">
+              Чадамж: {competencyLabels[question.competencyType] || question.competencyType}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Main Question Body & Interactive Learner Preview */}
+        <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-white p-seek-5 shadow-seek-xs">
           <LearnerQuestionPreview question={question} />
         </div>
 
-        <div className="mt-seek-4 grid gap-seek-3 md:grid-cols-3">
-          <InfoPanel 
-            title="Зөв хариулт" 
-            body={question.answerKey} 
-          />
-          <InfoPanel 
-            title="Зөв хариултын feedback" 
-            body={question.feedbackCorrect || question.feedback || "Тайлбар тохируулаагүй."} 
-            rich 
-          />
-          <InfoPanel 
-            title="Буруу хариултын feedback" 
-            body={question.feedbackIncorrect || "Тайлбар тохируулаагүй."} 
-            rich 
-          />
-        </div>
-
-        <div className="mt-seek-4">
-          <Text className="mb-2 font-semibold">Workflow comments</Text>
-          <div className="space-y-2">
-            {question.workflowHistory.map((entry) => (
-              <div
-                key={entry.id}
-                className="rounded-seek-md border border-border p-seek-3 text-sm"
-              >
-                <Text className="font-semibold">
-                  {statusLabels[entry.status]} · {entry.actorName}
-                </Text>
-                <Text variant="muted">{entry.comment}</Text>
-                <Text variant="muted" className="text-xs">
-                  {entry.createdAt}
-                </Text>
+        {/* Feedback Cards Section (Designed to match QuestionEditor's feedback cards) */}
+        <div className="mt-seek-5 space-y-seek-4">
+          {/* Correct Feedback Card */}
+          <div className="rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-success">
+            <div className="flex">
+              <div className="w-12 bg-success-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
+                <Icons.Check className="h-5 w-5 text-white bg-success rounded-full p-0.5" />
               </div>
-            ))}
+              <div className="flex-1 p-seek-3">
+                <Text className="text-xs font-bold text-success mb-1">Зөв хариулсан үеийн тайлбар:</Text>
+                <div className="text-sm text-slate-700">
+                  {question.feedbackCorrect || question.feedback ? (
+                    <RichTextPreview value={question.feedbackCorrect || question.feedback} />
+                  ) : (
+                    <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Incorrect Feedback Card */}
+          <div className="rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-danger">
+            <div className="flex">
+              <div className="w-12 bg-danger-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
+                <Icons.Close className="h-5 w-5 text-white bg-danger rounded-full p-0.5" />
+              </div>
+              <div className="flex-1 p-seek-3">
+                <Text className="text-xs font-bold text-danger mb-1">Буруу хариулсан үеийн тайлбар:</Text>
+                <div className="text-sm text-slate-700">
+                  {question.feedbackIncorrect ? (
+                    <RichTextPreview value={question.feedbackIncorrect} />
+                  ) : (
+                    <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Workflow Comments if exist */}
+        {question.workflowHistory && question.workflowHistory.length > 0 && (
+          <div className="mt-seek-5 border-t border-border pt-seek-4">
+            <Text className="mb-2 font-semibold text-sm">Хяналтын түүх (Workflow comments)</Text>
+            <div className="space-y-2">
+              {question.workflowHistory.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-seek-md border border-border p-seek-3 text-sm bg-slate-50/40"
+                >
+                  <Text className="font-semibold text-xs">
+                    {statusLabels[entry.status]} · {entry.actorName}
+                  </Text>
+                  <Text variant="muted" className="text-sm mt-1">{entry.comment}</Text>
+                  <Text variant="muted" className="text-[11px] mt-1">
+                    {entry.createdAt}
+                  </Text>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {nextActions.length > 0 && (
           <div className="mt-seek-4 flex flex-wrap gap-2 border-t border-border pt-seek-4">
@@ -141,10 +261,12 @@ export function QuestionPreviewModal({
 }
 
 function LearnerQuestionPreview({ question }: { question: QuestionBankItem }) {
+  const stem = question.stem || question.body || "";
+
   return (
     <div className="space-y-seek-4">
-      <div className="prose max-w-none rounded-seek-md bg-muted-background p-seek-4 text-foreground">
-        <RichTextPreview value={question.stem} isFillBlank={question.type === "FILL_BLANK"} />
+      <div className="rounded-seek-md bg-slate-50/70 p-seek-4 border border-slate-100 text-slate-900">
+        <RichTextPreview value={stem} isFillBlank={question.type === "FILL_BLANK"} />
       </div>
       <MediaPreview question={question} />
       <QuestionTypePreview question={question} />
@@ -152,16 +274,167 @@ function LearnerQuestionPreview({ question }: { question: QuestionBankItem }) {
   );
 }
 
-function RichTextPreview({ value, isFillBlank }: { value: string; isFillBlank?: boolean }) {
+// -------------------------------------------------------------
+// Mermaid Diagram Renderer Component
+// -------------------------------------------------------------
+function MermaidViewer({ chart, compact = false }: { chart: string; compact?: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [svgHtml, setSvgHtml] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function renderMermaid() {
+      try {
+        // Dynamically load mermaid from window or CDN if not present
+        if (typeof window !== "undefined") {
+          let mermaid = (window as any).mermaid;
+          if (!mermaid) {
+            await new Promise((resolve, reject) => {
+              const existingScript = document.getElementById("mermaid-cdn-script");
+              if (existingScript) {
+                existingScript.addEventListener("load", resolve);
+                return;
+              }
+              const script = document.createElement("script");
+              script.id = "mermaid-cdn-script";
+              script.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+              script.onload = () => resolve(true);
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+            mermaid = (window as any).mermaid;
+          }
+
+          if (mermaid) {
+            mermaid.initialize({
+              startOnLoad: false,
+              theme: "neutral",
+              securityLevel: "loose",
+              fontFamily: "Inter, sans-serif",
+            });
+
+            const id = `mermaid-svg-${Math.random().toString(36).substring(2, 9)}`;
+            const { svg } = await mermaid.render(id, chart.trim());
+            if (isMounted) {
+              setSvgHtml(svg);
+              setError(null);
+            }
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err?.message || "Диаграм зурахад алдаа гарлаа");
+        }
+      }
+    }
+
+    renderMermaid();
+    return () => {
+      isMounted = false;
+    };
+  }, [chart]);
+
+  if (error) {
+    return (
+      <div className={`${compact ? "my-1.5 p-2 text-[11px]" : "my-3 p-seek-3 text-xs"} rounded-seek-md border border-amber-200 bg-amber-50/60 text-amber-800`}>
+        <div className="font-semibold flex items-center gap-1.5 mb-1">
+          <span>❖ Mermaid диаграм</span>
+        </div>
+        <pre className="font-mono text-xs overflow-x-auto whitespace-pre-wrap bg-white/70 p-2 rounded border border-amber-200">{chart}</pre>
+      </div>
+    );
+  }
+
+  if (!svgHtml) {
+    return (
+      <div className={`${compact ? "my-1.5 p-2" : "my-3 p-seek-4"} rounded-seek-md border border-slate-200 bg-slate-50 flex items-center justify-center text-xs text-slate-500`}>
+        <span className="animate-pulse">❖ Диаграм ачаалж байна...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-seek-3 text-base leading-7">
+    <div
+      ref={containerRef}
+      className={`${compact ? "my-2 p-2 max-h-72" : "my-4 p-seek-4"} overflow-x-auto rounded-seek-lg border border-indigo-100 bg-indigo-50/20 flex justify-center shadow-seek-xs [&_svg]:max-w-full`}
+      dangerouslySetInnerHTML={{ __html: svgHtml }}
+    />
+  );
+}
+
+// -------------------------------------------------------------
+// Comprehensive Markdown + KaTeX + Tables + Lists + Code Parser
+// -------------------------------------------------------------
+function RichTextPreview({ 
+  value, 
+  isFillBlank, 
+  compact = false 
+}: { 
+  value: string; 
+  isFillBlank?: boolean; 
+  compact?: boolean;
+}) {
+  if (!value) return null;
+
+  return (
+    <div className={compact ? "space-y-1 text-sm leading-snug" : "space-y-seek-3 text-base leading-7"}>
       {parseMarkdownBlocks(value).map((block, index) => {
+        if (block.type === "mermaid") {
+          return <MermaidViewer key={`mermaid-${index}`} chart={block.content} compact={compact} />;
+        }
+
+        if (block.type === "code") {
+          return (
+            <div key={`code-${index}`} className="my-3 overflow-hidden rounded-seek-md border border-slate-800 bg-slate-900 text-slate-100 shadow-seek-sm">
+              {block.lang && (
+                <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/80 px-3 py-1 text-[11px] font-mono text-slate-400">
+                  <span>{block.lang}</span>
+                </div>
+              )}
+              <pre className="overflow-x-auto p-3 font-mono text-xs leading-relaxed text-emerald-400">
+                <code>{block.content}</code>
+              </pre>
+            </div>
+          );
+        }
+
         if (block.type === "table") {
           return <MarkdownTable key={`table-${index}`} rows={block.rows} isFillBlank={isFillBlank} />;
         }
 
+        if (block.type === "heading") {
+          const Tag = block.level === 1 ? "h2" : block.level === 2 ? "h3" : "h4";
+          return (
+            <Tag key={`heading-${index}`} className="font-bold text-slate-900 mt-2 mb-1">
+              <InlineMath value={block.text} isFillBlank={isFillBlank} />
+            </Tag>
+          );
+        }
+
+        if (block.type === "blockquote") {
+          return (
+            <blockquote key={`quote-${index}`} className="my-2 border-l-4 border-primary/50 bg-primary/5 pl-4 py-1.5 italic text-slate-700 rounded-r">
+              <InlineMath value={block.text} isFillBlank={isFillBlank} />
+            </blockquote>
+          );
+        }
+
+        if (block.type === "list") {
+          return (
+            <ul key={`list-${index}`} className="my-2 list-disc list-inside space-y-1 text-slate-800 pl-2">
+              {block.items.map((item, i) => (
+                <li key={i}>
+                  <InlineMath value={item} isFillBlank={isFillBlank} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
         return (
-          <p key={`paragraph-${index}`} className="text-foreground">
+          <p key={`paragraph-${index}`} className="text-slate-800">
             <InlineMath value={block.text} isFillBlank={isFillBlank} />
           </p>
         );
@@ -172,7 +445,12 @@ function RichTextPreview({ value, isFillBlank }: { value: string; isFillBlank?: 
 
 type MarkdownBlock =
   | { type: "paragraph"; text: string }
-  | { type: "table"; rows: string[][] };
+  | { type: "table"; rows: string[][] }
+  | { type: "mermaid"; content: string }
+  | { type: "code"; lang: string; content: string }
+  | { type: "heading"; level: number; text: string }
+  | { type: "blockquote"; text: string }
+  | { type: "list"; items: string[] };
 
 function parseMarkdownBlocks(value: string): MarkdownBlock[] {
   const lines = value.split("\n");
@@ -188,7 +466,8 @@ function parseMarkdownBlocks(value: string): MarkdownBlock[] {
   };
 
   while (index < lines.length) {
-    const line = lines[index].trim();
+    const rawLine = lines[index];
+    const line = rawLine.trim();
     const nextLine = lines[index + 1]?.trim();
 
     if (!line) {
@@ -197,6 +476,72 @@ function parseMarkdownBlocks(value: string): MarkdownBlock[] {
       continue;
     }
 
+    // 1. Mermaid Code Block
+    if (line.startsWith("```mermaid")) {
+      flushParagraph();
+      index += 1;
+      const mermaidLines: string[] = [];
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        mermaidLines.push(lines[index]);
+        index += 1;
+      }
+      index += 1; // skip closing ```
+      blocks.push({ type: "mermaid", content: mermaidLines.join("\n") });
+      continue;
+    }
+
+    // 2. Generic Code Block
+    if (line.startsWith("```")) {
+      flushParagraph();
+      const lang = line.replace(/^```/, "").trim();
+      index += 1;
+      const codeLines: string[] = [];
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      index += 1; // skip closing ```
+      blocks.push({ type: "code", lang, content: codeLines.join("\n") });
+      continue;
+    }
+
+    // 3. Headings (#, ##, ###)
+    if (/^#{1,4}\s+/.test(line)) {
+      flushParagraph();
+      const level = line.match(/^(#{1,4})\s+/)?.[1].length || 1;
+      const text = line.replace(/^#{1,4}\s+/, "");
+      blocks.push({ type: "heading", level, text });
+      index += 1;
+      continue;
+    }
+
+    // 4. Blockquote (> ...)
+    if (line.startsWith(">")) {
+      flushParagraph();
+      const quoteLines: string[] = [line.replace(/^>\s?/, "")];
+      index += 1;
+      while (index < lines.length && lines[index].trim().startsWith(">")) {
+        quoteLines.push(lines[index].trim().replace(/^>\s?/, ""));
+        index += 1;
+      }
+      blocks.push({ type: "blockquote", text: quoteLines.join(" ") });
+      continue;
+    }
+
+    // 5. Unordered List (- , * )
+    if (/^[-*]\s+/.test(line)) {
+      flushParagraph();
+      const items: string[] = [line.replace(/^[-*]\s+/, "")];
+      index += 1;
+      while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[-*]\s+/, ""));
+        index += 1;
+      }
+      blocks.push({ type: "list", items });
+      continue;
+    }
+
+    // 6. Markdown Table
     if (isMarkdownTableHeader(line, nextLine)) {
       flushParagraph();
       const rows: string[][] = [parseTableRow(line)];
@@ -237,25 +582,26 @@ function parseTableRow(line: string) {
 }
 
 function MarkdownTable({ rows, isFillBlank }: { rows: string[][]; isFillBlank?: boolean }) {
+  if (!rows || rows.length === 0) return null;
   const [header, ...body] = rows;
 
   return (
-    <div className="overflow-x-auto rounded-seek-md border border-border bg-surface">
+    <div className="my-3 overflow-x-auto rounded-seek-md border border-slate-200 bg-white shadow-seek-xs">
       <table className="w-full min-w-[24rem] text-left text-sm">
-        <thead className="bg-muted-background">
+        <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
             {header.map((cell, index) => (
-              <th key={`${cell}-${index}`} className="p-seek-3 font-semibold">
+              <th key={`${cell}-${index}`} className="p-seek-3 font-semibold text-slate-800">
                 <InlineMath value={cell} isFillBlank={isFillBlank} />
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100">
           {body.map((row, rowIndex) => (
-            <tr key={rowIndex} className="border-t border-border">
+            <tr key={rowIndex} className="hover:bg-slate-50/50">
               {row.map((cell, cellIndex) => (
-                <td key={`${cell}-${cellIndex}`} className="p-seek-3">
+                <td key={`${cell}-${cellIndex}`} className="p-seek-3 text-slate-700">
                   <InlineMath value={cell} isFillBlank={isFillBlank} />
                 </td>
               ))}
@@ -268,6 +614,7 @@ function MarkdownTable({ rows, isFillBlank }: { rows: string[][]; isFillBlank?: 
 }
 
 function InlineMath({ value, isFillBlank }: { value: string; isFillBlank?: boolean }) {
+  if (!value) return null;
   const segments = value.split(/(\$\$[\s\S]+?\$\$|\$[^$]+\$|!\[.*?\]\(.*?\))/g);
   let blankCounter = 0;
 
@@ -316,18 +663,19 @@ function InlineMath({ value, isFillBlank }: { value: string; isFillBlank?: boole
         }
 
         if (isFillBlank) {
-          const parts = segment.split(/(__+)/g);
+          const parts = segment.split(/(__+|{{blank_\d+}}|\[\[\d+\]\])/g);
           return (
             <span key={`${segment}-${index}`}>
               {parts.map((part, pIdx) => {
-                if (part.startsWith("_")) {
+                if (part.startsWith("_") || part.startsWith("{{") || part.startsWith("[[")) {
                   blankCounter++;
                   return (
                     <input
                       key={pIdx}
                       type="text"
-                      placeholder={`blank${blankCounter}`}
-                      className="mx-1 px-2 py-0.5 w-24 h-7 text-xs border border-slate-300 rounded bg-white text-slate-800 focus:border-blue-500 focus:outline-none inline-block align-middle font-semibold text-center shadow-inner"
+                      disabled
+                      placeholder={`нүд ${blankCounter}`}
+                      className="mx-1 px-2 py-0.5 w-24 h-7 text-xs border border-slate-300 rounded bg-white text-slate-800 inline-block align-middle font-semibold text-center shadow-inner"
                     />
                   );
                 }
@@ -456,6 +804,10 @@ function MediaPreview({ question }: { question: QuestionBankItem }) {
   );
 }
 
+// -------------------------------------------------------------
+// Options Preview: Styled with Left Indicator Strip & Color Borders
+// (Positive -> Green, Negative -> Red, Neutral/0 -> Gray)
+// -------------------------------------------------------------
 function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
   const isCombinationScoring = 
     question.scoringMode === "combination" || 
@@ -471,27 +823,76 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
     [];
 
   if (question.type === "ESSAY") {
+    const rubrics = question.rubric && Array.isArray(question.rubric) ? question.rubric : [];
+
     return (
-      <Textarea
-        rows={7}
-        disabled
-        placeholder="Суралцагч энд бичгийн хариултаа оруулна..."
-      />
+      <div className="space-y-seek-4">
+        <Textarea
+          rows={5}
+          disabled
+          placeholder="Суралцагч энд бичгийн хариултаа оруулна..."
+          className="bg-slate-50/60"
+        />
+        {rubrics.length > 0 && (
+          <div className="rounded-seek-md border border-slate-200 bg-slate-50/50 p-seek-4">
+            <Text className="text-xs font-bold text-slate-800 mb-seek-3 uppercase tracking-wider">
+              Үнэлгээний шалгуур (Grading Rubric)
+            </Text>
+            <div className="space-y-2">
+              {rubrics.map((r: any, idx: number) => (
+                <div key={r.id || idx} className="flex items-center justify-between bg-white border border-slate-200 rounded-seek-md p-seek-3 text-xs">
+                  <div>
+                    <span className="font-bold text-slate-800">{idx + 1}. {r.criteria}</span>
+                    {r.description && <p className="text-slate-500 text-[11px] mt-0.5">{r.description}</p>}
+                  </div>
+                  <Badge variant="success" className="font-mono">Дээд: {r.maxScore} оноо</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
   if (question.type === "FILL_BLANK" || question.type === "NUMERIC") {
     return (
       <div className="rounded-seek-md border border-border bg-surface p-seek-4">
-        <Text variant="muted" className="mb-2 text-sm">
+        <Text variant="muted" className="mb-2 text-sm font-semibold">
           {question.type === "NUMERIC"
-            ? "Тоон хариултаа оруулна уу"
-            : "Хоосон зайг нөхнө үү"}
+            ? "Тоон хариулт шалгах:"
+            : "Хоосон зайг нөхөх тохиргоо:"}
         </Text>
-        <Input
-          disabled
-          placeholder={question.type === "NUMERIC" ? "Жишээ: 24" : "Хариулт"}
-        />
+        {question.type === "NUMERIC" ? (
+          <div className="flex items-center gap-3">
+            <Input
+              disabled
+              value={question.options?.[0]?.content || ""}
+              placeholder="Тоон хариулт"
+              className="max-w-xs"
+            />
+            {question.options?.[0]?.matchValue && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                Хүлцэх алдаа: ±{question.options[0].matchValue}
+              </Badge>
+            )}
+            <Badge variant="success" className="font-mono text-xs">
+              +{question.points || 1} оноо
+            </Badge>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {question.options.map((opt, idx) => (
+              <div key={opt.id || idx} className="flex items-center justify-between rounded-seek-md border border-slate-200 bg-slate-50/50 p-2.5 text-xs">
+                <span className="font-bold text-slate-700">Нүд {idx + 1}: {opt.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600">Зөв утгууд: {(opt.acceptedValues || []).map(v => v.value).join(", ") || opt.content || "-"}</span>
+                  <Badge variant="success">+{opt.score || 1} оноо</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -500,27 +901,45 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
     return (
       <div className="space-y-seek-4">
         <div className="space-y-seek-3">
-          <Text variant="muted" className="text-sm">Дараах утгуудыг зөв харгалзуулна уу:</Text>
+          <Text variant="muted" className="text-sm font-semibold">Харгалзуулах хосуудын зөв тохиргоо:</Text>
           <div className="grid gap-seek-3 md:grid-cols-2">
+            {/* Left Options */}
             <div className="space-y-2">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase">Зүүн тал</Text>
+              <Text className="text-xs font-bold text-slate-700 uppercase tracking-wider">Зүүн тал (Сурвалжууд)</Text>
               {question.options.map((option, idx) => (
-                <div key={`left-${option.id}-${idx}`} className="rounded-seek-md border border-border bg-muted-background/40 p-seek-3">
-                  {idx + 1}. <InlineMath value={option.content} />
+                <div key={`left-${option.id}-${idx}`} className="rounded-seek-md border border-emerald-200 border-l-[4px] border-l-emerald-500 bg-emerald-50/15 overflow-hidden flex shadow-seek-xs">
+                  <div className="w-10 flex items-center justify-center font-bold text-xs bg-emerald-500 text-white shrink-0">
+                    {option.label || `L${idx + 1}`}
+                  </div>
+                  <div className="flex-1 p-seek-3 flex items-center justify-between">
+                    <div className="text-xs text-slate-800 flex-1 mr-2">
+                      <RichTextPreview value={option.content || option.value || ""} compact />
+                    </div>
+                    <Badge variant="success" className="font-mono text-[11px] shrink-0">
+                      +{option.score !== undefined ? option.score : 1} оноо
+                    </Badge>
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Right Options */}
             <div className="space-y-2">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase">Баруун тал</Text>
+              <Text className="text-xs font-bold text-slate-700 uppercase tracking-wider">Баруун тал (Хариултууд)</Text>
               {(
                 question.scoringConfig?.rightOptions || 
-                (question.contentJson as any)?.scoringConfig?.rightOptions ||
-                (question.contentJson as any)?.payload?.scoringConfig?.rightOptions ||
+                (question.contentJson as any)?.scoringConfig?.rightOptions || 
+                (question.contentJson as any)?.payload?.scoringConfig?.rightOptions || 
                 question.options.map(o => ({ id: o.id, value: o.matchValue })).filter(o => o.value)
               )
                 .map((valObj: any, idx: number) => (
-                  <div key={`right-${valObj.id || idx}`} className="rounded-seek-md border border-border bg-surface p-seek-3 cursor-pointer hover:border-slate-800">
-                    {String.fromCharCode(65 + idx)}. <InlineMath value={valObj.value || ""} />
+                  <div key={`right-${valObj.id || idx}`} className="rounded-seek-md border border-indigo-200 border-l-[4px] border-l-indigo-500 bg-indigo-50/15 overflow-hidden flex shadow-seek-xs">
+                    <div className="w-10 flex items-center justify-center font-bold text-xs bg-indigo-500 text-white shrink-0">
+                      {`R${idx + 1}`}
+                    </div>
+                    <div className="flex-1 p-seek-3 text-xs text-slate-800">
+                      <RichTextPreview value={valObj.value || ""} compact />
+                    </div>
                   </div>
                 ))}
             </div>
@@ -533,47 +952,59 @@ function QuestionTypePreview({ question }: { question: QuestionBankItem }) {
     );
   }
 
+  // SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE, LIKERT, MATRIX, etc.
   return (
     <div className="space-y-seek-4">
-      <div className="space-y-2">
-        {question.options.map((option) => {
-          const hasScore = option.score !== undefined && option.score !== null;
-          const isPositive = hasScore && Number(option.score) > 0;
-          const isNegative = hasScore && Number(option.score) < 0;
+      <div className="space-y-2.5">
+        {question.options.map((option, index) => {
+          const score = Number(option.score !== undefined && option.score !== null ? option.score : (option.isCorrect ? 1 : 0));
+          const isPositive = score > 0;
+          const isNegative = score < 0;
+          const isNeutral = score === 0;
 
-          let cardStyles = "border-border bg-surface hover:bg-slate-50/50";
-          if (isPositive) {
-            cardStyles = "border-success/30 bg-success/5 text-success-foreground hover:bg-success/10";
-          } else if (isNegative) {
-            cardStyles = "border-danger/30 bg-danger/5 text-danger-foreground hover:bg-danger/10";
-          }
+          const cardBorderClass = isPositive
+            ? "border-emerald-200 border-l-[5px] border-l-emerald-500 bg-emerald-50/15"
+            : isNegative
+            ? "border-rose-200 border-l-[5px] border-l-rose-500 bg-rose-50/15"
+            : "border-border border-l-[5px] border-l-slate-400 bg-slate-50/20";
+
+          const indicatorBgClass = isPositive
+            ? "bg-emerald-500 text-white shadow-sm font-bold"
+            : isNegative
+            ? "bg-rose-500 text-white shadow-sm font-bold"
+            : "bg-slate-200 text-slate-700 font-bold";
 
           return (
-            <label
-              key={option.id}
-              className={`flex items-center justify-between gap-3 rounded-seek-md border p-seek-3 transition-all cursor-not-allowed select-none ${cardStyles}`}
+            <div
+              key={option.id || index}
+              className={`rounded-seek-lg border overflow-hidden transition-all duration-200 shadow-seek-xs ${cardBorderClass}`}
             >
-              <div className="flex items-center gap-3">
-                <span className={`grid h-5 w-5 place-items-center rounded-full border ${isPositive ? "border-success/40 bg-success/10 text-success" : isNegative ? "border-danger/40 bg-danger/10 text-danger" : "border-border bg-muted-background"}`}>
-                  {isPositive && "✓"}
-                  {isNegative && "✕"}
-                </span>
-                <span>
-                  {option.label}. <InlineMath value={option.content} />
-                </span>
+              <div className="flex">
+                {/* Left Indicator Strip with Label */}
+                <div className={`w-12 flex items-center justify-center font-bold text-sm tracking-wider flex-shrink-0 select-none ${indicatorBgClass}`}>
+                  {option.label || String.fromCharCode(65 + index)}
+                </div>
+
+                {/* Content & Score Badge */}
+                <div className="flex-1 p-seek-3.5 flex items-center justify-between gap-3">
+                  <div className="text-sm text-slate-800 flex-1">
+                    <RichTextPreview value={option.content || option.value || ""} compact />
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge
+                      variant={isPositive ? "success" : isNegative ? "danger" : "secondary"}
+                      className="font-mono text-xs"
+                    >
+                      {isPositive ? `+${score}` : `${score}`} оноо
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              {hasScore && Number(option.score) !== 0 && (
-                <Badge
-                  variant={isPositive ? "success" : "danger"}
-                  className="font-mono text-xs shrink-0"
-                >
-                  {isPositive ? `+${option.score}` : `${option.score}`} оноо
-                </Badge>
-              )}
-            </label>
+            </div>
           );
         })}
       </div>
+
       {isCombinationScoring && combinations.length > 0 && (
         <CombinationScoresDisplay question={question} combinations={combinations} />
       )}
@@ -590,8 +1021,8 @@ function CombinationScoresDisplay({
 }) {
   return (
     <div className="mt-seek-4 border-t border-border pt-seek-4">
-      <Text className="text-sm font-semibold text-foreground mb-seek-3 flex items-center gap-2">
-        <Icons.OneOption className="h-4 w-4 text-primary" />
+      <Text className="text-xs font-bold text-slate-800 mb-seek-3 flex items-center gap-2 uppercase tracking-wider">
+        <Icons.OneOption className="h-4 w-4 text-purple-600" />
         <span>Хослолын онооны тохиргоо (Combination Scores)</span>
       </Text>
       <div className="grid gap-seek-3 sm:grid-cols-2">
@@ -601,19 +1032,19 @@ function CombinationScoresDisplay({
           
           let comboDescription = "";
           if (question.type === "MULTIPLE_CHOICE") {
-            const selectedLabels = (combo.ids || [])
+            const selectedLabels = (combo.ids || combo.answers || [])
               .map((id: string) => {
-                const opt = question.options.find((o) => o.id === id);
-                return opt ? opt.label : "";
+                const opt = question.options.find((o) => o.id === id || o.label === id);
+                return opt ? opt.label : id;
               })
               .filter(Boolean)
               .join(", ");
             comboDescription = `Сонголтууд: [${selectedLabels || "Хоосон"}]`;
           } else if (question.type === "MATCHING") {
-            const pairs = (combo.ids || [])
+            const pairs = (combo.ids || combo.answers || [])
               .map((pairStr: string) => {
                 const [leftId, rightId] = pairStr.split(":");
-                const leftOpt = question.options.find((o) => o.id === leftId);
+                const leftOpt = question.options.find((o) => o.id === leftId || o.label === leftId);
                 const rightOptions = 
                   question.scoringConfig?.rightOptions || 
                   (question.contentJson as any)?.scoringConfig?.rightOptions || 
@@ -624,28 +1055,30 @@ function CombinationScoresDisplay({
                 if (leftOpt && rightOpt) {
                   return `${leftOpt.label} ↔ ${rightOpt.value}`;
                 }
-                return "";
+                return pairStr;
               })
               .filter(Boolean)
               .join(" | ");
             comboDescription = `Харгалзаа: ${pairs || "Хоосон"}`;
+          } else {
+            comboDescription = `Хослол ${idx + 1}`;
           }
 
           return (
             <div
               key={idx}
-              className={`flex items-center justify-between rounded-seek-md border px-seek-4 py-seek-2.5 text-sm transition-all ${
+              className={`flex items-center justify-between rounded-seek-md border px-seek-3.5 py-seek-2 text-xs transition-all ${
                 isPositive
-                  ? "border-success/20 bg-success/5 text-success-foreground"
+                  ? "border-emerald-200 bg-emerald-50/30 text-emerald-900"
                   : isNegative
-                  ? "border-danger/20 bg-danger/5 text-danger-foreground"
-                  : "border-border bg-muted-background text-muted-foreground"
+                  ? "border-rose-200 bg-rose-50/30 text-rose-900"
+                  : "border-border bg-slate-50 text-slate-700"
               }`}
             >
-              <span className="font-medium truncate mr-2" title={comboDescription}>
+              <span className="font-semibold truncate mr-2" title={comboDescription}>
                 {comboDescription}
               </span>
-              <Badge variant={isPositive ? "success" : isNegative ? "danger" : "secondary"} className="shrink-0 font-mono">
+              <Badge variant={isPositive ? "success" : isNegative ? "danger" : "secondary"} className="shrink-0 font-mono text-xs">
                 {isPositive ? `+${combo.score}` : combo.score} оноо
               </Badge>
             </div>
@@ -656,21 +1089,4 @@ function CombinationScoresDisplay({
   );
 }
 
-function InfoPanel({
-  title,
-  body,
-  rich = false,
-}: {
-  title: string;
-  body: string;
-  rich?: boolean;
-}) {
-  return (
-    <div className="rounded-seek-md border border-border p-seek-3">
-      <Text className="text-sm font-semibold">{title}</Text>
-      <div className="mt-1 text-sm text-muted-foreground">
-        {rich ? <RichTextPreview value={body} /> : body}
-      </div>
-    </div>
-  );
-}
+export default QuestionPreviewModal;

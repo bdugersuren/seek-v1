@@ -55,13 +55,17 @@ export interface WorkflowComment {
 export interface QuestionOption {
   id: string;
   label: string;
+  optionKey?: string;
   content: string;
+  value?: string;
   contentJson?: unknown;
   contentHtml?: string;
   isCorrect?: boolean;
   score?: number;
+  negativeScore?: number;
   matchValue?: string;
-  acceptedValues?: { value: string; score: number }[];
+  acceptedValues?: { value: string; score: number; caseSensitive?: boolean }[];
+  metadata?: Record<string, any>;
 }
 
 export interface QuestionMedia {
@@ -84,6 +88,8 @@ export interface QuestionBankItem {
   code: string;
   title: string;
   stem: string;
+  body?: string;
+  parentId?: string | null;
   ownerUserId?: string;
   contentJson?: unknown;
   contentHtml?: string;
@@ -91,7 +97,11 @@ export interface QuestionBankItem {
   type: QuestionType;
   status: QuestionWorkflowStatus;
   points: number;
+  minPoints?: number;
+  defaultMaxScore?: number;
+  defaultMinScore?: number;
   durationSeconds: number;
+  defaultTimeSeconds?: number;
   bloomLevel: BloomLevel;
   competencyType: CompetencyType;
   topicId: string;
@@ -101,12 +111,13 @@ export interface QuestionBankItem {
   tags: string[];
   options: QuestionOption[];
   answerKey: string;
-  rubric: string;
+  rubric: any;
   feedback: string;
   feedbackCorrect?: string;
   feedbackIncorrect?: string;
   scoringMode?: string;
   scoringConfig?: any;
+  presentationConfig?: any;
   media: QuestionMedia[];
   createdBy: string;
   updatedBy: string;
