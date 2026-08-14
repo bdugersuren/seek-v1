@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 import katex from "katex";
 import {
   Badge,
@@ -10,8 +12,11 @@ import {
   Input,
   Text,
   Textarea,
+  useToast,
+  Select,
 } from "@seek/ui";
-import { getNextWorkflowActions, getQuestionByIdAsync } from "./api";
+import { getNextWorkflowActions, getQuestionByIdAsync, fetchQuestionWorkflowEvents, sendQuestionWorkflow } from "./api";
+import { WorkflowCommentModal } from "./WorkflowCommentModal";
 import {
   bloomLabels,
   competencyLabels,
@@ -66,11 +71,18 @@ export function QuestionPreviewModal({
   question: QuestionBankItem;
   onClose: () => void;
 }) {
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const isSuperAdmin = currentUser?.role === "super_admin";
+
   const [allVersions, setAllVersions] = useState<QuestionBankItem[]>(
     question.versions && question.versions.length > 0 ? question.versions : [question]
   );
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [loadingVersions, setLoadingVersions] = useState<boolean>(false);
+  const [workflowEvents, setWorkflowEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState<boolean>(false);
+  const [commentModalConfig, setCommentModalConfig] = useState<{ title: string; action: string } | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (question.versions && question.versions.length > 1) {
@@ -80,7 +92,7 @@ export function QuestionPreviewModal({
 
     if (question.id) {
       let active = true;
-      async function loadFullHistory() {
+      const loadFullHistory = async () => {
         try {
           setLoadingVersions(true);
           const fullItem = await getQuestionByIdAsync(question.id);
@@ -92,13 +104,54 @@ export function QuestionPreviewModal({
         } finally {
           if (active) setLoadingVersions(false);
         }
-      }
+      };
       loadFullHistory();
       return () => {
         active = false;
       };
     }
   }, [question.id, question.versions]);
+
+  useEffect(() => {
+    if (question.id) {
+      let active = true;
+      const loadEvents = async () => {
+        try {
+          setLoadingEvents(true);
+          const evs = await fetchQuestionWorkflowEvents(question.id);
+          if (active) {
+            setWorkflowEvents(evs || []);
+          }
+        } catch (err) {
+          console.error("Failed to load workflow events:", err);
+        } finally {
+          if (active) setLoadingEvents(false);
+        }
+      };
+      loadEvents();
+      return () => { active = false; };
+    }
+  }, [question.id]);
+
+  const handleWorkflowAction = async (action: string, comment?: string) => {
+    try {
+      await sendQuestionWorkflow(question.id, action, comment);
+      showToast("Асуултын төлөв амжилттай шинэчлэгдлээ.", "success");
+      
+      const fresh = await getQuestionByIdAsync(question.id);
+      if (fresh) {
+        if (fresh.versions && fresh.versions.length > 0) {
+          setAllVersions(fresh.versions);
+        } else {
+          setAllVersions([fresh]);
+        }
+      }
+      const freshEvs = await fetchQuestionWorkflowEvents(question.id);
+      setWorkflowEvents(freshEvs || []);
+    } catch (err: any) {
+      showToast(err.message || "Ажиллагааг гүйцэтгэхэд алдаа гарлаа.", "danger");
+    }
+  };
 
   const activeQuestion = allVersions[selectedIndex] || question;
   const nextActions = getNextWorkflowActions(activeQuestion.status);
@@ -177,8 +230,10 @@ export function QuestionPreviewModal({
           </div>
         </div>
 
-        {/* Enhanced Metadata Card (Placed right below title and above question) */}
-        <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-slate-50/80 p-seek-4 shadow-seek-xs">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-seek-6 mt-seek-4 items-start">
+          <div className="space-y-seek-5 min-w-0">
+            {/* Enhanced Metadata Card (Placed right below title and above question) */}
+            <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-slate-50/80 p-seek-4 shadow-seek-xs">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-seek-3">
             {/* Type */}
             <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-2.5 border border-slate-200/80 shadow-seek-xs">
@@ -259,7 +314,7 @@ export function QuestionPreviewModal({
                 <Text className="text-xs font-bold text-success mb-1">Зөв хариулсан үеийн тайлбар:</Text>
                 <div className="text-sm text-slate-700">
                   {activeQuestion.feedbackCorrect || activeQuestion.feedback ? (
-                    <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.feedback} />
+                    <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.feedback || ""} />
                   ) : (
                     <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
                   )}
@@ -278,7 +333,7 @@ export function QuestionPreviewModal({
                 <Text className="text-xs font-bold text-danger mb-1">Буруу хариулсан үеийн тайлбар:</Text>
                 <div className="text-sm text-slate-700">
                   {activeQuestion.feedbackIncorrect ? (
-                    <RichTextPreview value={activeQuestion.feedbackIncorrect} />
+                    <RichTextPreview value={activeQuestion.feedbackIncorrect || ""} />
                   ) : (
                     <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
                   )}
@@ -288,39 +343,112 @@ export function QuestionPreviewModal({
           </div>
         </div>
 
-        {/* Workflow Comments if exist */}
-        {activeQuestion.workflowHistory && activeQuestion.workflowHistory.length > 0 && (
-          <div className="mt-seek-5 border-t border-border pt-seek-4">
-            <Text className="mb-2 font-semibold text-sm">Хяналтын түүх (Workflow comments)</Text>
-            <div className="space-y-2">
-              {activeQuestion.workflowHistory.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="rounded-seek-md border border-border p-seek-3 text-sm bg-slate-50/40"
-                >
-                  <Text className="font-semibold text-xs">
-                    {statusLabels[entry.status]} · {entry.actorName}
-                  </Text>
-                  <Text variant="muted" className="text-sm mt-1">{entry.comment}</Text>
-                  <Text variant="muted" className="text-[11px] mt-1">
-                    {entry.createdAt}
-                  </Text>
+          </div>
+
+          {/* Right Column: Workflow Controls & Timeline */}
+          <div className="space-y-seek-5 border-l border-slate-200 pl-seek-5 lg:sticky lg:top-4 bg-white/50 backdrop-blur-xs p-seek-4 rounded-seek-lg">
+            
+            {/* Actions Card - Only Visible to Superadmin */}
+            {isSuperAdmin && (
+              <>
+                <div className="space-y-seek-3">
+                  <Text className="text-sm font-bold text-slate-800 block">Үйлдэл хийх (Superadmin)</Text>
+                  <div className="flex flex-col gap-2">
+                    {(activeQuestion.status === "approval_requested" ||
+                      activeQuestion.status === "in_review" ||
+                      activeQuestion.status === "resubmitted") && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                          onClick={() => setCommentModalConfig({ title: "Батлах тайлбар (Заавал бичнэ)", action: "approve" })}
+                        >
+                          Батлах (Approve)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+                          onClick={() => setCommentModalConfig({ title: "Засвар шаардах тайлбар", action: "changes_requested" })}
+                        >
+                          Засвар шаардах
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          className="w-full"
+                          onClick={() => setCommentModalConfig({ title: "Татгалзах шалтгаан", action: "reject" })}
+                        >
+                          Татгалзах (Reject)
+                        </Button>
+                      </>
+                    )}
+                    {activeQuestion.status === "approved" && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        className="w-full"
+                        onClick={() => setCommentModalConfig({ title: "Нийтлэх тайлбар (Заавал бичнэ)", action: "publish" })}
+                      >
+                        Нийтлэх (Publish)
+                      </Button>
+                    )}
+                    {activeQuestion.status !== "approval_requested" &&
+                      activeQuestion.status !== "in_review" &&
+                      activeQuestion.status !== "resubmitted" &&
+                      activeQuestion.status !== "approved" && (
+                      <Text variant="muted" className="text-xs italic">Энэ төлөвт хийх боломжтой үйлдэл байхгүй байна.</Text>
+                    )}
+                  </div>
                 </div>
-              ))}
+                <hr className="border-slate-200" />
+              </>
+            )}
+
+            {/* Workflow History Timeline */}
+            <div className="space-y-seek-3">
+              <Text className="text-sm font-bold text-slate-800">Хяналтын түүх</Text>
+              {loadingEvents ? (
+                <Text variant="muted" className="text-xs">Уншиж байна...</Text>
+              ) : workflowEvents.length === 0 ? (
+                <Text variant="muted" className="text-xs text-slate-400">Түүх байхгүй байна.</Text>
+              ) : (
+                <div className="space-y-seek-4 border-l border-slate-200 ml-seek-2 pl-seek-3 py-seek-1">
+                  {workflowEvents.map((ev: any, idx: number) => (
+                    <div key={ev.id || idx} className="relative space-y-1">
+                      <div className="absolute -left-[17px] top-1.5 h-2 w-2 rounded-full bg-slate-400 border border-white" />
+                      <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500">
+                        <span>{ev.action?.toUpperCase()}</span>
+                        <span>{ev.occurredAt ? new Date(ev.occurredAt).toLocaleDateString() : ""}</span>
+                      </div>
+                      <div className="text-xs text-slate-800">
+                        Шинэ төлөв: <span className="font-bold">{statusLabels[ev.newStatus as QuestionWorkflowStatus] || ev.newStatus?.toUpperCase()}</span>
+                      </div>
+                      {ev.comment && (
+                        <div className="text-[11px] text-slate-600 italic bg-slate-50 rounded p-seek-2 border border-slate-100 mt-1">
+                          "{ev.comment}"
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        )}
-
-        {nextActions.length > 0 && (
-          <div className="mt-seek-4 flex flex-wrap gap-2 border-t border-border pt-seek-4">
-            {nextActions.map((action) => (
-              <Badge key={action} variant={statusVariant[action]}>
-                Дараагийн төлөв: {statusLabels[action]}
-              </Badge>
-            ))}
-          </div>
-        )}
+        </div>
       </Card>
+
+      {commentModalConfig && (
+        <WorkflowCommentModal
+          title={commentModalConfig.title}
+          onSubmit={(comment) => {
+            handleWorkflowAction(commentModalConfig.action, comment);
+            setCommentModalConfig(null);
+          }}
+          onClose={() => setCommentModalConfig(null)}
+        />
+      )}
     </div>
   );
 }

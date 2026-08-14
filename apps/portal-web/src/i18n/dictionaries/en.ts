@@ -15,6 +15,7 @@ export const en = {
   "nav.organisations": "Organisations",
   "nav.assessments": "Assessments",
   "nav.questionBank": "Question bank",
+  "nav.adminQuestions": "Question Verification",
   "nav.blueprints": "Blueprints",
   "nav.quizzes": "Quizzes",
   "nav.topicsManagement": "Topics Management",

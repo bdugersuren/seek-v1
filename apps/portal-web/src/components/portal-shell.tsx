@@ -82,6 +82,12 @@ const navItems: Array<{
     roles: ["assessor"],
   },
   {
+    href: "/admin/questions",
+    labelKey: "nav.adminQuestions" as any,
+    icon: Icons.Check,
+    roles: ["super_admin"],
+  },
+  {
     href: "/blueprints",
     labelKey: "nav.blueprints",
     icon: Icons.Dashboard,

@@ -36,7 +36,8 @@ import type {
   QuestionTopicMapping,
   QuestionType,
 } from "./types";
-import { createQuestion, updateQuestion, fetchTopics, fetchDifficultyLevels, fetchCognitiveLevels, fetchCompetenceTypes } from "./api";
+import { createQuestion, updateQuestion, fetchTopics, fetchDifficultyLevels, fetchCognitiveLevels, fetchCompetenceTypes, fetchAssessmentContexts, fetchDifficultyScales, fetchCompetenceFrameworks, fetchAudienceTypes, fetchAudienceLevels, fetchDbData } from "./api";
+import { ExplorerTopicTree } from "../../components/workspace";
 
 type WizardStep = 1 | 2 | 3;
 
@@ -193,22 +194,49 @@ export function QuestionEditor({
   const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]); // Хүндрэлийн түвшин
   const [cognitiveLevels, setCognitiveLevels] = useState<any[]>([]); // Танин мэдэхүйн түвшин
   const [competenceTypes, setCompetenceTypes] = useState<any[]>([]); // Ур чадварын төрлүүд
+  const [assessmentContexts, setAssessmentContexts] = useState<any[]>([]); // Үнэлгээний контекстууд
+  const [difficultyScales, setDifficultyScales] = useState<any[]>([]); // Хүндрэлийн шатлал
+  const [competenceFrameworks, setCompetenceFrameworks] = useState<any[]>([]); // Ур чадварын хүрээ
+  const [cognitiveFrameworks, setCognitiveFrameworks] = useState<any[]>([]); // Танин мэдэхүйн хүрээ
+  const [audienceTypes, setAudienceTypes] = useState<any[]>([]); // Зорилтот бүлгийн төрөл
+  const [audienceLevels, setAudienceLevels] = useState<any[]>([]); // Зорилтот бүлгийн түвшин
+  const [selectedContextId, setSelectedContextId] = useState<string>(""); // Сонгогдсон контекст ID
   const [loadingMetadata, setLoadingMetadata] = useState(true); // Мета өгөгдөл уншиж буй төлөв
 
   // Компонент ачаалагдах үед баазаас сэдэв, хүндрэлийн түвшин, танин мэдэхүйн түвшнүүдийг уншина.
   useEffect(() => {
     async function loadMetadata() {
       try {
-        const [t, d, c, comp] = await Promise.all([
+        const [t, d, c, comp, ctxs, scales, compFws, audTypes, audLvs, cogFws] = await Promise.all([
           fetchTopics(),
           fetchDifficultyLevels(),
           fetchCognitiveLevels(),
           fetchCompetenceTypes(),
+          fetchAssessmentContexts(),
+          fetchDifficultyScales(),
+          fetchCompetenceFrameworks(),
+          fetchAudienceTypes(),
+          fetchAudienceLevels(),
+          fetchDbData("cognitiveFramework"),
         ]);
         setTopics(t);
         setDifficultyLevels(d);
         setCognitiveLevels(c);
         setCompetenceTypes(comp || []);
+        setAssessmentContexts(ctxs || []);
+        setDifficultyScales(scales || []);
+        setCompetenceFrameworks(compFws || []);
+        setAudienceTypes(audTypes || []);
+        setAudienceLevels(audLvs || []);
+        setCognitiveFrameworks(cogFws || []);
+
+        const existingContextId = sourceQuestion?.topicMappings?.[0]?.assessmentContextId || 
+                                 (sourceQuestion as any)?.assessmentContextId;
+        if (existingContextId) {
+          setSelectedContextId(existingContextId);
+        } else if (ctxs && ctxs.length > 0) {
+          setSelectedContextId(ctxs[0].id);
+        }
       } catch (err) {
         console.error("Metadata load failed", err);
       } finally {
@@ -216,7 +244,11 @@ export function QuestionEditor({
       }
     }
     loadMetadata();
-  }, []);
+  }, [sourceQuestion]);
+
+  const activeContext = useMemo(() => {
+    return assessmentContexts.find(ctx => ctx.id === selectedContextId);
+  }, [assessmentContexts, selectedContextId]);
 
   // Одоогийн state дээр үндэслэн асуултын шаардлагыг хангаж буй эсэхийг баталгаажуулна (checklist).
   const validation = validateWizard(state);
@@ -539,6 +571,14 @@ export function QuestionEditor({
             cognitiveLevels={cognitiveLevels}
             competenceTypes={competenceTypes}
             loading={loadingMetadata}
+            assessmentContexts={assessmentContexts}
+            difficultyScales={difficultyScales}
+            competenceFrameworks={competenceFrameworks}
+            cognitiveFrameworks={cognitiveFrameworks}
+            audienceTypes={audienceTypes}
+            audienceLevels={audienceLevels}
+            selectedContextId={selectedContextId}
+            setSelectedContextId={setSelectedContextId}
           />
         )}
 
@@ -1594,6 +1634,14 @@ function StepTwo({
   cognitiveLevels,
   competenceTypes,
   loading,
+  assessmentContexts = [],
+  difficultyScales = [],
+  competenceFrameworks = [],
+  cognitiveFrameworks = [],
+  audienceTypes = [],
+  audienceLevels = [],
+  selectedContextId = "",
+  setSelectedContextId = () => {},
 }: {
   mappings: QuestionTopicMapping[];
   setMappings: (mappings: QuestionTopicMapping[]) => void;
@@ -1603,12 +1651,78 @@ function StepTwo({
   cognitiveLevels: any[];
   competenceTypes: any[];
   loading: boolean;
+  assessmentContexts?: any[];
+  difficultyScales?: any[];
+  competenceFrameworks?: any[];
+  cognitiveFrameworks?: any[];
+  audienceTypes?: any[];
+  audienceLevels?: any[];
+  selectedContextId?: string;
+  setSelectedContextId?: (id: string) => void;
 }) {
   const selectedIds = mappings.map((mapping) => mapping.topicId);
+  const [openTopicIds, setOpenTopicIds] = useState<string[]>([]);
+  const [selectedAudienceType, setSelectedAudienceType] = useState<string>("");
+  const [openAudienceLevelIds, setOpenAudienceLevelIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (topics && topics.length > 0 && openTopicIds.length === 0) {
+      setOpenTopicIds(topics.map(t => t.id));
+    }
+  }, [topics]);
+
+  useEffect(() => {
+    if (audienceTypes && audienceTypes.length > 0 && !selectedAudienceType) {
+      setSelectedAudienceType(audienceTypes[0].id);
+    }
+  }, [audienceTypes, selectedAudienceType]);
+
+  const selectedAudienceLevelIds = useMemo(() => {
+    return mappings.map(m => m.audienceLevelId).filter(Boolean) as string[];
+  }, [mappings]);
+
+  const nestedAudienceLevels = useMemo(() => {
+    if (!selectedAudienceType || !audienceLevels || audienceLevels.length === 0) return [];
+    
+    const filteredLevels = audienceLevels.filter(al => al.audienceTypeId === selectedAudienceType);
+    const nodesMap: Record<string, any> = {};
+    const roots: any[] = [];
+
+    filteredLevels.forEach((l) => {
+      nodesMap[l.id] = {
+        id: l.id,
+        label: l.name || l.code,
+        children: [],
+      };
+    });
+
+    filteredLevels.forEach((l) => {
+      const node = nodesMap[l.id];
+      if (l.parentId && nodesMap[l.parentId]) {
+        nodesMap[l.parentId].children = nodesMap[l.parentId].children || [];
+        nodesMap[l.parentId].children!.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return roots;
+  }, [selectedAudienceType, audienceLevels]);
+
+  const toggleAudienceLevel = (lvlId: string) => {
+    const isSelected = selectedAudienceLevelIds.includes(lvlId);
+    setMappings(
+      mappings.map(m => ({
+        ...m,
+        audienceLevelId: isSelected ? undefined : lvlId,
+        audienceTypeId: isSelected ? undefined : selectedAudienceType,
+      }))
+    );
+  };
 
   // Сэдвийн хавтгай жагсаалтыг мод (Tree) хэлбэрт хөрвүүлэх функц
   const computedTopicNodes = useMemo(() => {
-    if (!topics || topics.length === 0) return topicNodes;
+    if (!topics || topics.length === 0) return [];
     
     const nodesMap: Record<string, TopicNode> = {};
     const roots: TopicNode[] = [];
@@ -1616,7 +1730,7 @@ function StepTwo({
     topics.forEach((t) => {
       nodesMap[t.id] = {
         id: t.id,
-        label: t.name,
+        label: t.title || t.name,
         children: [],
       };
     });
@@ -1634,11 +1748,26 @@ function StepTwo({
     return roots.length > 0 ? roots : topicNodes;
   }, [topics]);
 
+  const getNestedSelectOptions = (items: any[], parentId: string | null = null, depth = 0): any[] => {
+    const list: any[] = [];
+    const roots = items.filter(i => i.parentId === parentId);
+    roots.forEach(node => {
+      list.push({
+        value: node.id,
+        label: `${"\u00A0".repeat(depth * 3)}${node.name || node.label || node.title || node.code}`,
+      });
+      const children = getNestedSelectOptions(items, node.id, depth + 1);
+      list.push(...children);
+    });
+    return list;
+  };
+
   const toggleTopic = (topic: { id: string; label: string }) => {
     if (selectedIds.includes(topic.id)) {
       setMappings(mappings.filter((mapping) => mapping.topicId !== topic.id));
       return;
     }
+    const activeContext = assessmentContexts.find(c => c.id === selectedContextId);
     setMappings([
       ...mappings,
       {
@@ -1648,6 +1777,12 @@ function StepTwo({
         competencyType: "knowledge",
         difficulty: "medium",
         weight: 1,
+        assessmentContextId: selectedContextId,
+        cognitiveFrameworkId: activeContext?.cognitiveFrameworkId || "",
+        difficultyScaleId: activeContext?.difficultyScaleId || "",
+        competenceFrameworkId: activeContext?.competenceFrameworkId || "",
+        audienceTypeId: activeContext?.audienceTypeId || "",
+        audienceLevelId: activeContext?.audienceLevelId || "",
         competencies: [],
       },
     ]);
@@ -1692,23 +1827,86 @@ function StepTwo({
   };
 
   return (
-    <div className="grid gap-seek-5 xl:grid-cols-[20rem_minmax(0,1fr)]">
-      <CollapsibleCard title="Сэдвийн сан" subtitle="Дэд сэдэв бүрийг олноор сонгож асуултанд холбоно." icon={Icons.Menu}>
-        <div className="space-y-seek-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-seek-8">
-              <Text variant="muted" className="text-xs">Сэдвийн санг уншиж байна...</Text>
+    <div className="space-y-seek-5">
+      <div className="bg-surface border border-border rounded-seek-lg p-seek-4 shadow-seek-xs space-y-seek-2">
+        <Text className="text-sm font-bold text-foreground block mb-2">Үнэлгээний Контекст</Text>
+        <Select
+          value={selectedContextId}
+          onChange={(e) => setSelectedContextId(e.target.value)}
+          options={[
+            { value: "", label: "Контекст сонгох..." },
+            ...assessmentContexts.map(c => ({ value: c.id, label: c.name }))
+          ]}
+        />
+        <p className="text-xs text-muted">
+          Сонгосон контекстоос хамааран хүндрэлийн шатлал, танин мэдэхүйн түвшин болон ур чадварын хүрээ автоматаар шүүгдэнэ.
+        </p>
+      </div>
+
+      <div className="grid gap-seek-5 xl:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="space-y-seek-4">
+          <CollapsibleCard title="Сэдвийн сан" subtitle="Дэд сэдэв бүрийг олноор сонгож асуултанд холбоно." icon={Icons.Menu}>
+            <div className="space-y-seek-3">
+              {loading ? (
+                <div className="flex items-center justify-center py-seek-8">
+                  <Text variant="muted" className="text-xs">Сэдвийн санг уншиж байна...</Text>
+                </div>
+              ) : (
+                <ExplorerTopicTree
+                  nodes={computedTopicNodes as any}
+                  selectedIds={selectedIds}
+                  openIds={openTopicIds}
+                  onToggle={(topicId) => {
+                    const targetTopic = topics.find(t => t.id === topicId);
+                    if (targetTopic) {
+                      toggleTopic({ id: targetTopic.id, label: targetTopic.title || targetTopic.name });
+                    }
+                  }}
+                  onToggleOpen={(topicId) => {
+                    setOpenTopicIds(prev => 
+                      prev.includes(topicId) ? prev.filter(id => id !== topicId) : [...prev, topicId]
+                    );
+                  }}
+                />
+              )}
             </div>
-          ) : (
-            <TopicTree nodes={computedTopicNodes} selectedIds={selectedIds} onToggle={toggleTopic} />
-          )}
+            {validationTouched && mappings.length === 0 && (
+              <Text className="mt-seek-3 text-sm font-semibold text-danger">
+                Дор хаяж нэг дэд сэдэв сонгоно уу.
+              </Text>
+            )}
+          </CollapsibleCard>
+
+          <CollapsibleCard title="Зорилтот бүлэг" subtitle="Зорилтот бүлгийн түвшинг сонгож холбоно." icon={Icons.UserGroup}>
+            <div className="space-y-seek-3">
+              <Select
+                value={selectedAudienceType}
+                onChange={(e) => {
+                  setSelectedAudienceType(e.target.value);
+                }}
+                options={[
+                  { value: "", label: "Төрөл сонгох..." },
+                  ...audienceTypes.map((t: any) => ({ value: t.id, label: t.name }))
+                ]}
+              />
+              {selectedAudienceType && nestedAudienceLevels.length > 0 && (
+                <div className="mt-seek-2 border border-border/40 rounded p-seek-2 bg-muted-background/10">
+                  <ExplorerTopicTree
+                    nodes={nestedAudienceLevels as any}
+                    selectedIds={selectedAudienceLevelIds}
+                    openIds={openAudienceLevelIds}
+                    onToggle={(lvlId) => toggleAudienceLevel(lvlId)}
+                    onToggleOpen={(lvlId) => {
+                      setOpenAudienceLevelIds(prev => 
+                        prev.includes(lvlId) ? prev.filter(id => id !== lvlId) : [...prev, lvlId]
+                      );
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </CollapsibleCard>
         </div>
-        {validationTouched && mappings.length === 0 && (
-          <Text className="mt-seek-3 text-sm font-semibold text-danger">
-            Дор хаяж нэг дэд сэдэв сонгоно уу.
-          </Text>
-        )}
-      </CollapsibleCard>
 
       <main className="space-y-seek-4">
         <CollapsibleCard title="Сонгосон дэд сэдвийн mapping" subtitle="Сонгосон сэдэв бүрийн хүндрэл, танин мэдэхүйн түвшин болон үнэлэх ур чадваруудыг нарийвчлан тохируулна." icon={Icons.Settings}>
@@ -1746,57 +1944,149 @@ function StepTwo({
                       </IconButton>
                     </div>
 
-                    {/* Classifications Row */}
-                    <div className="grid gap-seek-4 sm:grid-cols-3">
-                      <label className="space-y-seek-1">
-                        <span className="font-sans text-xs font-semibold text-muted-foreground">Танин мэдэхүйн түвшин</span>
-                        <Select
-                          value={mapping.bloomLevel}
-                          onChange={(event) =>
-                            updateMapping(mapping.topicId, {
-                              bloomLevel: event.target.value,
-                            })
-                          }
-                          options={
-                            cognitiveLevels && cognitiveLevels.length > 0
-                              ? cognitiveLevels.map((c: any) => ({ value: c.code, label: c.name }))
-                              : Object.entries(bloomLabels).map(([value, label]) => ({ value, label }))
-                          }
-                        />
-                      </label>
+                    {/* Classifications Grid for Frameworks & Scales */}
+                    <div className="grid gap-seek-4 sm:grid-cols-2 md:grid-cols-4">
+                      {/* Cognitive Framework & Level */}
+                      <div className="space-y-seek-2 border border-border/40 p-seek-3 rounded bg-muted-background/20">
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Танин мэдэхүйн хүрээ</span>
+                          <Select
+                            value={mapping.cognitiveFrameworkId || ""}
+                            onChange={(e) => {
+                              const fwId = e.target.value;
+                              updateMapping(mapping.topicId, { 
+                                cognitiveFrameworkId: fwId,
+                                bloomLevel: "" // reset level on framework change
+                              });
+                            }}
+                            options={[
+                              { value: "", label: "Хүрээ сонгох..." },
+                              ...cognitiveFrameworks.map((cf: any) => ({ value: cf.id, label: cf.name }))
+                            ]}
+                          />
+                        </label>
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Танин мэдэхүйн түвшин</span>
+                          <Select
+                            value={mapping.bloomLevel}
+                            onChange={(e) => updateMapping(mapping.topicId, { bloomLevel: e.target.value })}
+                            options={[
+                              { value: "", label: "Түвшин сонгох..." },
+                              ...cognitiveLevels
+                                .filter((cl: any) => cl.cognitiveFrameworkId === mapping.cognitiveFrameworkId)
+                                .map((cl: any) => ({ value: cl.code, label: cl.name }))
+                            ]}
+                            disabled={!mapping.cognitiveFrameworkId}
+                          />
+                        </label>
+                      </div>
 
-                      <label className="space-y-seek-1">
-                        <span className="font-sans text-xs font-semibold text-muted-foreground">Хүндрэлийн түвшин</span>
-                        <Select
-                          value={mapping.difficulty}
-                          onChange={(event) =>
-                            updateMapping(mapping.topicId, {
-                              difficulty: event.target.value,
-                            })
-                          }
-                          options={
-                            difficultyLevels && difficultyLevels.length > 0
-                              ? difficultyLevels.map((d: any) => ({ value: d.code, label: d.name }))
-                              : Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }))
-                          }
-                        />
-                      </label>
+                      {/* Difficulty Scale & Level */}
+                      <div className="space-y-seek-2 border border-border/40 p-seek-3 rounded bg-muted-background/20">
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Хүндрэлийн шатлал</span>
+                          <Select
+                            value={mapping.difficultyScaleId || ""}
+                            onChange={(e) => {
+                              const dsId = e.target.value;
+                              updateMapping(mapping.topicId, { 
+                                difficultyScaleId: dsId,
+                                difficulty: "" // reset level on scale change
+                              });
+                            }}
+                            options={[
+                              { value: "", label: "Шатлал сонгох..." },
+                              ...difficultyScales.map((ds: any) => ({ value: ds.id, label: ds.name }))
+                            ]}
+                          />
+                        </label>
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Хүндрэлийн түвшин</span>
+                          <Select
+                            value={mapping.difficulty}
+                            onChange={(e) => updateMapping(mapping.topicId, { difficulty: e.target.value })}
+                            options={[
+                              { value: "", label: "Түвшин сонгох..." },
+                              ...difficultyLevels
+                                .filter((dl: any) => dl.difficultyScaleId === mapping.difficultyScaleId)
+                                .map((dl: any) => ({ value: dl.code, label: dl.name }))
+                            ]}
+                            disabled={!mapping.difficultyScaleId}
+                          />
+                        </label>
+                      </div>
 
-                      <label className="space-y-seek-1">
-                        <span className="font-sans text-xs font-semibold text-muted-foreground">Жин (Weight)</span>
-                        <Input
-                          type="number"
-                          min={0.1}
-                          max={1.0}
-                          step={0.1}
-                          value={mapping.weight}
-                          onChange={(event) =>
-                            updateMapping(mapping.topicId, {
-                              weight: Number(event.target.value),
-                            })
-                          }
-                        />
-                      </label>
+                      {/* Audience Type & Level */}
+                      <div className="space-y-seek-2 border border-border/40 p-seek-3 rounded bg-muted-background/20">
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Зорилтот бүлгийн төрөл</span>
+                          <Select
+                            value={mapping.audienceTypeId || ""}
+                            onChange={(e) => {
+                              const atId = e.target.value;
+                              updateMapping(mapping.topicId, { 
+                                audienceTypeId: atId,
+                                audienceLevelId: "" // reset level on type change
+                              });
+                            }}
+                            options={[
+                              { value: "", label: "Төрөл сонгох..." },
+                              ...audienceTypes.map((at: any) => ({ value: at.id, label: at.name }))
+                            ]}
+                          />
+                        </label>
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Зорилтот бүлгийн түвшин</span>
+                          <Select
+                            value={mapping.audienceLevelId || ""}
+                            onChange={(e) => updateMapping(mapping.topicId, { audienceLevelId: e.target.value })}
+                            options={[
+                              { value: "", label: "Түвшин сонгох..." },
+                              ...getNestedSelectOptions(
+                                audienceLevels.filter((al: any) => al.audienceTypeId === mapping.audienceTypeId),
+                                null
+                              )
+                            ]}
+                            disabled={!mapping.audienceTypeId}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Competence Framework & Weight */}
+                      <div className="space-y-seek-2 border border-border/40 p-seek-3 rounded bg-muted-background/20">
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Ур чадварын хүрээ</span>
+                          <Select
+                            value={mapping.competenceFrameworkId || ""}
+                            onChange={(e) => {
+                              const cfId = e.target.value;
+                              updateMapping(mapping.topicId, { 
+                                competenceFrameworkId: cfId,
+                                competencies: [] // clear competencies on framework change
+                              });
+                            }}
+                            options={[
+                              { value: "", label: "Хүрээ сонгох..." },
+                              ...competenceFrameworks.map((cf: any) => ({ value: cf.id, label: cf.name }))
+                            ]}
+                          />
+                        </label>
+                        <label className="space-y-seek-1 block">
+                          <span className="font-sans text-[10px] font-bold text-muted-foreground uppercase">Жин (Weight)</span>
+                          <Input
+                            type="number"
+                            min={0.1}
+                            max={1.0}
+                            step={0.1}
+                            value={mapping.weight}
+                            onChange={(event) =>
+                              updateMapping(mapping.topicId, {
+                                weight: Number(event.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
                     </div>
 
                     {/* Competence Mapping Section */}
@@ -1820,9 +2110,10 @@ function StepTwo({
                             options={[
                               { value: "", label: "+ Ур чадвар нэмэх" },
                               ...competenceTypes
-                                .filter(c => !mappingComps.some(mc => mc.competenceId === c.id))
+                                .filter(c => c.competenceFrameworkId === mapping.competenceFrameworkId && !mappingComps.some(mc => mc.competenceId === c.id))
                                 .map(c => ({ value: c.id, label: c.name }))
                             ]}
+                            disabled={!mapping.competenceFrameworkId}
                           />
                         </div>
                       </div>
@@ -1873,6 +2164,7 @@ function StepTwo({
           )}
         </CollapsibleCard>
       </main>
+    </div>
     </div>
   );
 }
@@ -1986,38 +2278,7 @@ function StepThree({
   );
 }
 
-function TopicTree({
-  nodes,
-  selectedIds,
-  onToggle,
-}: {
-  nodes: TopicNode[];
-  selectedIds: string[];
-  onToggle: (topic: { id: string; label: string }) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      {nodes.map((node) => (
-        <div key={node.id}>
-          <div className="rounded-seek-md bg-muted-background px-seek-3 py-seek-2 text-sm font-bold">
-            {node.label}
-          </div>
-          <div className="ml-seek-4 mt-2 space-y-2">
-            {node.children?.map((child) => (
-              <label key={child.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={selectedIds.includes(child.id)}
-                  onChange={() => onToggle(child)}
-                />
-                {child.label}
-              </label>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+
 
 function ActionRail({
   onBack,

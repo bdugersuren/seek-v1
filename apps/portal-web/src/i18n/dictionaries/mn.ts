@@ -15,6 +15,7 @@ export const mn = {
   "nav.organisations": "Байгууллага",
   "nav.assessments": "Үнэлгээ",
   "nav.questionBank": "Даалгаврын сан",
+  "nav.adminQuestions": "Даалгавар батлах хяналт",
   "nav.blueprints": "Blueprint",
   "nav.quizzes": "Quiz",
   "nav.topicsManagement": "Сэдвийн сан удирдлага",

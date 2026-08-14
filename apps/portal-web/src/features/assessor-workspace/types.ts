@@ -81,6 +81,12 @@ export interface QuestionTopicMapping {
   competencyType: CompetencyType | string;
   difficulty: DifficultyLevel | string;
   weight: number;
+  assessmentContextId?: string;
+  cognitiveFrameworkId?: string;
+  difficultyScaleId?: string;
+  competenceFrameworkId?: string;
+  audienceTypeId?: string;
+  audienceLevelId?: string;
   competencies?: Array<{
     competenceId: string;
     weight: number;

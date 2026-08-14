@@ -32,7 +32,6 @@ import {
   statusLabels,
 } from "@/features/assessor-workspace/mock-data";
 import { QuestionPreviewModal as SharedQuestionPreviewModal } from "@/features/assessor-workspace/QuestionPreviewModal";
-import { CreateQuestionModal } from "@/features/assessor-workspace/CreateQuestionModal";
 import {
   canEditQuestion,
   getQuestionStats,
@@ -72,14 +71,18 @@ const statusVariant: Record<
 
 const pageSizeOptions = [10, 20, 50, 100];
 
-export default function QuestionBankPage() {
+export default function AdminQuestionsPage() {
   const router = useRouter();
   const [view, setView] = useState<"cards" | "table">("cards");
   const [query, setQuery] = useState("");
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<QuestionType[]>([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState<DifficultyLevel[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<QuestionWorkflowStatus[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<QuestionWorkflowStatus[]>([
+    "approval_requested",
+    "in_review",
+    "resubmitted",
+  ]);
   const [openSections, setOpenSections] = useState<Record<ChecklistSectionId, boolean>>({
     topics: false,
     audience: false,
@@ -101,7 +104,6 @@ export default function QuestionBankPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [preview, setPreview] = useState<QuestionBankItem | null>(null);
-  const [createModalIsOpen, setCreateModalIsOpen] = useState(false);
   const { showToast } = useToast();
   const { showDialog } = useDialog();
 
@@ -114,7 +116,7 @@ export default function QuestionBankPage() {
       try {
         setLoading(true);
         const [qData, tData, audTypes, audLvs] = await Promise.all([
-          fetchQuestions({ ownerUserId: "mock-assessor" }),
+          fetchQuestions(),
           fetchTopics(),
           fetchAudienceTypes(),
           fetchAudienceLevels(),
@@ -518,10 +520,9 @@ export default function QuestionBankPage() {
       <main className="space-y-seek-4">
         <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-start sm:justify-between">
           <PageTitle
-            title="Даалгаврын сан"
-            subtitle="Асуулт үүсгэх, ангилах, workflow төлөвөөр баталгаажуулах хэсэг."
+            title="Даалгавар батлах хяналт"
+            subtitle="Бэлтгэгчдээс батлуулахаар ирүүлсэн үнэлгээний даалгавруудыг хянаж нийтлэх самбар."
           />
-          <Button type="button" onClick={() => setCreateModalIsOpen(true)}>+ Даалгавар нэмэх</Button>
         </div>
 
         <div className="grid gap-seek-3 md:grid-cols-4">
@@ -683,16 +684,6 @@ export default function QuestionBankPage() {
         />
       )}
 
-      {createModalIsOpen && (
-        <CreateQuestionModal
-          isOpen={createModalIsOpen}
-          onClose={() => setCreateModalIsOpen(false)}
-          onSuccess={(questionId) => {
-            setCreateModalIsOpen(false);
-            router.push(`/assessor/question-bank/${questionId}`);
-          }}
-        />
-      )}
     </div>
   );
 }

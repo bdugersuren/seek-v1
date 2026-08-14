@@ -44,6 +44,10 @@ export class QuestionService {
       });
     }
 
+    if (dbCogLevels.length === 0 || dbDiffLevels.length === 0) {
+      throw new BadRequestException("Difficulty Levels or Cognitive Levels are not configured in the database.");
+    }
+
     for (const mapping of topicMappings) {
       let cogLevel = dbCogLevels.find(c => c.id === mapping.bloomLevel || c.code.toLowerCase() === mapping.bloomLevel.toLowerCase());
       if (!cogLevel) {
@@ -59,11 +63,54 @@ export class QuestionService {
         throw new BadRequestException("Difficulty Levels or Cognitive Levels are not configured in the database.");
       }
 
+      // Dynamic AssessmentContext detection/creation based on mapping selections
+      let targetContextId = mapping.assessmentContextId;
+
+      if (!targetContextId && mapping.difficultyScaleId && mapping.cognitiveFrameworkId && mapping.competenceFrameworkId && mapping.audienceTypeId) {
+        const existingCtx = await tx.assessmentContext.findFirst({
+          where: {
+            difficultyScaleId: mapping.difficultyScaleId,
+            cognitiveFrameworkId: mapping.cognitiveFrameworkId,
+            competenceFrameworkId: mapping.competenceFrameworkId,
+            audienceTypeId: mapping.audienceTypeId,
+            audienceLevelId: mapping.audienceLevelId || null,
+          }
+        });
+
+        if (existingCtx) {
+          targetContextId = existingCtx.id;
+        } else {
+          const scale = await tx.difficultyScale.findUnique({ where: { id: mapping.difficultyScaleId } });
+          const audience = await tx.audienceType.findUnique({ where: { id: mapping.audienceTypeId } });
+          const cogFramework = await tx.cognitiveFramework.findUnique({ where: { id: mapping.cognitiveFrameworkId } });
+          const compFramework = await tx.competenceFramework.findUnique({ where: { id: mapping.competenceFrameworkId } });
+
+          if (scale && audience && cogFramework && compFramework) {
+            const newCtx = await tx.assessmentContext.create({
+              data: {
+                code: `CTX_${Date.now()}_${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+                name: `${scale.name} · ${cogFramework.name} Context`,
+                difficultyScale: { connect: { id: scale.id } },
+                audienceType: { connect: { id: audience.id } },
+                cognitiveFramework: { connect: { id: cogFramework.id } },
+                competenceFramework: { connect: { id: compFramework.id } },
+                ...(mapping.audienceLevelId ? { audienceLevel: { connect: { id: mapping.audienceLevelId } } } : {}),
+              }
+            });
+            targetContextId = newCtx.id;
+          }
+        }
+      }
+
+      if (!targetContextId) {
+        targetContextId = context.id;
+      }
+
       const classification = await tx.topicQuestionClassification.create({
         data: {
           questionId,
           topicId: mapping.topicId,
-          assessmentContextId: context.id,
+          assessmentContextId: targetContextId,
           difficultyLevelId: diffLevel.id,
           cognitiveLevelId: cogLevel.id,
           weight: mapping.weight !== undefined ? new Prisma.Decimal(mapping.weight) : new Prisma.Decimal(1.0),

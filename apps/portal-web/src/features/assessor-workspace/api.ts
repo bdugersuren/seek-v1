@@ -95,15 +95,21 @@ export function getBlueprintById(id: string): Blueprint | null {
 function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
   const primaryClassification = q.classifications?.[0];
   const topicId = primaryClassification?.topicId || actV.topicId || (primaryClassification?.topic?.code) || "general";
-  const topicName = primaryClassification?.topic?.name || actV.topicName || (primaryClassification ? "Сэдэв" : "Ерөнхий");
+  const topicName = primaryClassification?.topic?.title || primaryClassification?.topic?.name || actV.topicName || (primaryClassification ? "Сэдэв" : "Ерөнхий");
 
   const topicMappings: QuestionTopicMapping[] = (q.classifications || []).map((c: any) => ({
     topicId: c.topicId,
-    topicName: c.topic?.name || c.topicId,
+    topicName: c.topic?.title || c.topic?.name || c.topicId,
     bloomLevel: (c.cognitiveLevel?.code || c.cognitiveLevelId || "apply") as any,
     competencyType: "knowledge" as any,
     difficulty: (c.difficultyLevel?.code || c.difficultyLevelId || "medium") as any,
     weight: Number(c.weight || 1),
+    assessmentContextId: c.assessmentContextId,
+    cognitiveFrameworkId: c.cognitiveLevel?.cognitiveFrameworkId || c.assessmentContext?.cognitiveFrameworkId,
+    difficultyScaleId: c.difficultyLevel?.difficultyScaleId || c.assessmentContext?.difficultyScaleId,
+    competenceFrameworkId: c.assessmentContext?.competenceFrameworkId,
+    audienceTypeId: c.assessmentContext?.audienceTypeId,
+    audienceLevelId: c.assessmentContext?.audienceLevelId,
     competencies: (c.competences || []).map((tc: any) => ({
       competenceId: tc.competenceId,
       weight: Number(tc.weight || 1),
@@ -396,11 +402,18 @@ export async function deleteQuestion(id: string): Promise<void> {
 
 export async function sendQuestionWorkflow(id: string, action: string, comment?: string): Promise<void> {
   let newStatus = "draft";
-  if (action === "approval_requested") newStatus = "pending";
-  if (action === "approve" || action === "resubmitted") newStatus = "approved";
+  if (action === "approval_requested" || action === "resubmitted") newStatus = "pending";
+  if (action === "approve") newStatus = "approved";
   if (action === "publish") newStatus = "published";
+  if (action === "changes_requested") newStatus = "changes_requested";
+  if (action === "reject") newStatus = "rejected";
   if (action === "deleted") newStatus = "deleted";
   if (action === "archived") newStatus = "archived";
+
+  // Superadmin bypass statuses
+  if (action.startsWith("bypass_")) {
+    newStatus = action.replace("bypass_", "");
+  }
 
   await requestAssessmentJson<void>(`/api/v1/assessment/questions/${id}/workflow`, {
     method: "POST",
@@ -411,6 +424,15 @@ export async function sendQuestionWorkflow(id: string, action: string, comment?:
       actorUserId: "mock-assessor",
     }),
   });
+}
+
+export async function fetchQuestionWorkflowEvents(id: string): Promise<any[]> {
+  try {
+    return await requestAssessmentJson<any[]>(`/api/v1/assessment/questions/${id}/workflow`);
+  } catch (err) {
+    console.error("Failed to fetch workflow events:", err);
+    return [];
+  }
 }
 
 export async function getQuestionByIdAsync(id: string): Promise<QuestionBankItem | null> {
