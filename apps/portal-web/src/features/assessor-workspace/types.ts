@@ -54,9 +54,9 @@ export interface WorkflowComment {
 
 export interface QuestionOption {
   id: string;
-  optionKey: string;
+  optionKey?: string;
   label: string;
-  value: string;
+  value?: string;
   content?: string;
   contentJson?: unknown;
   contentHtml?: string;
@@ -98,7 +98,7 @@ export interface QuestionBankItem {
   id: string;
   code: string;
   title: string;
-  body: string;
+  body?: string;
   stem?: string;
   parentId?: string | null;
   ownerUserId?: string;
@@ -107,23 +107,23 @@ export interface QuestionBankItem {
   contentMarkdown?: string;
   type: QuestionType;
   status: QuestionWorkflowStatus;
-  defaultMaxScore: number;
-  defaultMinScore: number;
-  defaultTimeSeconds: number;
+  defaultMaxScore?: number;
+  defaultMinScore?: number;
+  defaultTimeSeconds?: number;
   points?: number;
   minPoints?: number;
   durationSeconds?: number;
-  bloomLevel: BloomLevel;
-  competencyType: CompetencyType;
+  bloomLevel?: BloomLevel;
+  competencyType?: CompetencyType;
   topicId: string;
   topicName: string;
   topicMappings?: QuestionTopicMapping[];
-  difficulty: DifficultyLevel;
+  difficulty?: DifficultyLevel;
   tags: string[];
   options: QuestionOption[];
-  answerKey: string;
-  rubric: any;
-  explanation: string;
+  answerKey?: string;
+  rubric?: any;
+  explanation?: string;
   feedback?: string;
   feedbackCorrect?: string;
   feedbackIncorrect?: string;
@@ -131,9 +131,10 @@ export interface QuestionBankItem {
   scoringConfig?: any;
   presentationConfig?: any;
   media: QuestionMedia[];
-  createdBy: string;
-  updatedBy: string;
-  createdAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
   versionNumber?: number;
   versionStatus?: string;
   versions?: QuestionBankItem[];
@@ -214,3 +215,45 @@ export interface Quiz {
   status: "draft" | "scheduled" | "active" | "closed";
   questionOverrides: QuizQuestionOverride[];
 }
+
+export interface EditorOption {
+  id: string;
+  optionKey?: string;
+  label: string;
+  value?: string;
+  content: string;
+  isCorrect: boolean;
+  score: number;
+  matchValue?: string;
+  acceptedValues?: { value: string; score: number; caseSensitive?: boolean }[];
+}
+
+export interface TopicNode {
+  id: string;
+  label: string;
+  children?: TopicNode[];
+}
+
+export interface QuestionWizardState {
+  title: string;
+  code: string;
+  type: QuestionType;
+  body: string;
+  options: EditorOption[];
+  explanation: string;
+  feedbackCorrect: string;
+  feedbackIncorrect: string;
+  scoringMode: string;
+  scoringConfig: Record<string, any>;
+  defaultMaxScore: number;
+  defaultMinScore: number;
+  defaultTimeSeconds: number;
+  tags: string[];
+  mappings: QuestionTopicMapping[];
+  workflowComment: string;
+  status: QuestionBankItem["status"];
+  rubric?: any;
+  media: any[];
+}
+
+export type WizardStep = 1 | 2 | 3;
