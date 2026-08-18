@@ -22,8 +22,8 @@ export class QuestionController {
   }
 
   @Get("metadata/topics")
-  async getTopics() {
-    return await this.questionService.getTopics();
+  async getTopics(@Query("assessmentContextId") assessmentContextId?: string) {
+    return await this.questionService.getTopics(assessmentContextId);
   }
 
   @Get("metadata/difficulty-levels")
@@ -55,6 +55,12 @@ export class QuestionController {
   @Delete("metadata/assessment-contexts/:id")
   async deleteAssessmentContext(@Param("id") id: string) {
     return await this.questionService.deleteAssessmentContext(id);
+  }
+
+  // CognitiveFramework endpoints
+  @Get("metadata/cognitive-frameworks")
+  async getCognitiveFrameworks() {
+    return await this.questionService.getCognitiveFrameworks();
   }
 
   // DifficultyScale endpoints

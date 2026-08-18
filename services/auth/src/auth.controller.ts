@@ -2,12 +2,15 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
+  Delete,
   Body,
   HttpCode,
   Param,
   Req,
   Res,
   UnauthorizedException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { AuthService } from "./auth.service";
@@ -227,5 +230,56 @@ export class AuthController {
       throw new UnauthorizedException("Нэвтрээгүй байна.");
     }
     return this.authService.getCurrentUser(userId);
+  }
+
+  @Get("admin/users")
+  async adminListUsers(@Req() req: Request) {
+    const rolesHeader = req.headers["x-user-roles"];
+    const userRoles = typeof rolesHeader === "string" ? rolesHeader.split(",") : [];
+    if (!userRoles.includes("SUPER_ADMIN")) {
+      throw new ForbiddenException("Эрх хүрэлцэхгүй байна.");
+    }
+    return this.authService.adminListUsers();
+  }
+
+  @Patch("admin/users/:userId/status")
+  async adminUpdateUserStatus(
+    @Param("userId") userId: string,
+    @Body("status") status: string,
+    @Req() req: Request,
+  ) {
+    const rolesHeader = req.headers["x-user-roles"];
+    const userRoles = typeof rolesHeader === "string" ? rolesHeader.split(",") : [];
+    if (!userRoles.includes("SUPER_ADMIN")) {
+      throw new ForbiddenException("Эрх хүрэлцэхгүй байна.");
+    }
+    return this.authService.adminUpdateUserStatus(userId, status);
+  }
+
+  @Patch("admin/users/:userId/role")
+  async adminUpdateUserRole(
+    @Param("userId") userId: string,
+    @Body("roleName") roleName: string,
+    @Req() req: Request,
+  ) {
+    const rolesHeader = req.headers["x-user-roles"];
+    const userRoles = typeof rolesHeader === "string" ? rolesHeader.split(",") : [];
+    if (!userRoles.includes("SUPER_ADMIN")) {
+      throw new ForbiddenException("Эрх хүрэлцэхгүй байна.");
+    }
+    return this.authService.adminUpdateUserRole(userId, roleName);
+  }
+
+  @Delete("admin/users/:userId")
+  async adminDeleteUser(
+    @Param("userId") userId: string,
+    @Req() req: Request,
+  ) {
+    const rolesHeader = req.headers["x-user-roles"];
+    const userRoles = typeof rolesHeader === "string" ? rolesHeader.split(",") : [];
+    if (!userRoles.includes("SUPER_ADMIN")) {
+      throw new ForbiddenException("Эрх хүрэлцэхгүй байна.");
+    }
+    return this.authService.adminDeleteUser(userId);
   }
 }

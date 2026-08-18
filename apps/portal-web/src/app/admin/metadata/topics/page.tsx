@@ -15,12 +15,14 @@ import {
   useDialog,
   useToast,
   IconButton,
+  Select,
 } from "@seek/ui";
 import {
   fetchTopics,
   createTopic,
   updateTopic,
   deleteTopic,
+  fetchAssessmentContexts,
 } from "@/features/assessor-workspace/api";
 import type { Topic } from "@/features/assessments/types";
 
@@ -31,6 +33,10 @@ export default function TopicsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   
+  // Contexts states
+  const [contexts, setContexts] = useState<any[]>([]);
+  const [selectedContextId, setSelectedContextId] = useState<string>("");
+
   // Form state
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -39,10 +45,10 @@ export default function TopicsManagementPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [draggedNode, setDraggedNode] = useState<Topic | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (contextId?: string) => {
     setLoading(true);
     try {
-      const data = await fetchTopics();
+      const data = await fetchTopics(contextId);
       setTopics(data || []);
     } catch (err) {
       console.error(err);
@@ -53,8 +59,26 @@ export default function TopicsManagementPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const loadContexts = async () => {
+      try {
+        const data = await fetchAssessmentContexts();
+        setContexts(data || []);
+        if (data && data.length > 0) {
+          setSelectedContextId(data[0].id);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Үнэлгээний контекстийг татаж чадсангүй.", "danger");
+      }
+    };
+    loadContexts();
   }, []);
+
+  useEffect(() => {
+    if (selectedContextId) {
+      loadData(selectedContextId);
+    }
+  }, [selectedContextId]);
 
   // Topics tree build
   const buildTree = (nodes: Topic[], pId: string | null = null): Topic[] => {
@@ -83,6 +107,7 @@ export default function TopicsManagementPage() {
           name,
           description,
           parentId,
+          assessmentContextId: selectedContextId,
         });
         showToast("Сэдэв амжилттай засагдлаа.", "success");
         setSelectedTopic(null);
@@ -95,11 +120,12 @@ export default function TopicsManagementPage() {
           parentId,
           depth: parentId ? 1 : 0,
           orderIndex: topics.filter((t) => t.parentId === parentId).length + 1,
+          assessmentContextId: selectedContextId,
         });
         showToast("Шинэ сэдэв үүсгэлээ.", "success");
       }
       resetForm();
-      loadData();
+      loadData(selectedContextId);
     } catch (err) {
       console.error(err);
       showToast("Үйлдэл амжилтгүй боллоо.", "danger");
@@ -120,7 +146,7 @@ export default function TopicsManagementPage() {
             setSelectedTopic(null);
             resetForm();
           }
-          loadData();
+          loadData(selectedContextId);
         } catch (err) {
           console.error(err);
           showToast("Устгах үйлдэл амжилтгүй боллоо.", "danger");
@@ -180,9 +206,10 @@ export default function TopicsManagementPage() {
     try {
       await updateTopic(draggedNode.id, {
         parentId: targetNode.id,
+        assessmentContextId: selectedContextId,
       });
       showToast(`${draggedNode.title || draggedNode.name} сэдвийг ${targetNode.title || targetNode.name}-ийн дэд сэдэв болголоо.`, "success");
-      loadData();
+      loadData(selectedContextId);
     } catch (err) {
       console.error(err);
       showToast("Байршил өөрчилж чадсангүй.", "danger");
@@ -272,6 +299,18 @@ export default function TopicsManagementPage() {
           <Icons.FilePlus size={16} />
           <span>Сэдэв нэмэх</span>
         </Button>
+      </div>
+
+      <div className="mt-seek-4 max-w-xs col-span-2">
+        <Text className="font-semibold text-slate-700 text-xs mb-seek-1">Үнэлгээний контекст</Text>
+        <Select
+          value={selectedContextId}
+          onChange={(e) => setSelectedContextId(e.target.value)}
+          options={contexts.map((c) => ({
+            value: c.id,
+            label: c.name,
+          }))}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-seek-5 xl:grid-cols-[1fr_22rem] mt-seek-4">

@@ -369,6 +369,31 @@ export function MarkdownTable({ rows, isFillBlank }: { rows: string[][]; isFillB
 }
 
 /**
+ * formatMarkdownInline - Текст доторх bold (**), italic (*), code (`) зэрэг 
+ * markdown тэмдэглэгээнүүдийг аюулгүй HTML/React элемент болгон форматлана.
+ */
+function formatMarkdownInline(text: string): React.ReactNode {
+  if (!text) return "";
+  const segments = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+  return (
+    <>
+      {segments.map((seg, idx) => {
+        if (seg.startsWith("**") && seg.endsWith("**")) {
+          return <strong key={idx} className="font-bold text-slate-900">{seg.slice(2, -2)}</strong>;
+        }
+        if (seg.startsWith("*") && seg.endsWith("*")) {
+          return <em key={idx} className="italic">{seg.slice(1, -1)}</em>;
+        }
+        if (seg.startsWith("`") && seg.endsWith("`")) {
+          return <code key={idx} className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-rose-600">{seg.slice(1, -1)}</code>;
+        }
+        return seg;
+      })}
+    </>
+  );
+}
+
+/**
  * InlineMath - Текст доторх Math ($...$) болон Block Math ($$...$$), 
  * мөн markdown image (`![alt](url)`) зэргийг тус тусад нь ялган KaTeX рендеринг хийнэ.
  */
@@ -406,12 +431,12 @@ export function InlineMath({ value, isFillBlank }: { value: string; isFillBlank?
             return (
               <span 
                 key={`${segment}-${index}`} 
-                className="block my-seek-4 overflow-hidden rounded-seek-md border border-slate-200 bg-slate-50/50 p-1 flex justify-center"
+                className="inline-block max-w-full my-2 overflow-hidden rounded-seek-md border border-slate-200 bg-slate-50/50 p-1 align-middle"
               >
                 <img 
                   src={src} 
                   alt={alt} 
-                  className="max-h-64 max-w-full object-contain" 
+                  className="max-h-96 max-w-full object-contain" 
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}
@@ -438,13 +463,13 @@ export function InlineMath({ value, isFillBlank }: { value: string; isFillBlank?
                     />
                   );
                 }
-                return part;
+                return formatMarkdownInline(part);
               })}
             </span>
           );
         }
 
-        return <span key={`${segment}-${index}`}>{segment}</span>;
+        return <span key={`${segment}-${index}`}>{formatMarkdownInline(segment)}</span>;
       })}
     </>
   );

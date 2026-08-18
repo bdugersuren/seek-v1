@@ -11,6 +11,8 @@ import { QuizController } from "./quiz.controller";
 import { QuizService } from "./quiz.service";
 import { ScheduleController } from "./schedule.controller";
 import { ScheduleService } from "./schedule.service";
+import { CatalogController } from "./catalog.controller";
+import { CatalogService } from "./catalog.service";
 import * as amqp from "amqplib";
 
 @Module({
@@ -22,6 +24,7 @@ import * as amqp from "amqplib";
     BlueprintController,
     QuizController,
     ScheduleController,
+    CatalogController,
   ],
   providers: [
     AssessmentWorkflowService,
@@ -30,6 +33,7 @@ import * as amqp from "amqplib";
     BlueprintService,
     QuizService,
     ScheduleService,
+    CatalogService,
     {
       provide: "RABBITMQ_CHANNEL",
       useFactory: async (): Promise<amqp.Channel | null> => {
@@ -49,4 +53,5 @@ import * as amqp from "amqplib";
   ],
 })
 export class AppModule {}
+
 

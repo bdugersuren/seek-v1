@@ -130,8 +130,15 @@ export class QuizService {
     });
   }
 
-  async findAll() {
+  async findAll(contextId?: string) {
     return await this.prisma.quiz.findMany({
+      where: contextId
+        ? {
+            template: {
+              assessmentContextId: contextId,
+            },
+          }
+        : undefined,
       include: {
         revisions: {
           orderBy: { revisionNumber: "desc" },

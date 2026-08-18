@@ -60,11 +60,9 @@ export function RichEditor({
     }, 0);
   };
 
-  // MinIO Presigned URL-аар зураг оруулах
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // MinIO-руу зураг хуулж оруулах ерөнхий функц
+  const uploadAndInsertImage = async (file: File) => {
+    if (!file || !file.type.startsWith("image/")) return;
     setUploading(true);
     try {
       // 1. Presigned URL авах
@@ -100,7 +98,58 @@ export function RichEditor({
       console.error('Markdown editor image upload error:', err);
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // MinIO Presigned URL-аар зураг оруулах (FileInput ашиглах үед)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadAndInsertImage(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Clipboard Paste ашиглан зураг оруулах
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          // Paste хийсэн зураг ихэвчлэн нэргүй (image.png) байдаг тул өвөрмөц нэр өгнө
+          const fileName = file.name === "image.png" ? `pasted_image_${Date.now()}.png` : file.name;
+          const renamedFile = new File([file], fileName, { type: file.type });
+          await uploadAndInsertImage(renamedFile);
+        }
+      }
+    }
+  };
+
+  // Drag & Drop ашиглан зураг оруулах
+  const handleDrop = async (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        e.preventDefault();
+        await uploadAndInsertImage(file);
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const items = e.dataTransfer?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          e.preventDefault();
+          break;
+        }
+      }
     }
   };
 
@@ -248,6 +297,9 @@ export function RichEditor({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        onPaste={handlePaste}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
         style={{ minHeight }}
         className="w-full resize-y rounded-b-seek-md bg-transparent p-3 font-mono text-sm leading-relaxed text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
       />

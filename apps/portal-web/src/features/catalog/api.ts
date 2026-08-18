@@ -1,48 +1,27 @@
-import { catalogAssessments } from "./mock-data";
+import { authFetch } from "@/lib/auth-client";
 import type { CatalogAssessment } from "./types";
+
+const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/+$/, "");
 
 export interface CatalogQuery {
   q?: string;
   category?: string;
   accessType?: string;
   language?: string;
-  sort?: "newest" | "price_low" | "duration_short" | "popular";
+  sort?: string;
 }
 
-export async function listCatalogAssessments(query: CatalogQuery = {}) {
-  const searchText = query.q?.trim().toLowerCase() ?? "";
+export async function listCatalogAssessments(query: CatalogQuery = {}): Promise<CatalogAssessment[]> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.category) params.set("category", query.category);
+  if (query.accessType) params.set("accessType", query.accessType);
+  if (query.language) params.set("language", query.language);
+  if (query.sort) params.set("sort", query.sort);
 
-  let items: CatalogAssessment[] = catalogAssessments.filter((assessment) => {
-    const matchesSearch =
-      !searchText ||
-      assessment.title.toLowerCase().includes(searchText) ||
-      assessment.description.toLowerCase().includes(searchText) ||
-      assessment.competencyTags.some((tag) =>
-        tag.toLowerCase().includes(searchText),
-      );
-    const matchesCategory =
-      !query.category ||
-      query.category === "all" ||
-      assessment.category === query.category;
-    const matchesAccess =
-      !query.accessType ||
-      query.accessType === "all" ||
-      assessment.accessType === query.accessType;
-    const matchesLanguage =
-      !query.language ||
-      query.language === "all" ||
-      assessment.language === query.language;
-
-    return matchesSearch && matchesCategory && matchesAccess && matchesLanguage;
-  });
-
-  if (query.sort === "price_low") {
-    items = [...items].sort((a, b) => a.price - b.price);
+  const response = await authFetch(`${apiBaseUrl}/v1/assessment/catalog?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch catalog assessments from database");
   }
-
-  if (query.sort === "duration_short") {
-    items = [...items].sort((a, b) => a.durationMinutes - b.durationMinutes);
-  }
-
-  return items;
+  return response.json();
 }

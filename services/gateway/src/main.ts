@@ -6,7 +6,7 @@ import { validateProductionAuthConfig } from "./security-config";
 async function bootstrap() {
   validateProductionAuthConfig("gateway service");
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.enableCors({
     origin: (
       process.env.AUTH_ALLOWED_ORIGINS ||

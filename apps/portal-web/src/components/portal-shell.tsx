@@ -64,10 +64,22 @@ const navItems: Array<{
     roles: ["super_admin"],
   },
   {
+    href: "/superadmin/users",
+    labelKey: "nav.users" as any,
+    icon: Icons.User,
+    roles: ["super_admin"],
+  },
+  {
     href: "/organisations",
     labelKey: "nav.organisations",
     icon: Icons.Menu,
     roles: ["super_admin", "organisation_admin"],
+  },
+  {
+    href: "/superadmin/assessment-contexts",
+    labelKey: "nav.assessmentContexts" as any,
+    icon: Icons.Settings,
+    roles: ["super_admin"],
   },
   {
     href: "/assessments",
@@ -76,7 +88,7 @@ const navItems: Array<{
     roles: ["organisation_admin", "assessor"],
   },
   {
-    href: "/question-bank",
+    href: "/context",
     labelKey: "nav.questionBank",
     icon: Icons.Menu,
     roles: ["assessor"],
@@ -241,6 +253,7 @@ function getRoleHref(href: string, role: PortalRole): string {
     href === "/assessments" ||
     href === "/blueprints" ||
     href === "/question-bank" ||
+    href === "/context" ||
     href === "/quizzes" ||
     href === "/db-management"
   ) {
@@ -266,6 +279,21 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "/admin/metadata": true, // Default open for metadata
   });
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebar_collapsed") === "true";
+    }
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem("sidebar_collapsed", String(next));
+      return next;
+    });
+  };
   const { locale, setLocale, t } = useI18n();
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
@@ -414,13 +442,30 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     <AppShell
       headerLogo={
         <div className="flex items-center gap-3">
-          <IconButton
-            ariaLabel="Open navigation"
-            className="md:hidden"
-            onClick={() => setMobileNavOpen(true)}
-          >
-            <Icons.Menu size={20} />
-          </IconButton>
+          {currentRole !== "candidate" && (
+            <IconButton
+              ariaLabel="Open navigation"
+              className="md:hidden"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              <Icons.Menu size={20} />
+            </IconButton>
+          )}
+
+          {currentRole !== "candidate" && (
+            <IconButton
+              ariaLabel="Toggle sidebar"
+              className="hidden md:flex text-slate-500 hover:text-slate-800 hover:bg-slate-100 p-1 rounded-seek-md"
+              onClick={toggleSidebar}
+            >
+              {isSidebarCollapsed ? (
+                <Icons.ChevronRight size={20} />
+              ) : (
+                <Icons.ChevronLeft size={20} />
+              )}
+            </IconButton>
+          )}
+
           <span className="font-sans font-bold text-lg text-primary">
             {t("app.name")}
           </span>
@@ -549,7 +594,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       }
-      sidebarContent={sidebarLinks}
+      sidebarContent={currentRole === "candidate" ? null : (isSidebarCollapsed ? null : sidebarLinks)}
     >
       {mobileNavOpen && (
         <div className="fixed inset-0 z-modal md:hidden">

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
+import { Eye, Star } from "lucide-react";
 import {
   Badge,
   Button,
@@ -99,6 +100,7 @@ export function QuestionPreviewModal({
 }) {
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const isSuperAdmin = currentUser?.role === "super_admin";
+  const [activeTab, setActiveTab] = useState<"status" | "topics">("status");
 
   const [allVersions, setAllVersions] = useState<QuestionBankItem[]>(
     question.versions && question.versions.length > 0 ? question.versions : [question]
@@ -198,142 +200,86 @@ export function QuestionPreviewModal({
 
   return (
     <div className="fixed inset-0 z-modal grid place-items-center bg-slate-900/60 backdrop-blur-sm p-seek-4 transition-all duration-300">
-      <Card className="max-h-[92vh] w-full max-w-4xl overflow-auto p-seek-6 shadow-2xl relative border-slate-200">
+      <Card className="max-h-[92vh] w-full max-w-5xl overflow-auto p-seek-6 shadow-2xl relative border-slate-200 bg-white rounded-seek-2xl">
         {/* Close Button */}
-        <div className="absolute right-4 top-4">
+        <div className="absolute right-6 top-6">
           <Button 
             type="button" 
             variant="outline" 
-            size="sm" 
             onClick={onClose}
-            className="h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-800"
+            className="h-9 w-9 p-0 rounded-seek-md flex items-center justify-center hover:bg-slate-50 border-slate-200 text-slate-700 shadow-seek-sm bg-white"
           >
             ✕
           </Button>
         </div>
 
         {/* Modal Title Section */}
-        <div className="flex items-start justify-between gap-seek-4 pr-seek-6">
-          <div className="space-y-1.5 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              
-              <Badge variant="secondary" className="font-mono text-xs">
-                [{activeQuestion.code}]: <b>{activeQuestion.title || "Гарчиггүй даалгавар"}</b>
-              </Badge>
-              
-              {/* Version History Selector Combobox */}
-              {allVersions.length > 1 && (
-                <div className="flex items-center gap-1.5 ml-2">
-                  <span className="text-xs font-semibold text-slate-500">Хувилбар:</span>
-                  <div className="relative inline-block">
-                    <select
-                      value={selectedIndex}
-                      onChange={(e) => setSelectedIndex(Number(e.target.value))}
-                      className="rounded-seek-md border border-slate-300 bg-white pl-2.5 pr-7 py-1 text-xs font-bold text-slate-800 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-all hover:border-slate-400"
-                    >
-                      {allVersions.map((v, idx) => (
-                        <option key={v.versionNumber || idx} value={idx}>
-                          v{v.versionNumber || (allVersions.length - idx)} ({statusLabels[v.status] || v.status?.toUpperCase() || "DRAFT"}) {v.createdAt ? `• ${new Date(v.createdAt).toLocaleDateString()}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {selectedIndex > 0 && (
-              <div className="flex items-center gap-2 rounded-seek-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-900 mt-1">
-                <Icons.Info className="h-4 w-4 shrink-0 text-amber-600" />
-                <span>
-                  Та <strong>v{activeQuestion.versionNumber || (allVersions.length - selectedIndex)}</strong> өмнөх хувилбарыг үзэж байна. (Сүүлийн идэвхтэй хувилбар: v{allVersions[0]?.versionNumber || allVersions.length})
-                </span>
-              </div>
-            )}
-
-            
+        <div className="flex items-start gap-seek-3.5 pr-seek-8 pb-seek-4 gap-seek-3">
+          <div className="w-10 h-10 rounded-seek-md bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-seek-xs">
+            <Eye className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 font-mono tracking-wider block uppercase">
+              {activeQuestion.code}
+            </span>
+            <Text className="text-xl font-bold text-slate-800 leading-tight">
+              {activeQuestion.title || "Гарчиггүй даалгавар"}
+            </Text>
           </div>
         </div>
+
+        {/* Horizontal tags/badges strip */}
+        <div className="flex flex-wrap items-center gap-2 pb-seek-5 border-b border-slate-100">
+          {/* Type Badge */}
+          <div className="flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-seek-md shadow-seek-xs">
+            <TypeIcon className="h-3.5 w-3.5" />
+            <span>{questionTypeLabels[activeQuestion.type]}</span>
+          </div>
+
+          {/* Scoring Mode Badge */}
+          <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-1.5 rounded-seek-md shadow-seek-xs">
+            {scoringMode === "combination" ? (
+              <Icons.OneOption className="h-3.5 w-3.5" />
+            ) : scoringMode === "manual" ? (
+              <Eye className="h-3.5 w-3.5" />
+            ) : (
+              <Icons.Check className="h-3.5 w-3.5 stroke-[2.5]" />
+            )}
+            <span>{scoringModeLabels[scoringMode] || "Харгалзах оноо"}</span>
+          </div>
+
+          {/* Score Badge */}
+          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-2.5 py-1.5 rounded-seek-md shadow-seek-xs">
+            <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+            <span>Оноо:[{minPoints < 0 ? minPoints : minPoints === 0 ? "0" : `-${minPoints}`}, +{totalPoints}]</span>
+          </div>
+
+          {/* Duration Badge */}
+          <div className="flex items-center gap-1.5 bg-slate-100/70 border border-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-seek-md shadow-seek-xs">
+            <Icons.Timer className="h-3.5 w-3.5" />
+            <span>
+              {String(Math.floor(durationSeconds / 60)).padStart(2, '0')}:{String(durationSeconds % 60).padStart(2, '0')} mins
+            </span>
+          </div>
+        </div>
+
+        {selectedIndex > 0 && (
+          <div className="flex items-center gap-2 rounded-seek-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-900 mt-3">
+            <Icons.Info className="h-4 w-4 shrink-0 text-amber-600" />
+            <span>
+              Та <strong>v{activeQuestion.versionNumber || (allVersions.length - selectedIndex)}</strong> өмнөх хувилбарыг үзэж байна. (Сүүлийн идэвхтэй хувилбар: v{allVersions[0]?.versionNumber || allVersions.length})
+            </span>
+          </div>
+        )}
 
         {/* ----------------------------------------------------------------------------------------------------------------------------------- */}
         {/* ҮНДСЭН ФАЙЛ */}     
         {/* ----------------------------------------------------------------------------------------------------------------------------------- */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-seek-6 mt-seek-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-seek-6 mt-seek-5 items-start">
           <div className="space-y-seek-5 min-w-0">
-            {/* Enhanced Metadata Card */}
-            <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-slate-50/80 p-seek-4 shadow-seek-xs">
-              <div className="grid grid-cols-2 gap-seek-3">
-                {/* Type */}
-                <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-3 border border-slate-200/80 shadow-seek-xs">
-                  <div className="h-8 w-8 rounded-seek-md bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                    <TypeIcon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <Text variant="muted" className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Төрөл</Text>
-                    <Text className="text-xs font-bold text-slate-800 truncate">{questionTypeLabels[activeQuestion.type]}</Text>
-                  </div>
-                </div>
-
-                {/* Scoring Mode */}
-                <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-3 border border-slate-200/80 shadow-seek-xs">
-                  <div className="h-8 w-8 rounded-seek-md bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                    <Icons.OneOption className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <Text variant="muted" className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Оноо бодох</Text>
-                    <Text className="text-xs font-bold text-slate-800 truncate">{scoringModeLabels[scoringMode] || scoringMode}</Text>
-                  </div>
-                </div>
-
-                {/* Points */}
-                <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-3 border border-slate-200/80 shadow-seek-xs">
-                  <div className="h-8 w-8 rounded-seek-md bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                    <Icons.MaxValue className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <Text variant="muted" className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Нийт оноо</Text>
-                    <Text className="text-xs font-bold text-slate-800">{totalPoints} оноо {minPoints < 0 ? `(${minPoints})` : ""}</Text>
-                  </div>
-                </div>
-
-                {/* Duration */}
-                <div className="flex items-center gap-2.5 bg-white rounded-seek-md p-seek-3 border border-slate-200/80 shadow-seek-xs">
-                  <div className="h-8 w-8 rounded-seek-md bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                    <Icons.Timer className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <Text variant="muted" className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Хугацаа</Text>
-                    <Text className="text-xs font-bold text-slate-800">{durationSeconds} сек</Text>
-                  </div>
-                </div>
-              </div>
-
-              {/* Context Badges Bar - Safely indexing BloomLevel, DifficultyLevel, CompetencyType to prevent TS errors */}
-              <div className="mt-seek-3 pt-seek-3 border-t border-slate-200/60 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="bg-purple-50/60 border-purple-100 text-purple-700 text-xs px-2.5 py-1">
-                  {activeQuestion.topicName || "Ерөнхий сэдэв"}
-                </Badge>
-                {activeQuestion.bloomLevel && (
-                  <Badge variant="secondary" className="bg-blue-50/60 border-blue-100 text-blue-700 text-xs px-2.5 py-1">
-                    Блум: {bloomLabels[activeQuestion.bloomLevel as BloomLevel] || activeQuestion.bloomLevel}
-                  </Badge>
-                )}
-                {activeQuestion.difficulty && (
-                  <Badge variant="warning" className="bg-amber-50 border-amber-200 text-amber-800 text-xs px-2.5 py-1">
-                    Хүндрэл: {difficultyLabels[activeQuestion.difficulty as DifficultyLevel] || activeQuestion.difficulty}
-                  </Badge>
-                )}
-                {activeQuestion.competencyType && (
-                  <Badge variant="secondary" className="bg-emerald-50/60 border-emerald-100 text-emerald-700 text-xs px-2.5 py-1">
-                    Чадамж: {competencyLabels[activeQuestion.competencyType as CompetencyType] || activeQuestion.competencyType}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
             {/* Main Question Body & Interactive Learner Preview */}
-            <div className="mt-seek-4 rounded-seek-lg border border-slate-200 bg-white p-seek-5 shadow-seek-xs">
+            <div className="rounded-seek-xl border border-slate-200 bg-white p-seek-5 shadow-seek-xs">
               <LearnerQuestionPreview question={activeQuestion} />
             </div>
 
@@ -341,194 +287,364 @@ export function QuestionPreviewModal({
 
 
             {/* Feedback Cards Section */}
-            <div className="mt-seek-5 space-y-seek-4">
-             
-             {/* Correct Feedback Card */}
-             <div className="space-y-1">
-              <Text className="text-xs font-bold text-blue-500">Ерөний тайлбар:</Text>
-              <div className="rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-blue-500">
-                <div className="flex">
-                  <div className="w-12 bg-success-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
-                    <Icons.Info className="h-5 w-5 text-white bg-blue-500 rounded-full p-0.5" />
-                  </div>
-                  <div className="flex-1 p-seek-3">
-                    
-                    <div className="text-sm text-slate-700">
-                      {activeQuestion.explanation || activeQuestion.explanation ? (
-                        <RichTextPreview value={activeQuestion.explanation || activeQuestion.explanation || ""} />
-                      ) : (
-                        <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
-                      )}
-                    </div>
+            <div className="mt-seek-5 space-y-seek-5">
+              {/* General Explanation */}
+              <div className="space-y-seek-2">
+                <Text className="text-sm font-bold text-slate-800">General Explanation</Text>
+                <div className="rounded-seek-xl border border-slate-200 bg-blue-50/5 overflow-hidden border-l-[4px] border-l-blue-500 p-seek-4 shadow-seek-xs">
+                  <div className="text-sm text-slate-600 font-medium leading-relaxed">
+                    {activeQuestion.explanation ? (
+                      <RichTextPreview value={activeQuestion.explanation} />
+                    ) : (
+                      <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
+                    )}
                   </div>
                 </div>
               </div>
-              </div>
 
-
-              {/* Correct Feedback Card */}
-              <div className="space-y-1">
-                <Text className="text-xs font-bold text-success mb-1">Зөв хариулсан үеийн тайлбар:</Text>
-              <div className="rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-success">
-                <div className="flex">
-                  <div className="w-12 bg-success-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
-                    <Icons.Check className="h-5 w-5 text-white bg-success rounded-full p-0.5" />
-                  </div>
-                  <div className="flex-1 p-seek-3">
-                    
-                    <div className="text-sm text-slate-700">
-                      {activeQuestion.feedbackCorrect || activeQuestion.feedback ? (
-                        <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.feedback || ""} />
-                      ) : (
-                        <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
-                      )}
-                    </div>
+              {/* Correct Feedback */}
+              <div className="space-y-seek-2">
+                <Text className="text-sm font-bold text-slate-800">Correct Feedback</Text>
+                <div className="rounded-seek-xl border border-slate-200 bg-emerald-50/5 overflow-hidden border-l-[4px] border-l-emerald-500 p-seek-4 shadow-seek-xs">
+                  <div className="text-sm text-slate-600 font-medium leading-relaxed">
+                    {activeQuestion.feedbackCorrect || activeQuestion.feedback ? (
+                      <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.feedback || ""} />
+                    ) : (
+                      <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
+                    )}
                   </div>
                 </div>
               </div>
-              </div>
-              {/* Incorrect Feedback Card */}
-              <div className="space-y-1">
-                <Text className="text-xs font-bold text-danger mb-1">Буруу хариулсан үеийн тайлбар:</Text>
-              <div className="rounded-seek-lg border border-border bg-slate-50/20 overflow-hidden border-l-[4px] border-l-danger">
-                <div className="flex">
-                  <div className="w-12 bg-danger-background/20 border-r border-border flex items-center justify-center flex-shrink-0">
-                    <Icons.Close className="h-5 w-5 text-white bg-danger rounded-full p-0.5" />
-                  </div>
-                  <div className="flex-1 p-seek-3">
-                    
-                    <div className="text-sm text-slate-700">
-                      {activeQuestion.feedbackIncorrect ? (
-                        <RichTextPreview value={activeQuestion.feedbackIncorrect || ""} />
-                      ) : (
-                        <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
-                      )}
-                    </div>
+
+              {/* Incorrect Feedback */}
+              <div className="space-y-seek-2">
+                <Text className="text-sm font-bold text-slate-800">Incorrect Feedback</Text>
+                <div className="rounded-seek-xl border border-slate-200 bg-rose-50/5 overflow-hidden border-l-[4px] border-l-rose-500 p-seek-4 shadow-seek-xs">
+                  <div className="text-sm text-slate-600 font-medium leading-relaxed">
+                    {activeQuestion.feedbackIncorrect ? (
+                      <RichTextPreview value={activeQuestion.feedbackIncorrect} />
+                    ) : (
+                      <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
           </div>
 
           {/* Right Column: Workflow Controls & Timeline */}
-          <div className="space-y-seek-5 border-l border-slate-200 pl-seek-5 lg:sticky lg:top-4 bg-white/50 backdrop-blur-xs p-seek-4 rounded-seek-lg">
+          <div className="space-y-seek-5 border-l border-slate-200 pl-seek-5 lg:sticky lg:top-4 bg-white/50 backdrop-blur-xs p-seek-1 rounded-seek-lg">
+            
+            {/* Sidebar Tabs */}
+            <div className="flex border-b border-slate-100 gap-seek-5 mb-seek-4">
+              <button 
+                type="button"
+                onClick={() => setActiveTab("status")}
+                className={`pb-seek-2.5 text-sm font-bold transition-all relative ${
+                  activeTab === "status" ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                Status
+                {activeTab === "status" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                )}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveTab("topics")}
+                className={`pb-seek-2.5 text-sm font-bold transition-all relative ${
+                  activeTab === "topics" ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                Topics
+                {activeTab === "topics" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                )}
+              </button>
+            </div>
+
             {/* Actions Card - Only Visible to Superadmin */}
             {isSuperAdmin && (
-              <>
-                <div className="space-y-seek-3">
-                  <Text className="text-sm font-bold text-slate-800 block">Үйлдэл хийх (Superadmin)</Text>
-                  <div className="flex flex-col gap-2">
-                    {(activeQuestion.status === "approval_requested" ||
-                      activeQuestion.status === "in_review" ||
-                      activeQuestion.status === "resubmitted") && (
-                      <>
-                        <Button
-                          type="button"
-                          variant="primary"
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => setCommentModalConfig({ title: "Батлах тайлбар (Заавал бичнэ)", action: "approve" })}
-                        >
-                          Батлах (Approve)
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-                          onClick={() => setCommentModalConfig({ title: "Засвар шаардах тайлбар", action: "changes_requested" })}
-                        >
-                          Засвар шаардах
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          className="w-full"
-                          onClick={() => setCommentModalConfig({ title: "Татгалзах шалтгаан", action: "reject" })}
-                        >
-                          Татгалзах (Reject)
-                        </Button>
-                      </>
-                    )}
-                    {activeQuestion.status === "approved" && (
+              <div className="space-y-seek-3 pb-seek-4 border-b border-slate-100">
+                <Text className="text-xs font-bold text-slate-400 tracking-wider uppercase block">Үйлдэл хийх (Superadmin)</Text>
+                <div className="flex flex-col gap-2">
+                  {(activeQuestion.status === "approval_requested" ||
+                    activeQuestion.status === "in_review" ||
+                    activeQuestion.status === "resubmitted") && (
+                    <>
                       <Button
                         type="button"
                         variant="primary"
-                        className="w-full"
-                        onClick={() => setCommentModalConfig({ title: "Нийтлэх тайлбар (Заавал бичнэ)", action: "publish" })}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs"
+                        onClick={() => setCommentModalConfig({ title: "Батлах тайлбар (Заавал бичнэ)", action: "approve" })}
                       >
-                        Нийтлэх (Publish)
+                        Батлах (Approve)
                       </Button>
-                    )}
-                    {activeQuestion.status !== "approval_requested" &&
-                      activeQuestion.status !== "in_review" &&
-                      activeQuestion.status !== "resubmitted" &&
-                      activeQuestion.status !== "approved" && (
-                      <Text variant="muted" className="text-xs italic">Энэ төлөвт хийх боломжтой үйлдэл байхгүй байна.</Text>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold h-9 text-xs"
+                        onClick={() => setCommentModalConfig({ title: "Засвар шаардах тайлбар", action: "changes_requested" })}
+                      >
+                        Засвар шаардах
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        className="w-full font-bold h-9 text-xs"
+                        onClick={() => setCommentModalConfig({ title: "Татгалзах шалтгаан", action: "reject" })}
+                      >
+                        Татгалзах (Reject)
+                      </Button>
+                    </>
+                  )}
+                  {activeQuestion.status === "approved" && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      className="w-full font-bold h-9 text-xs"
+                      onClick={() => setCommentModalConfig({ title: "Нийтлэх тайлбар (Заавал бичнэ)", action: "publish" })}
+                    >
+                      Нийтлэх (Publish)
+                    </Button>
+                  )}
+                  {activeQuestion.status !== "approval_requested" &&
+                    activeQuestion.status !== "in_review" &&
+                    activeQuestion.status !== "resubmitted" &&
+                    activeQuestion.status !== "approved" && (
+                    <Text variant="muted" className="text-xs italic text-slate-400">Эдгээр төлөвт хийх үйлдэл байхгүй.</Text>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "status" ? (
+              <div className="space-y-seek-5">
+                {/* VERSION HISTORY */}
+                <div className="space-y-seek-3">
+                  <Text className="text-xs font-bold text-slate-400 tracking-wider uppercase block">Version History</Text>
+                  
+                  {/* Select Combobox */}
+                  <div className="relative w-full">
+                    <select
+                      value={selectedIndex}
+                      onChange={(e) => setSelectedIndex(Number(e.target.value))}
+                      className="w-full rounded-seek-md border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-seek-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer transition-all hover:border-slate-300 appearance-none"
+                    >
+                      {allVersions.map((v, idx) => (
+                        <option key={v.versionNumber || idx} value={idx}>
+                          v{v.versionNumber || (allVersions.length - idx)}.0 {v.id === question.id ? "(Current)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                      ▼
+                    </div>
+                  </div>
+
+                  {/* Versions List */}
+                  <div className="space-y-seek-2.5 pt-seek-1">
+                    {allVersions.map((v, idx) => {
+                      const isCurrent = v.id === question.id;
+                      const isSelected = selectedIndex === idx;
+                      
+                      return (
+                        <div key={v.id || idx} className="flex items-center justify-between text-xs py-0.5">
+                          <span className={`font-bold ${isSelected ? "text-slate-800" : "text-slate-500 font-semibold"}`}>
+                            v{v.versionNumber || (allVersions.length - idx)}.0 {isCurrent ? "(Current)" : ""}
+                          </span>
+                          <div className="flex items-center gap-seek-2.5">
+                            {isCurrent && (
+                              <Badge variant="success" className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] px-1.5 py-0.5 font-bold rounded-seek-md">
+                                Active
+                              </Badge>
+                            )}
+                            {!isSelected && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedIndex(idx)}
+                                className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-bold text-[11px] transition-colors"
+                              >
+                                <Eye className="h-3.5 w-3.5 stroke-[2]" />
+                                <span>View</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* CURRENT STATUS */}
+                <div className="space-y-seek-3 pt-seek-4 border-t border-slate-100">
+                  <Text className="text-xs font-bold text-slate-400 tracking-wider uppercase block">Current Status</Text>
+                  <div className="space-y-2">
+                    <div className={`flex items-center gap-1.5 border text-[11px] font-bold px-2.5 py-1 rounded-full w-fit ${
+                      activeQuestion.status === "approved" || activeQuestion.status === "published"
+                        ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                        : activeQuestion.status === "changes_requested" || activeQuestion.status === "rejected" || activeQuestion.status === "deleted"
+                        ? "bg-rose-50 border-rose-100 text-rose-700"
+                        : activeQuestion.status === "approval_requested" || activeQuestion.status === "in_review" || activeQuestion.status === "resubmitted"
+                        ? "bg-amber-50 border-amber-100 text-amber-700"
+                        : "bg-slate-50 border-slate-200 text-slate-600"
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        activeQuestion.status === "approved" || activeQuestion.status === "published"
+                          ? "bg-emerald-500"
+                          : activeQuestion.status === "changes_requested" || activeQuestion.status === "rejected" || activeQuestion.status === "deleted"
+                          ? "bg-rose-500"
+                          : activeQuestion.status === "approval_requested" || activeQuestion.status === "in_review" || activeQuestion.status === "resubmitted"
+                          ? "bg-amber-500"
+                          : "bg-slate-400"
+                      }`} />
+                      <span>{statusLabels[activeQuestion.status as QuestionWorkflowStatus] || "Ноорог"}</span>
+                    </div>
+                    {activeQuestion.updatedAt && (
+                      <span className="text-[10px] font-semibold text-slate-400 block">
+                        Last reviewed: {new Date(activeQuestion.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
                     )}
                   </div>
                 </div>
-                <hr className="border-slate-200" />
-              </>
-            )}
 
-            {/* Workflow History Timeline */}
-            <div className="space-y-seek-2">
-              <Badge variant={statusVariant[activeQuestion.status] || "secondary"}>
-                {statusLabels[activeQuestion.status] || activeQuestion.status}
-              </Badge>
-              <Text className="text-sm font-bold text-slate-800">Хяналтын түүх</Text>
-              {loadingEvents ? (
-                <Text variant="muted" className="text-xs">Уншиж байна...</Text>
-              ) : workflowEvents.length === 0 ? (
-                <Text variant="muted" className="text-xs text-slate-400">Түүх байхгүй байна.</Text>
-              ) : (
-                <div className="space-y-seek-5 border-l-2 border-slate-100 ml-seek-2 pl-seek-4 py-seek-2">
-                  {workflowEvents.map((ev: any, idx: number) => {
-                    const isApproved = ev.newStatus === "approved" || ev.newStatus === "published";
-                    const isRejected = ev.newStatus === "rejected" || ev.newStatus === "changes_requested";
-                    const isDraft = ev.newStatus === "draft" || ev.newStatus === "deleted";
-                    
-                    const dotColorClass = isApproved 
-                      ? "bg-emerald-500 ring-emerald-100" 
-                      : isRejected 
-                      ? "bg-rose-500 ring-rose-100" 
-                      : isDraft
-                      ? "bg-slate-400 ring-slate-100"
-                      : "bg-amber-500 ring-amber-100";
+                {/* STATUS HISTORY */}
+                <div className="space-y-seek-3 pt-seek-4 border-t border-slate-100">
+                  <Text className="text-xs font-bold text-slate-400 tracking-wider uppercase block">Status History</Text>
+                  
+                  {loadingEvents ? (
+                    <Text variant="muted" className="text-xs">Уншиж байна...</Text>
+                  ) : workflowEvents.length > 0 ? (
+                    <div className="space-y-seek-5 border-l border-slate-200 ml-seek-1.5 pl-seek-4 py-seek-2.5 relative">
+                      {workflowEvents.map((ev: any, idx: number) => {
+                        const isApproved = ev.newStatus === "approved" || ev.newStatus === "published";
+                        const isRejected = ev.newStatus === "rejected" || ev.newStatus === "changes_requested";
+                        const isDraft = ev.newStatus === "draft" || ev.newStatus === "deleted";
+                        
+                        const dotColorClass = isApproved 
+                          ? "bg-emerald-500 ring-emerald-100" 
+                          : isRejected 
+                          ? "bg-rose-500 ring-rose-100" 
+                          : isDraft
+                          ? "bg-slate-400 ring-slate-100"
+                          : "bg-amber-500 ring-amber-100";
 
-                    const commentBorderColor = isApproved 
-                      ? "border-l-emerald-500" 
-                      : isRejected 
-                      ? "border-l-rose-500" 
-                      : isDraft
-                      ? "border-l-slate-400"
-                      : "border-l-amber-500";
+                        const statusText = statusLabels[ev.newStatus as QuestionWorkflowStatus] || ev.newStatus;
 
-                    const cleanAction = ev.action?.replace("bypass_", "").toLowerCase();
-                    const actionLabel = actionLabels[cleanAction] || ev.action?.toUpperCase();
-
-                    return (
-                      <div key={ev.id || idx} className="relative space-y-1.5">
-                        <div className={`absolute -left-[22px] top-1 h-2.5 w-2.5 rounded-full ring-4 ${dotColorClass} border border-white`} />
-                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide uppercase">
-                          <span>{actionLabel}</span>
-                          <span className="font-normal text-slate-500">{ev.occurredAt ? new Date(ev.occurredAt).toLocaleDateString() : ""}</span>
-                        </div>
-                        <div className="text-xs text-slate-700">
-                          Шинэ төлөв: <span className="font-bold text-slate-900">{statusLabels[ev.newStatus as QuestionWorkflowStatus] || ev.newStatus?.toUpperCase()}</span>
-                        </div>
-                        {ev.comment && (
-                          <div className={`text-[11px] leading-relaxed text-slate-600 bg-slate-50/70 rounded-seek-md p-seek-2.5 border border-slate-200/80 border-l-[3.5px] ${commentBorderColor} shadow-seek-xs mt-1.5 font-medium`}>
-                            "{ev.comment}"
+                        return (
+                          <div key={ev.id || idx} className="relative space-y-0.5">
+                            {/* Dot indicator */}
+                            <div className={`absolute -left-[21px] top-1.5 h-2 w-2 rounded-full ring-4 ${dotColorClass} border border-white`} />
+                            
+                            <span className="text-xs font-bold text-slate-800 block">
+                              {statusText}
+                            </span>
+                            
+                            {ev.comment && (
+                              <span className="text-[11px] text-slate-500 block italic leading-tight mb-0.5">
+                                "{ev.comment}"
+                              </span>
+                            )}
+                            
+                            <span className="text-[10px] font-semibold text-slate-400 block">
+                              {ev.actorName || "Reviewer"} • {ev.occurredAt ? new Date(ev.occurredAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                            </span>
                           </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-2 text-slate-400 text-xs italic">
+                      Төлөвийн түүх байхгүй байна.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Topics and Categories Tab
+              <div className="space-y-seek-4 text-xs font-medium text-slate-600">
+                <div className="space-y-seek-3.5">
+                  
+                  {(!activeQuestion.topicMappings || activeQuestion.topicMappings.length === 0) && (
+                    <div className="flex flex-col gap-1 p-seek-3 rounded-seek-md bg-slate-50 border border-slate-150 text-slate-400 italic">
+                      Сэдэв болон түвшин тохируулаагүй байна.
+                    </div>
+                  )}
+
+                  {activeQuestion.topicMappings && activeQuestion.topicMappings.length > 0 && activeQuestion.topicMappings.map((mapping, mIdx) => (
+                    
+                    <div className="p-1" key={mapping.topicId || mIdx}>
+                    <span className="font-bold text-slate-800 text-xs">{mapping.topicName || "Ерөнхий сэдэв"} ( {difficultyLabels[mapping.difficulty as DifficultyLevel] || mapping.difficulty || "Тохируулаагүй"})</span>
+                    
+                    
+                    <div key={mapping.topicId || mIdx} className="space-y-seek-1 p-seek-3.5 rounded-seek-lg bg-slate-50/70 border border-slate-205">
+                      {/* Topic Name */}
+                      
+                     
+                      {/* Cognitive Levels */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Танин мэдэхүйн түвшин (Bloom)</span>
+                        {mapping.cognitiveLevels && mapping.cognitiveLevels.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 mt-0.5">
+                            {mapping.cognitiveLevels.map((lvl, lIdx) => (
+                              <Badge key={lIdx} variant="outline" className="bg-white text-slate-700 border-slate-200 text-[10px] py-0.5 px-2 font-semibold">
+                                {lvl.name || lvl.cognitiveLevelId} ({lvl.weight})
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-slate-400 italic">Сонгоогүй</span>
                         )}
                       </div>
-                    );
-                  })}
+
+                      {/* Competencies */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Үнэлэх ур чадвар</span>
+                        {mapping.competencies && mapping.competencies.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 mt-0.5">
+                            {mapping.competencies.map((comp, cIdx) => (
+                              <Badge key={cIdx} variant="outline" className="bg-white text-slate-700 border-slate-200 text-[10px] py-0.5 px-2 font-semibold">
+                                {comp.name || comp.competenceId} ({comp.weight})
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-slate-400 italic">Сонгоогүй</span>
+                        )}
+                      </div>
+                    </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* TAGS */}
+            {activeQuestion.tags && activeQuestion.tags.length > 0 && (
+              <div className="space-y-seek-2.5 pt-seek-4 border-t border-slate-100">
+                <Text className="text-xs font-bold text-slate-400 tracking-wider uppercase block">Tags</Text>
+                <div className="flex flex-wrap gap-2">
+                  {activeQuestion.tags.map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1 font-semibold rounded-seek-md border-0">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Close Button at the Bottom */}
+        <div className="flex justify-center mt-seek-6 pt-seek-4 border-t border-slate-100">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose}
+            className="px-seek-6 py-2 h-10 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-seek-md shadow-seek-xs bg-white text-xs"
+          >
+            Close
+          </Button>
         </div>
       </Card>
 

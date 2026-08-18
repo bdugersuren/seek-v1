@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 
 interface DialogOptions {
   title: string;
-  description: string;
+  description: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm?: () => void;
@@ -44,49 +44,53 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: "var(--seek-z-modal)",
+            zIndex: 9999,
           }}
         >
           <div
             style={{
-              backgroundColor: "var(--seek-color-surface)",
-              color: "var(--seek-color-foreground)",
-              padding: "var(--seek-space-6)",
-              borderRadius: "var(--seek-radius-lg)",
-              border: "1px solid var(--seek-color-border)",
-              boxShadow: "var(--seek-shadow-lg)",
-              maxWidth: "450px",
-              width: "100%",
+              backgroundColor: "var(--seek-color-surface, #ffffff)",
+              color: "var(--seek-color-foreground, #0f172a)",
+              padding: "24px",
+              borderRadius: "16px",
+              border: "1px solid var(--seek-color-border, #e2e8f0)",
+              boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+              maxWidth: "500px",
+              width: "calc(100% - 32px)",
             }}
           >
             <h2
               id="seek-dialog-title"
               style={{
-                fontSize: "var(--seek-font-size-xl)",
-                fontWeight: "bold",
-                marginBottom: "var(--seek-space-2)",
+                fontSize: "18px",
+                fontWeight: "700",
+                marginBottom: "12px",
+                color: "#1e293b",
               }}
             >
               {activeDialog.title}
             </h2>
-            <p
+            <div
               id="seek-dialog-desc"
               style={{
-                color: "var(--seek-color-muted)",
-                marginBottom: "var(--seek-space-6)",
+                color: "#64748b",
+                marginBottom: "24px",
+                fontSize: "14px",
+                lineHeight: "1.5",
               }}
             >
               {activeDialog.description}
-            </p>
+            </div>
             <div
               style={{
                 display: "flex",
                 justifyContent: "flex-end",
-                gap: "var(--seek-space-3)",
+                gap: "12px",
               }}
             >
               <button
@@ -95,12 +99,15 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                   closeDialog();
                 }}
                 style={{
-                  padding: "var(--seek-space-2) var(--seek-space-4)",
-                  borderRadius: "var(--seek-radius-md)",
-                  border: "1px solid var(--seek-color-border)",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
                   cursor: "pointer",
                   backgroundColor: "transparent",
-                  color: "var(--seek-color-foreground)",
+                  color: "#475569",
+                  fontWeight: "600",
+                  fontSize: "13px",
+                  transition: "all 0.2s",
                 }}
               >
                 {activeDialog.cancelLabel || "Үгүй"}
@@ -111,12 +118,15 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                   closeDialog();
                 }}
                 style={{
-                  padding: "var(--seek-space-2) var(--seek-space-4)",
-                  borderRadius: "var(--seek-radius-md)",
-                  backgroundColor: "var(--seek-color-primary)",
-                  color: "var(--seek-color-primary-foreground)",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
                   border: "none",
                   cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "13px",
+                  transition: "all 0.2s",
                 }}
               >
                 {activeDialog.confirmLabel || "Тийм"}

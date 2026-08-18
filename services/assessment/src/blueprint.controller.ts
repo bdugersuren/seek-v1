@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
 import { BlueprintService } from "./blueprint.service";
 import { CreateBlueprintDto, UpdateBlueprintDto } from "./dto/blueprint.dto";
 
@@ -12,8 +12,8 @@ export class BlueprintController {
   }
 
   @Get()
-  async findAll() {
-    return await this.blueprintService.findAll();
+  async findAll(@Query("assessmentContextId") contextId?: string) {
+    return await this.blueprintService.findAll(contextId);
   }
 
   @Get(":id")

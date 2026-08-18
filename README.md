@@ -18,7 +18,7 @@ curl -X POST http://quiz-api.seek.mn/api/v1/execution/mock-trigger-unlock/mock-a
 ```
 
 
-
+docker exec seek-assessment npm run seed
 
 #### Зорилго:
 

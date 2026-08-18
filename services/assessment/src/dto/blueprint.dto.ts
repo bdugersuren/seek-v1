@@ -7,12 +7,16 @@ export class CreateBlueprintSectionDto {
 
 export class CreateBlueprintDto {
   name: string;
+  code?: string;
   description?: string;
+  assessmentContextId?: string;
   sections: CreateBlueprintSectionDto[];
 }
 
 export class UpdateBlueprintDto {
   name?: string;
+  code?: string;
   description?: string;
+  assessmentContextId?: string;
   sections?: CreateBlueprintSectionDto[];
 }

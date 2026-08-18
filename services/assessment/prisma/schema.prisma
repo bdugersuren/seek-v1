@@ -541,6 +541,21 @@ model CognitiveFramework {
   @@map("cognitive_framework")
 }
 
+
+
+model CognitiveLevelClassification {
+  id                   String                        @id @default(cuid())
+  classificationId     String
+  cognitiveLevelId     String
+  weight               Float  @default(0.1)  
+  
+  cognitiveLevel      CognitiveLevel  @relation(fields:[cognitiveLevelId],references: [id])
+  classification      TopicQuestionClassification  @relation(fields:[classificationId],references: [id])
+
+  @@unique([classificationId, cognitiveLevelId])
+}
+
+
 model CognitiveLevel {
   id                   String                        @id @default(cuid())
   cognitiveFrameworkId String
@@ -555,7 +570,8 @@ model CognitiveLevel {
   framework            CognitiveFramework            @relation(fields: [cognitiveFrameworkId], references: [id])
   parent               CognitiveLevel?               @relation("CognitiveTree", fields: [parentId], references: [id])
   children             CognitiveLevel[]              @relation("CognitiveTree")
-  classifications      TopicQuestionClassification[]
+  
+  CognitiveLevelClassifications      CognitiveLevelClassification[]
 
   @@unique([cognitiveFrameworkId, code])
   @@unique([cognitiveFrameworkId, rank])
@@ -682,7 +698,6 @@ model TopicQuestionClassification {
   questionId                 String
   assessmentContextId        String
   difficultyLevelId          String
-  cognitiveLevelId           String
   validatedQuestionVersionId String?
   classificationStatus       ClassificationStatus      @default(REVIEW_REQUIRED)
   validityStatusReason       String?
@@ -704,10 +719,11 @@ model TopicQuestionClassification {
   question                   Question                  @relation(fields: [questionId], references: [id])
   assessmentContext          AssessmentContext         @relation(fields: [assessmentContextId], references: [id])
   difficultyLevel            DifficultyLevel           @relation(fields: [difficultyLevelId], references: [id])
-  cognitiveLevel             CognitiveLevel            @relation(fields: [cognitiveLevelId], references: [id])
   validatedQuestionVersion   QuestionVersion?          @relation("ValidatedQuestionVersion", fields: [validatedQuestionVersionId], references: [id])
+  
   competences                TopicQuestionCompetence[]
   revisionQuestions          QuizRevisionQuestion[]
+  cognitiveLevels            CognitiveLevelClassification[]
 
   @@unique([topicId, questionId, assessmentContextId, validatedQuestionVersionId])
   @@index([assessmentContextId, topicId, difficultyLevelId])

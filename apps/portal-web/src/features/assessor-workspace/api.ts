@@ -100,12 +100,12 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
   const topicMappings: QuestionTopicMapping[] = (q.classifications || []).map((c: any) => ({
     topicId: c.topicId,
     topicName: c.topic?.title || c.topic?.name || c.topicId,
-    bloomLevel: (c.cognitiveLevel?.code || c.cognitiveLevelId || "apply") as any,
+    bloomLevel: (c.cognitiveLevels?.[0]?.cognitiveLevel?.code || c.cognitiveLevel?.code || c.cognitiveLevelId || "apply") as any,
     competencyType: "knowledge" as any,
     difficulty: (c.difficultyLevel?.code || c.difficultyLevelId || "medium") as any,
     weight: Number(c.weight || 1),
     assessmentContextId: c.assessmentContextId,
-    cognitiveFrameworkId: c.cognitiveLevel?.cognitiveFrameworkId || c.assessmentContext?.cognitiveFrameworkId,
+    cognitiveFrameworkId: c.cognitiveLevels?.[0]?.cognitiveLevel?.cognitiveFrameworkId || c.cognitiveLevel?.cognitiveFrameworkId || c.assessmentContext?.cognitiveFrameworkId,
     difficultyScaleId: c.difficultyLevel?.difficultyScaleId || c.assessmentContext?.difficultyScaleId,
     competenceFrameworkId: c.assessmentContext?.competenceFrameworkId,
     audienceTypeId: c.assessmentContext?.audienceTypeId,
@@ -114,6 +114,11 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
       competenceId: tc.competenceId,
       weight: Number(tc.weight || 1),
       name: tc.competence?.name || tc.competenceId,
+    })),
+    cognitiveLevels: (c.cognitiveLevels || []).map((cl: any) => ({
+      cognitiveLevelId: cl.cognitiveLevelId,
+      weight: Number(cl.weight || 1),
+      name: cl.cognitiveLevel?.name || cl.cognitiveLevelId,
     })),
   }));
 
@@ -131,7 +136,13 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
 
   const options: QuestionOption[] = rawOptions.map((o: any, idx: number) => ({
     id: o.id || o.optionKey || o.code || `opt_${idx + 1}`,
-    label: o.label || o.optionKey || o.code || String.fromCharCode(65 + idx),
+    label: (() => {
+      if (actV.type === "ORDERING") {
+        const cleanL = (o.label || "").trim();
+        return (cleanL.startsWith("O") || /^\d+$/.test(cleanL)) ? cleanL : `O${idx + 1}`;
+      }
+      return o.label || o.optionKey || o.code || String.fromCharCode(65 + idx);
+    })(),
     optionKey: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
     value: o.value || o.content || o.body || "",
     content: o.value || o.content || o.body || "",
@@ -193,6 +204,7 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
         .join(", ") || "-";
     })(),
     rubric: actV.rubric || actV.payload?.rubric || [],
+    tags: q.tags || actV.tags || [],
     explanation,
     feedback: explanation,
     feedbackCorrect: actV.feedbackCorrect || "",
@@ -249,6 +261,7 @@ function mapToBlueprint(b: any): Blueprint {
     description: b.description || "",
     topicId: "fractions",
     topicName: "Fractions",
+    assessmentContextId: b.assessmentContextId,
     passScore: 70.0,
     totalDurationMinutes: 60,
     status: "ready",
@@ -303,23 +316,27 @@ export async function fetchQuestions(filters?: any): Promise<QuestionBankItem[]>
 }
 
 function mapToCreateQuestionDto(data: any) {
-  const payloadOptions = (data.options || []).map((o: any, index: number) => ({
-    code: o.optionKey || o.id || o.label || `opt_${index + 1}`,
-    optionKey: o.optionKey || o.id || o.label || `opt_${index + 1}`,
-    value: o.value !== undefined ? o.value : (o.content || ""),
-    body: o.value !== undefined ? o.value : (o.content || ""),
-    isCorrect: o.isCorrect || false,
-    score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.defaultMaxScore || data.points || 1) : 0)),
-    negativeScore: o.negativeScore !== undefined ? Number(o.negativeScore) : 0,
-    matchValue: o.matchValue || "",
-    matchRules: {
+  const payloadOptions = (data.options || []).map((o: any, index: number) => {
+    const finalVal = o.content !== undefined ? o.content : (o.value || "");
+    return {
+      code: o.optionKey || o.id || o.label || `opt_${index + 1}`,
+      optionKey: o.optionKey || o.id || o.label || `opt_${index + 1}`,
+      label: o.label || "",
+      value: finalVal,
+      body: finalVal,
+      isCorrect: o.isCorrect || false,
+      score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.defaultMaxScore || data.points || 1) : 0)),
+      negativeScore: o.negativeScore !== undefined ? Number(o.negativeScore) : 0,
       matchValue: o.matchValue || "",
-    },
-    metadata: {
-      acceptedValues: o.acceptedValues || [],
-      ...(o.metadata || {})
-    }
-  }));
+      matchRules: {
+        matchValue: o.matchValue || "",
+      },
+      metadata: {
+        acceptedValues: o.acceptedValues || [],
+        ...(o.metadata || {})
+      }
+    };
+  });
 
   const scoringConfig = {
     ...(data.scoringConfig || {}),
@@ -367,9 +384,19 @@ function mapToCreateQuestionDto(data: any) {
       bloomLevel: m.bloomLevel,
       difficulty: m.difficulty,
       weight: m.weight !== undefined ? Number(m.weight) : 1.0,
+      assessmentContextId: m.assessmentContextId || null,
+      difficultyScaleId: m.difficultyScaleId || null,
+      cognitiveFrameworkId: m.cognitiveFrameworkId || null,
+      competenceFrameworkId: m.competenceFrameworkId || null,
+      audienceTypeId: m.audienceTypeId || null,
+      audienceLevelId: m.audienceLevelId || null,
       competencies: (m.competencies || []).map((c: any) => ({
         competenceId: c.competenceId || c.id,
         weight: c.weight !== undefined ? Number(c.weight) : 1.0,
+      })),
+      cognitiveLevels: (m.cognitiveLevels || []).map((cl: any) => ({
+        cognitiveLevelId: cl.cognitiveLevelId || cl.id,
+        weight: cl.weight !== undefined ? Number(cl.weight) : 1.0,
       })),
     })),
   };
@@ -444,8 +471,11 @@ export async function getQuestionByIdAsync(id: string): Promise<QuestionBankItem
   }
 }
 
-export async function fetchBlueprints(): Promise<Blueprint[]> {
-  const blueprints = await requestAssessmentJson<any[]>("/api/v1/assessment/blueprints");
+export async function fetchBlueprints(contextId?: string): Promise<Blueprint[]> {
+  const url = contextId 
+    ? `/api/v1/assessment/blueprints?assessmentContextId=${encodeURIComponent(contextId)}`
+    : "/api/v1/assessment/blueprints";
+  const blueprints = await requestAssessmentJson<any[]>(url);
   return blueprints.map(mapToBlueprint);
 }
 
@@ -455,6 +485,7 @@ export async function createBlueprint(data: any): Promise<Blueprint> {
     body: JSON.stringify({
       name: data.name,
       description: data.description,
+      assessmentContextId: data.assessmentContextId,
       sections: (data.sections || []).map((s: any) => ({
         name: s.name,
         randomPickCount: Number(s.randomPickCount),
@@ -472,6 +503,7 @@ export async function updateBlueprint(id: string, data: any): Promise<Blueprint>
     body: JSON.stringify({
       name: data.name,
       description: data.description,
+      assessmentContextId: data.assessmentContextId,
       sections: (data.sections || []).map((s: any) => ({
         name: s.name,
         randomPickCount: Number(s.randomPickCount),
@@ -492,8 +524,11 @@ export async function getBlueprintByIdAsync(id: string): Promise<Blueprint | nul
   }
 }
 
-export async function fetchQuizzes(): Promise<Quiz[]> {
-  const quizzes = await requestAssessmentJson<any[]>("/api/v1/assessment/quizzes");
+export async function fetchQuizzes(contextId?: string): Promise<Quiz[]> {
+  const url = contextId
+    ? `/api/v1/assessment/quizzes?assessmentContextId=${contextId}`
+    : "/api/v1/assessment/quizzes";
+  const quizzes = await requestAssessmentJson<any[]>(url);
   return quizzes.map(mapToQuiz);
 }
 
@@ -628,8 +663,11 @@ export function resolveQuizQuestionSet(quiz: Quiz) {
   });
 }
 
-export async function fetchTopics(): Promise<any[]> {
-  return await requestAssessmentJson<any[]>("/api/v1/assessment/questions/metadata/topics");
+export async function fetchTopics(assessmentContextId?: string): Promise<any[]> {
+  const url = assessmentContextId
+    ? `/api/v1/assessment/questions/metadata/topics?assessmentContextId=${assessmentContextId}`
+    : "/api/v1/assessment/questions/metadata/topics";
+  return await requestAssessmentJson<any[]>(url);
 }
 
 export async function createTopic(dto: any): Promise<any> {
@@ -674,6 +712,10 @@ export async function deleteDifficultyLevel(id: string): Promise<void> {
   await requestAssessmentJson<void>(`/api/v1/assessment/questions/metadata/difficulty-levels/${id}`, {
     method: "DELETE",
   });
+}
+
+export async function fetchCognitiveFrameworks(): Promise<any[]> {
+  return await requestAssessmentJson<any[]>("/api/v1/assessment/questions/metadata/cognitive-frameworks");
 }
 
 export async function fetchCognitiveLevels(): Promise<any[]> {

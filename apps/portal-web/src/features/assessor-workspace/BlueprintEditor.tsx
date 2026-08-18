@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -135,9 +135,11 @@ const blueprintTopicTree: TopicTreeNode[] = [
 export function BlueprintEditor({
   blueprint = defaultBlueprint,
   mode = "edit",
+  contextId,
 }: {
   blueprint?: Blueprint;
   mode?: "new" | "edit";
+  contextId?: string;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -145,14 +147,19 @@ export function BlueprintEditor({
   const [submitted, setSubmitted] = useState(false);
   const [poolSectionId, setPoolSectionId] = useState<string | null>(null);
 
+  const activeContextId = contextId || blueprint.assessmentContextId;
+
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const data = await fetchQuestions();
+        const data = await fetchQuestions({ 
+          ownerUserId: "mock-assessor", 
+          assessmentContextId: activeContextId 
+        });
         if (active) {
-          setQuestions(data);
+          setQuestions(data || []);
         }
       } catch (err) {
         console.error("Failed to load questions in BlueprintEditor", err);
@@ -160,7 +167,53 @@ export function BlueprintEditor({
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [activeContextId]);
+
+  const [rawTopics, setRawTopics] = useState<any[]>([]);
+  useEffect(() => {
+    let active = true;
+    async function loadTopics() {
+      if (activeContextId) {
+        try {
+          const tData = await fetchTopics(activeContextId);
+          if (active) setRawTopics(tData || []);
+        } catch (err) {
+          console.error("Failed to load topics in BlueprintEditor", err);
+        }
+      }
+    }
+    loadTopics();
+    return () => { active = false; };
+  }, [activeContextId]);
+
+  const dynamicTopicTree = useMemo(() => {
+    if (!rawTopics || rawTopics.length === 0) return [];
+    const nodesMap: Record<string, TopicTreeNode> = {};
+    const roots: TopicTreeNode[] = [];
+
+    rawTopics.forEach((t) => {
+      nodesMap[t.id] = {
+        id: t.id,
+        label: t.title || t.name,
+        children: [],
+      };
+    });
+
+    rawTopics.forEach((t) => {
+      const node = nodesMap[t.id];
+      if (t.parentId && nodesMap[t.parentId]) {
+        nodesMap[t.parentId].children = nodesMap[t.parentId].children || [];
+        nodesMap[t.parentId].children!.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return roots;
+  }, [rawTopics]);
+
+  const finalTopicTree = activeContextId && dynamicTopicTree.length > 0 ? dynamicTopicTree : blueprintTopicTree;
+
   const [state, setState] = useState<BlueprintWizardState>(() =>
     buildInitialState(mode, blueprint),
   );
@@ -180,6 +233,7 @@ export function BlueprintEditor({
         passScore: state.passScore,
         totalDurationMinutes: state.totalDurationMinutes,
         status: state.status,
+        assessmentContextId: activeContextId,
         sections: state.sections,
         updatedAt: new Date().toISOString(),
       };
@@ -190,7 +244,11 @@ export function BlueprintEditor({
         await createBlueprint(bpData);
       }
       showToast("Blueprint амжилттай хадгалагдлаа.", "success");
-      router.push("/assessor/blueprints");
+      if (activeContextId) {
+        router.push(`/assessor/context/${activeContextId}/blueprints`);
+      } else {
+        router.push("/assessor/blueprints");
+      }
     } catch (err: any) {
       showToast("Blueprint хадгалахад алдаа гарлаа.", "danger");
     }
@@ -212,6 +270,7 @@ export function BlueprintEditor({
         passScore: state.passScore,
         totalDurationMinutes: state.totalDurationMinutes,
         status: "ready",
+        assessmentContextId: activeContextId,
         sections: state.sections,
         updatedAt: new Date().toISOString(),
       };
@@ -222,7 +281,11 @@ export function BlueprintEditor({
         await createBlueprint(bpData);
       }
       showToast("Батлуулахаар амжилттай илгээлээ.", "success");
-      router.push("/assessor/blueprints");
+      if (activeContextId) {
+        router.push(`/assessor/context/${activeContextId}/blueprints`);
+      } else {
+        router.push("/assessor/blueprints");
+      }
     } catch (err: any) {
       showToast("Илгээхэд алдаа гарлаа.", "danger");
     }
@@ -234,7 +297,7 @@ export function BlueprintEditor({
         <div className="flex flex-col gap-seek-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-seek-3">
             <Link
-              href="/assessor/blueprints"
+              href={activeContextId ? `/assessor/context/${activeContextId}/blueprints` : "/assessor/blueprints"}
               className="grid h-11 w-11 place-items-center rounded-seek-md border border-border bg-surface shadow-seek-sm hover:bg-surface-hover"
               aria-label="Буцах"
             >
@@ -260,7 +323,13 @@ export function BlueprintEditor({
         <BlueprintTemplateAside state={state} validationReady={validation.ready} submitted={submitted} />
         <main className="space-y-seek-4">
           {step === 1 && <GeneralStep state={state} setState={setPartial} />}
-          {step === 2 && <ClassificationStep mappings={state.topicMappings} setMappings={(topicMappings) => setPartial({ topicMappings })} />}
+          {step === 2 && (
+            <ClassificationStep
+              mappings={state.topicMappings}
+              setMappings={(topicMappings) => setPartial({ topicMappings })}
+              topicTree={finalTopicTree}
+            />
+          )}
           {step === 3 && (
             <SectionsStep
               sections={state.sections}
@@ -357,9 +426,11 @@ function GeneralStep({
 function ClassificationStep({
   mappings,
   setMappings,
+  topicTree,
 }: {
   mappings: BlueprintTopicMapping[];
   setMappings: (mappings: BlueprintTopicMapping[]) => void;
+  topicTree: TopicTreeNode[];
 }) {
   const [expandedTopics, setExpandedTopics] = useState<string[]>([
     "quiz",
@@ -408,7 +479,7 @@ function ClassificationStep({
           <Badge variant="secondary">{mappings.length}</Badge>
         </div>
         <TopicExplorerTree
-          nodes={blueprintTopicTree}
+          nodes={topicTree}
           selected={selected}
           expanded={expandedTopics}
           onToggle={toggleTopic}

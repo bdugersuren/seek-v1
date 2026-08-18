@@ -705,4 +705,69 @@ export class AuthService {
       ].join("\n"),
     });
   }
+
+  async adminListUsers() {
+    const users = await this.prisma.userAccount.findMany({
+      include: {
+        roles: {
+          include: {
+            role: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    return users.map(u => ({
+      id: u.id,
+      email: u.email,
+      isEmailVerified: u.isEmailVerified,
+      phoneNumber: u.phoneNumber,
+      isPhoneVerified: u.isPhoneVerified,
+      status: u.status,
+      createdAt: u.createdAt,
+      roles: u.roles.map((r: any) => r.role.name),
+    }));
+  }
+
+  async adminUpdateUserStatus(userId: string, status: string) {
+    const allowedStatus = ["ACTIVE", "INACTIVE", "DELETED"];
+    if (!allowedStatus.includes(status)) {
+      throw new Error("Буруу статус байна.");
+    }
+    const user = await this.prisma.userAccount.update({
+      where: { id: userId },
+      data: { status },
+    });
+    return { success: true, userId: user.id, status: user.status };
+  }
+
+  async adminUpdateUserRole(userId: string, roleName: string) {
+    const role = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+    if (!role) {
+      throw new Error("Дүр олдсонгүй.");
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({
+        where: { userAccountId: userId },
+      });
+      await tx.userRole.create({
+        data: {
+          userAccountId: userId,
+          roleId: role.id,
+        },
+      });
+    });
+
+    return { success: true, userId, role: roleName };
+  }
+
+  async adminDeleteUser(userId: string) {
+    await this.prisma.userAccount.delete({
+      where: { id: userId },
+    });
+    return { success: true };
+  }
 }

@@ -871,6 +871,22 @@ export class ProfileService {
       uploadedAt: d.uploadedAt.toISOString(),
     };
   }
+
+  async getProfilesByUserIds(userIds: string[]) {
+    const profiles = await this.prisma.userProfile.findMany({
+      where: {
+        userId: { in: userIds },
+      },
+      select: {
+        userId: true,
+        firstName: true,
+        lastName: true,
+        displayName: true,
+        phoneNumber: true,
+      },
+    });
+    return profiles;
+  }
 }
 
 function normalizeOptional(value: any, maxLength: number): string | null {

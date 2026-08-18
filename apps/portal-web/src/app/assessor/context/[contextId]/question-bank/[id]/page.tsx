@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getBlueprintByIdAsync } from "@/features/assessor-workspace/api";
-import type { Blueprint } from "@/features/assessor-workspace/types";
-import { BlueprintEditor } from "@/features/assessor-workspace/BlueprintEditor";
+import { getQuestionByIdAsync } from "@/features/assessor-workspace/api";
+import type { QuestionBankItem } from "@/features/assessor-workspace/types";
+import { QuestionEditor } from "@/features/assessor-workspace/QuestionEditor";
 
-export default function EditBlueprintPage({
+export default function EditQuestionPage({
   params,
 }: {
-  params: { id: string };
+  params: { id: string; contextId: string };
 }) {
-  const id = decodeURIComponent(params.id);
-  const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
+  const [question, setQuestion] = useState<QuestionBankItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,19 +18,19 @@ export default function EditBlueprintPage({
     async function load() {
       try {
         setLoading(true);
-        const data = await getBlueprintByIdAsync(id);
+        const data = await getQuestionByIdAsync(decodeURIComponent(params.id));
         if (active) {
-          setBlueprint(data);
+          setQuestion(data);
         }
       } catch (err) {
-        console.error("Failed to load blueprint", err);
+        console.error("Failed to load question", err);
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, [id]);
+  }, [params.id]);
 
   if (loading) {
     return (
@@ -43,15 +42,21 @@ export default function EditBlueprintPage({
     );
   }
 
-  if (!blueprint) {
+  if (!question) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted-background">
         <div className="text-center">
-          <p className="text-lg font-semibold text-danger">Blueprint олдсонгүй.</p>
+          <p className="text-lg font-semibold text-danger">Асуулт олдсонгүй.</p>
         </div>
       </div>
     );
   }
 
-  return <BlueprintEditor blueprint={blueprint} mode="edit" />;
+  return (
+    <QuestionEditor
+      mode="edit"
+      question={question}
+      backUrl={`/assessor/context/${params.contextId}/question-bank`}
+    />
+  );
 }

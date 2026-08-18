@@ -209,6 +209,16 @@ export class AppController {
     const ua = getUserAgent(req);
     await this.profileService.deleteDocument(userId, documentId, ip, ua);
   }
+
+  @Post("profile/admin/profiles/by-ids")
+  @HttpCode(HttpStatus.OK)
+  async getProfilesByIds(
+    @Req() req: Request,
+    @Body() dto: { userIds: string[] },
+  ) {
+    checkAdminRole(req);
+    return this.profileService.getProfilesByUserIds(dto.userIds);
+  }
 }
 
 function getUserId(req: Request): string {

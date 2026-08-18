@@ -26,7 +26,7 @@ export function OrderingBuilder({
     const temp = nextOptions[index];
     nextOptions[index] = nextOptions[targetIndex];
     nextOptions[targetIndex] = temp;
-    onChange(nextOptions.map((o, idx) => ({ ...o, label: String(idx + 1) })));
+    onChange(nextOptions.map((o, idx) => ({ ...o, label: `O${idx + 1}` })));
   };
 
   const addStep = () => {
@@ -35,7 +35,7 @@ export function OrderingBuilder({
       ...options,
       {
         id: `ord_${Date.now()}_${nextIndex}`,
-        label: String(nextIndex),
+        label: `O${nextIndex}`,
         content: "",
         isCorrect: true,
         score: 1,
@@ -49,7 +49,7 @@ export function OrderingBuilder({
     onChange(
       options
         .filter((_, idx) => idx !== index)
-        .map((o, idx) => ({ ...o, label: String(idx + 1) }))
+        .map((o, idx) => ({ ...o, label: `O${idx + 1}` }))
     );
   };
 
@@ -67,11 +67,13 @@ export function OrderingBuilder({
           >
             <div className="flex">
               <div className="w-12 flex items-center justify-center font-bold text-base text-white bg-amber-500 flex-shrink-0 select-none">
-                {index + 1}
+                {option.label || `O${index + 1}`}
               </div>
               <div className="flex-1 p-seek-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-amber-900">Алхам {index + 1}</span>
+                  <span className="text-xs font-bold text-amber-900">
+                    {/* Эрэмбэ {option.label || `O${index + 1}`} */}
+                    </span>
                   <div className="flex items-center gap-1">
                     <Button
                       type="button"
@@ -95,8 +97,9 @@ export function OrderingBuilder({
                     >
                       ▼
                     </Button>
+                    <span className="text-[10px] font-semibold text-slate-500">Оноо:</span>
                     <div className="flex items-center gap-1 bg-slate-50 border border-border rounded-seek-md px-1.5 h-7 w-24">
-                      <span className="text-[10px] font-semibold text-slate-500">Оноо:</span>
+                      
                       <Input
                         className="w-full border-0 bg-transparent p-0 text-center text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
                         type="number"

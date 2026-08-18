@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
 import { QuizService } from "./quiz.service";
 import { CreateQuizDto, UpdateQuizDto } from "./dto/quiz.dto";
 
@@ -12,8 +12,8 @@ export class QuizController {
   }
 
   @Get()
-  async findAll() {
-    return await this.quizService.findAll();
+  async findAll(@Query("assessmentContextId") contextId?: string) {
+    return await this.quizService.findAll(contextId);
   }
 
   @Get(":id")

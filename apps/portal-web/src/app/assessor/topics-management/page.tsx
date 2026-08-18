@@ -8,12 +8,14 @@ import {
   Text,
   Icons,
   useToast,
+  Select,
 } from '@seek/ui';
 import {
   fetchTopics,
   createTopic,
   updateTopic,
   deleteTopic,
+  fetchAssessmentContexts,
 } from '@/features/assessor-workspace/api';
 
 interface TopicNode {
@@ -32,6 +34,10 @@ export default function TopicsManagementPage() {
   // Сонгогдсон сэдэв (засах эсвэл дэд сэдэв нэмэхэд зориулав)
   const [selectedTopic, setSelectedTopic] = useState<any | null>(null);
 
+  // Contexts states
+  const [contexts, setContexts] = useState<any[]>([]);
+  const [selectedContextId, setSelectedContextId] = useState<string>("");
+
   // Form states
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState('');
@@ -40,10 +46,10 @@ export default function TopicsManagementPage() {
   const [saving, setSaving] = useState(false);
 
   // Ачаалах функц
-  const loadTopics = async () => {
+  const loadTopics = async (contextId?: string) => {
     setLoading(true);
     try {
-      const data = await fetchTopics();
+      const data = await fetchTopics(contextId);
       setTopics(data);
     } catch (err: any) {
       console.error(err);
@@ -54,8 +60,26 @@ export default function TopicsManagementPage() {
   };
 
   useEffect(() => {
-    loadTopics();
+    const loadContexts = async () => {
+      try {
+        const data = await fetchAssessmentContexts();
+        setContexts(data || []);
+        if (data && data.length > 0) {
+          setSelectedContextId(data[0].id);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Үнэлгээний контекстийг татаж чадсангүй.", "danger");
+      }
+    };
+    loadContexts();
   }, []);
+
+  useEffect(() => {
+    if (selectedContextId) {
+      loadTopics(selectedContextId);
+    }
+  }, [selectedContextId]);
 
   // Хавтгай жагсаалтыг Мод (Tree) хэлбэрт оруулах
   const topicTree = useMemo(() => {
@@ -117,18 +141,20 @@ export default function TopicsManagementPage() {
           title: title.trim(),
           code: code.trim(),
           parentId: parentId,
+          assessmentContextId: selectedContextId,
         });
         showToast('Шинэ сэдэв амжилттай үүслээ.', 'success');
       } else {
         await updateTopic(selectedTopic.id, {
           title: title.trim(),
           parentId: parentId,
+          assessmentContextId: selectedContextId,
         });
         showToast('Сэдвийн мэдээлэл шинэчлэгдлээ.', 'success');
       }
       setIsCreating(false);
       setSelectedTopic(null);
-      loadTopics();
+      loadTopics(selectedContextId);
     } catch (err: any) {
       console.error(err);
       showToast(err.message || 'Сэдэв хадгалахад алдаа гарлаа.', 'danger');
@@ -147,7 +173,7 @@ export default function TopicsManagementPage() {
       await deleteTopic(id);
       showToast('Сэдвийг амжилттай устгалаа.', 'success');
       setSelectedTopic(null);
-      loadTopics();
+      loadTopics(selectedContextId);
     } catch (err: any) {
       console.error(err);
       showToast(err.message || 'Сэдэв устгаж чадсангүй.', 'danger');
@@ -221,6 +247,18 @@ export default function TopicsManagementPage() {
         </Button>
       </div>
 
+      <div className="max-w-xs">
+        <Text className="font-semibold text-slate-700 text-xs mb-seek-1">Үнэлгээний контекст</Text>
+        <Select
+          value={selectedContextId}
+          onChange={(e) => setSelectedContextId(e.target.value)}
+          options={contexts.map((c) => ({
+            value: c.id,
+            label: c.name,
+          }))}
+        />
+      </div>
+
       <div className="grid gap-seek-6 md:grid-cols-2">
         {/* Зүүн тал: Сэдвүүдийн мод */}
         <Card className="p-seek-5 space-y-seek-4">
@@ -229,7 +267,7 @@ export default function TopicsManagementPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={loadTopics}
+              onClick={() => loadTopics(selectedContextId)}
               className="h-7 w-7 p-0"
               title="Шинэчлэх"
             >

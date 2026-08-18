@@ -16,7 +16,22 @@ export class QuestionService {
       return;
     }
 
-    // 1. Cascade-оор хуучин хамаарлуудыг устгана
+    // 1. Cascade-оор хуучин хамаарлуудыг устгана (Foreign key зөрчигдөхөөс сэргийлнэ)
+    const existingClassifications = await tx.topicQuestionClassification.findMany({
+      where: { questionId },
+      select: { id: true },
+    });
+    const classificationIds = existingClassifications.map(c => c.id);
+
+    if (classificationIds.length > 0) {
+      await tx.cognitiveLevelClassification.deleteMany({
+        where: { classificationId: { in: classificationIds } },
+      });
+      await tx.topicQuestionCompetence.deleteMany({
+        where: { classificationId: { in: classificationIds } },
+      });
+    }
+
     await tx.topicQuestionClassification.deleteMany({
       where: { questionId },
     });
@@ -49,6 +64,9 @@ export class QuestionService {
     }
 
     for (const mapping of topicMappings) {
+      if (!mapping.topicId || mapping.topicId === "unmapped" || mapping.topicId === "general") {
+        continue;
+      }
       let cogLevel = dbCogLevels.find(c => c.id === mapping.bloomLevel || c.code.toLowerCase() === mapping.bloomLevel.toLowerCase());
       if (!cogLevel) {
         cogLevel = dbCogLevels[0];
@@ -106,15 +124,46 @@ export class QuestionService {
         targetContextId = context.id;
       }
 
+      let cognitiveLevelsCreate: any[] = [];
+      if (mapping.cognitiveLevels && Array.isArray(mapping.cognitiveLevels) && mapping.cognitiveLevels.length > 0) {
+        cognitiveLevelsCreate = mapping.cognitiveLevels.map((cl: any) => ({
+          cognitiveLevelId: cl.cognitiveLevelId,
+          weight: cl.weight !== undefined ? Number(cl.weight) : 1.0,
+        }));
+      } else {
+        let cogLevel = dbCogLevels.find(c => c.id === mapping.bloomLevel || c.code.toLowerCase() === mapping.bloomLevel.toLowerCase());
+        if (!cogLevel) {
+          cogLevel = dbCogLevels[0];
+        }
+        if (cogLevel) {
+          cognitiveLevelsCreate.push({
+            cognitiveLevelId: cogLevel.id,
+            weight: 1.0,
+          });
+        }
+      }
+
+      // Сэдвийн санд уг сэдэв байгаа эсэхийг шалгах
+      const topicExists = await tx.topic.findUnique({
+        where: { id: mapping.topicId },
+      });
+      if (!topicExists) {
+        throw new BadRequestException(`Сэдвийн санд '${mapping.topicId}' кодтой сэдэв олдсонгүй.`);
+      }
+
       const classification = await tx.topicQuestionClassification.create({
         data: {
           questionId,
           topicId: mapping.topicId,
           assessmentContextId: targetContextId,
           difficultyLevelId: diffLevel.id,
-          cognitiveLevelId: cogLevel.id,
           weight: mapping.weight !== undefined ? new Prisma.Decimal(mapping.weight) : new Prisma.Decimal(1.0),
           createdBy: "system_author",
+          cognitiveLevels: {
+            createMany: {
+              data: cognitiveLevelsCreate,
+            },
+          },
         },
       });
 
@@ -260,7 +309,11 @@ export class QuestionService {
           include: {
             topic: true,
             difficultyLevel: true,
-            cognitiveLevel: true,
+            cognitiveLevels: {
+              include: {
+                cognitiveLevel: true,
+              },
+            },
             competences: {
               include: {
                 competence: true,
@@ -310,7 +363,11 @@ export class QuestionService {
           include: {
             topic: true,
             difficultyLevel: true,
-            cognitiveLevel: true,
+            cognitiveLevels: {
+              include: {
+                cognitiveLevel: true,
+              },
+            },
             competences: {
               include: {
                 competence: true,
@@ -562,8 +619,9 @@ export class QuestionService {
     });
   }
 
-  async getTopics() {
+  async getTopics(assessmentContextId?: string) {
     return await this.prisma.topic.findMany({
+      where: assessmentContextId ? { assessmentContextId } : undefined,
       orderBy: { path: "asc" },
     });
   }
@@ -581,11 +639,15 @@ export class QuestionService {
   }
 
   // Topics CRUD
-  async createTopic(dto: { title: string; parentId?: string; code?: string; path?: string }) {
+  async createTopic(dto: { title: string; parentId?: string; code?: string; path?: string; assessmentContextId?: string }) {
     const code = dto.code || `TOPIC-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     const path = dto.path || code.toLowerCase();
-    const context = await this.prisma.assessmentContext.findFirst();
-    const assessmentContextId = context?.id || null;
+    
+    let assessmentContextId = dto.assessmentContextId;
+    if (!assessmentContextId) {
+      const context = await this.prisma.assessmentContext.findFirst();
+      assessmentContextId = context?.id || null;
+    }
 
     return await this.prisma.topic.create({
       data: {
@@ -598,7 +660,7 @@ export class QuestionService {
     });
   }
 
-  async updateTopic(id: string, dto: { title?: string; parentId?: string; path?: string; isActive?: boolean }) {
+  async updateTopic(id: string, dto: { title?: string; parentId?: string; path?: string; isActive?: boolean; assessmentContextId?: string }) {
     return await this.prisma.topic.update({
       where: { id },
       data: {
@@ -606,6 +668,7 @@ export class QuestionService {
         parentId: dto.parentId !== undefined ? dto.parentId : undefined,
         path: dto.path,
         isActive: dto.isActive,
+        assessmentContextId: dto.assessmentContextId,
       },
     });
   }
@@ -617,15 +680,21 @@ export class QuestionService {
   }
 
   // Difficulty Levels CRUD
-  async createDifficultyLevel(dto: { name: string; code?: string; rank: number }) {
+  async createDifficultyLevel(dto: { name: string; code?: string; rank: number; difficultyScaleId?: string }) {
     const code = dto.code || `DIFF-${dto.name.toUpperCase().replace(/[^A-Z0-9-]/g, "-")}`;
-    const scale = await this.prisma.difficultyScale.findFirst();
-    if (!scale) {
-      throw new BadRequestException("No difficulty scale found in DB");
+    
+    let scaleId = dto.difficultyScaleId;
+    if (!scaleId) {
+      const scale = await this.prisma.difficultyScale.findFirst();
+      if (!scale) {
+        throw new BadRequestException("No difficulty scale found in DB");
+      }
+      scaleId = scale.id;
     }
+
     return await this.prisma.difficultyLevel.create({
       data: {
-        difficultyScaleId: scale.id,
+        difficultyScaleId: scaleId,
         code,
         name: dto.name,
         rank: Number(dto.rank),
@@ -633,13 +702,14 @@ export class QuestionService {
     });
   }
 
-  async updateDifficultyLevel(id: string, dto: { name?: string; rank?: number; isActive?: boolean }) {
+  async updateDifficultyLevel(id: string, dto: { name?: string; rank?: number; isActive?: boolean; difficultyScaleId?: string }) {
     return await this.prisma.difficultyLevel.update({
       where: { id },
       data: {
         name: dto.name,
         rank: dto.rank !== undefined ? Number(dto.rank) : undefined,
         isActive: dto.isActive,
+        difficultyScaleId: dto.difficultyScaleId,
       },
     });
   }
@@ -727,12 +797,26 @@ export class QuestionService {
     });
   }
 
-  async updateAssessmentContext(id: string, dto: { name?: string; isActive?: boolean }) {
+  async updateAssessmentContext(
+    id: string,
+    dto: {
+      name?: string;
+      isActive?: boolean;
+      audienceTypeId?: string;
+      difficultyScaleId?: string;
+      cognitiveFrameworkId?: string;
+      competenceFrameworkId?: string;
+    }
+  ) {
     return await this.prisma.assessmentContext.update({
       where: { id },
       data: {
         name: dto.name,
         isActive: dto.isActive,
+        audienceTypeId: dto.audienceTypeId,
+        difficultyScaleId: dto.difficultyScaleId,
+        cognitiveFrameworkId: dto.cognitiveFrameworkId,
+        competenceFrameworkId: dto.competenceFrameworkId,
       },
     });
   }
@@ -741,6 +825,11 @@ export class QuestionService {
     return await this.prisma.assessmentContext.delete({
       where: { id },
     });
+  }
+
+  // CognitiveFramework metadata
+  async getCognitiveFrameworks() {
+    return await this.prisma.cognitiveFramework.findMany();
   }
 
   // DifficultyScale CRUD

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Button, Icons, Text, useToast } from "@seek/ui";
 import { QuestionPreviewModal } from "./QuestionPreviewModal";
 import {
@@ -50,12 +50,15 @@ export function QuestionEditor({
   mode = "edit",
   questionCode,
   question,
+  backUrl = "/assessor/question-bank",
 }: {
   mode?: "new" | "edit";
   questionCode?: string;
   question?: QuestionBankItem;
+  backUrl?: string;
 }) {
   const router = useRouter();
+  const params = useParams();
   const { showToast } = useToast();
   
   // Өгөгдсөн source асуултыг тодорхойлох
@@ -69,15 +72,15 @@ export function QuestionEditor({
   const [validationTouched, setValidationTouched] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [state, setState] = useState<QuestionWizardState>(() =>
-    buildInitialState(mode, sourceQuestion),
+    buildInitialState(mode, sourceQuestion, params?.contextId as string),
   );
 
   // sourceQuestion өөрчлөгдөх үед state-ийг шинэчлэх
   useEffect(() => {
     if (sourceQuestion && mode === "edit") {
-      setState(buildInitialState(mode, sourceQuestion));
+      setState(buildInitialState(mode, sourceQuestion, params?.contextId as string));
     }
-  }, [sourceQuestion, mode]);
+  }, [sourceQuestion, mode, params?.contextId]);
 
   const [topics, setTopics] = useState<any[]>([]);
   const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]);
@@ -96,8 +99,9 @@ export function QuestionEditor({
   useEffect(() => {
     async function loadMetadata() {
       try {
+        const contextId = params?.contextId as string;
         const [t, d, c, comp, ctxs, scales, compFws, audTypes, audLvs, cogFws] = await Promise.all([
-          fetchTopics(),
+          fetchTopics(contextId),
           fetchDifficultyLevels(),
           fetchCognitiveLevels(),
           fetchCompetenceTypes(),
@@ -123,6 +127,8 @@ export function QuestionEditor({
                                  (sourceQuestion as any)?.assessmentContextId;
         if (existingContextId) {
           setSelectedContextId(existingContextId);
+        } else if (contextId) {
+          setSelectedContextId(contextId);
         } else if (ctxs && ctxs.length > 0) {
           setSelectedContextId(ctxs[0].id);
         }
@@ -133,7 +139,7 @@ export function QuestionEditor({
       }
     }
     loadMetadata();
-  }, [sourceQuestion]);
+  }, [sourceQuestion, params?.contextId]);
 
   // ГҮЙЦЭТГЭЛИЙН САЙЖРУУЛАЛТ: Оноог state-д хадгалж useEffect-ээр давтагдахын оронд
   // useMemo ашиглаж derived state-ээр шууд тооцоолно.
@@ -209,7 +215,7 @@ export function QuestionEditor({
       case "SHORT_TEXT":
       case "CASE_BUNDLE":
       case "ESSAY":
-        const rubrics = state.rubric || [];
+        const rubrics = Array.isArray(state.rubric) ? state.rubric : [];
         maxScore = rubrics.reduce((sum: number, r: any) => sum + (Number(r.maxScore) || 0), 0);
         minScore = 0;
         break;
@@ -235,10 +241,13 @@ export function QuestionEditor({
     setState((current: QuestionWizardState) => ({ ...current, ...patch }));
 
   const goNext = () => {
-    if (step === 2 && state.mappings.length === 0) {
-      setValidationTouched(true);
-      showToast("Сэдвийн сангаас дор хаяж нэг дэд сэдэв сонгоно уу.", "warning");
-      return;
+    if (step === 2) {
+      const hasUnmapped = state.mappings.length === 0 || state.mappings.some((m) => !m.topicId || m.topicId === "unmapped" || m.topicId === "general");
+      if (hasUnmapped) {
+        setValidationTouched(true);
+        showToast("Сэдвийн сангаас дор хаяж нэг бодит сэдэв сонгоно уу.", "warning");
+        return;
+      }
     }
     setStep((current: WizardStep) => Math.min(3, current + 1) as WizardStep);
   };
@@ -249,10 +258,12 @@ export function QuestionEditor({
       const qData = buildQuestionFromState({ ...stateWithPoints, status: "draft" }, sourceQuestion);
       if (mode === "edit" && sourceQuestion?.id) {
         await updateQuestion(sourceQuestion.id, qData);
+        showToast("Ноорогийг амжилттай шинэчиллээ.", "success");
       } else {
         await createQuestion(qData);
+        showToast("Ноорог амжилттай хадгалагдлаа.", "success");
+        router.push(backUrl);
       }
-      showToast("Ноорог амжилттай хадгалагдлаа.", "success");
     } catch (err: any) {
       showToast("Хадгалахад алдаа гарлаа.", "danger");
     }
@@ -287,7 +298,7 @@ export function QuestionEditor({
         await createQuestion(qData);
       }
       showToast("Хадгалагдаж батлуулахаар илгээгдлээ.", "success");
-      router.push("/assessor/question-bank");
+      router.push(backUrl);
     } catch (err: any) {
       showToast("Илгээхэд алдаа гарлаа.", "danger");
     }
@@ -299,7 +310,7 @@ export function QuestionEditor({
         <div className="flex flex-col gap-seek-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-seek-3">
             <Link
-              href="/assessor/question-bank"
+              href={backUrl}
               className="grid h-11 w-11 place-items-center rounded-seek-md border border-border bg-surface shadow-seek-sm hover:bg-surface-hover"
               aria-label="Буцах"
             >
@@ -653,7 +664,7 @@ function RailButton({
  * @param source - Засварлагдаж буй асуултын эх өгөгдөл
  * @returns QuestionWizardState хэлбэртэй объект
  */
-function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): QuestionWizardState {
+function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, contextId?: string): QuestionWizardState {
   const question = mode === "edit" ? source ?? mockQuestionBank.find((item) => item.code === "MX-58") : undefined;
   const options = question?.options.length
     ? question.options.map((option) => ({
@@ -728,23 +739,38 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
     defaultMaxScore: question?.defaultMaxScore ?? question?.points ?? 3,
     defaultMinScore: question?.defaultMinScore ?? question?.minPoints ?? 0,
     defaultTimeSeconds: question?.defaultTimeSeconds ?? question?.durationSeconds ?? 60,
-    tags: question?.tags ?? ["мат", "комбинаторик"],
+    tags: question?.tags ?? [],
     mappings:
       question?.topicMappings && question.topicMappings.length > 0
-        ? question.topicMappings
+        ? question.topicMappings.map((m: any) => ({
+            ...m,
+            cognitiveLevels: m.cognitiveLevels || [],
+            competencies: m.competencies || []
+          }))
         : [
             {
-              topicId: question?.topicId ?? "algebra",
-              topicName: question?.topicName ?? "Шугаман алгебр",
-              bloomLevel: question?.bloomLevel ?? "apply",
-              competencyType: question?.competencyType ?? "knowledge",
-              difficulty: question?.difficulty ?? "medium",
+              topicId: "unmapped",
+              topicName: "Сэдэв сонгоогүй",
+              bloomLevel: "apply",
+              competencyType: "knowledge",
+              difficulty: "medium",
               weight: 1,
+              assessmentContextId: contextId || "",
+              cognitiveLevels: [],
+              competencies: [],
             },
           ],
     workflowComment: "",
     status: question?.status ?? "draft",
-    rubric: question?.rubric ? (typeof question.rubric === 'string' ? JSON.parse(question.rubric) : question.rubric) : [],
+    rubric: (() => {
+      if (!question?.rubric) return [];
+      try {
+        const parsed = typeof question.rubric === 'string' ? JSON.parse(question.rubric) : question.rubric;
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })(),
     media: question?.media ?? [],
   };
 }
@@ -759,17 +785,20 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem): Que
  */
 function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBankItem): QuestionBankItem {
   const primaryMapping = state.mappings[0];
-  const options: QuestionOption[] = state.options.map((option) => ({
-    id: option.id,
-    optionKey: option.optionKey || option.id,
-    label: option.label,
-    value: option.value || option.content,
-    content: option.content || option.value,
-    isCorrect: option.isCorrect,
-    score: option.score,
-    matchValue: option.matchValue,
-    acceptedValues: option.acceptedValues || [],
-  }));
+  const options: QuestionOption[] = state.options.map((option) => {
+    const finalVal = option.content !== undefined ? option.content : (option.value || "");
+    return {
+      id: option.id,
+      optionKey: option.optionKey || option.id,
+      label: option.label,
+      value: finalVal,
+      content: finalVal,
+      isCorrect: option.isCorrect,
+      score: option.score,
+      matchValue: option.matchValue,
+      acceptedValues: option.acceptedValues || [],
+    };
+  });
 
   return {
     id: source?.id ?? "preview-question",
@@ -878,7 +907,10 @@ function validateWizard(state: QuestionWizardState) {
       label: "Зөв хариулт болон оноо тохирсон",
       ok: Boolean(hasOptionsOrRubric),
     },
-    { label: "Сэдвийн mapping сонгосон", ok: state.mappings.length > 0 },
+    { 
+      label: "Сэдвийн mapping сонгосон", 
+      ok: state.mappings.length > 0 && state.mappings.every((m) => m.topicId && m.topicId !== "unmapped" && m.topicId !== "general") 
+    },
     { label: "Feedback/тайлбар бөглөгдсөн", ok: state.explanation.trim().length > 0 || state.feedbackCorrect.trim().length > 0 || state.feedbackIncorrect.trim().length > 0 },
     { label: "Workflow comment бичсэн", ok: state.workflowComment.trim().length > 0 },
   ];

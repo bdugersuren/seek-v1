@@ -92,6 +92,11 @@ export interface QuestionTopicMapping {
     weight: number;
     name?: string;
   }>;
+  cognitiveLevels?: Array<{
+    cognitiveLevelId: string;
+    weight: number;
+    name?: string;
+  }>;
 }
 
 export interface QuestionBankItem {
@@ -172,6 +177,7 @@ export interface Blueprint {
   description: string;
   topicId: string;
   topicName: string;
+  assessmentContextId?: string;
   topicMappings?: BlueprintTopicMapping[];
   passScore: number;
   totalDurationMinutes: number;

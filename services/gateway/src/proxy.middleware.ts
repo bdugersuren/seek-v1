@@ -304,22 +304,8 @@ export class ProxyMiddleware implements NestMiddleware {
         return;
       }
 
-      const isJson = req.headers["content-type"]?.includes("application/json") || false;
       const proxyMiddleware = proxy(this.fileServiceUrl, {
-        parseReqBody: true,
-        proxyReqBodyDecorator: (bodyContent, srcReq) => {
-          if (isJson && srcReq.body) {
-            return JSON.stringify(srcReq.body);
-          }
-          return bodyContent;
-        },
-        proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
-          if (isJson && srcReq.body) {
-            const bodyStr = JSON.stringify(srcReq.body);
-            proxyReqOpts.headers["Content-Length"] = Buffer.byteLength(bodyStr);
-          }
-          return proxyReqOpts;
-        },
+        parseReqBody: false,
         proxyReqPathResolver: (proxyReq) => {
           return this.resolveFileProxyPath(proxyReq);
         },

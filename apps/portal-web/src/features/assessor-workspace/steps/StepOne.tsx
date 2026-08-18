@@ -19,7 +19,8 @@ import { CaseBundleBuilder } from "../builders/CaseBundleBuilder";
 import { NumericBuilder } from "../builders/NumericBuilder";
 import { EssayRubricBuilder } from "../builders/EssayRubricBuilder";
 import { FillInBlankOptions } from "../builders/FillInBlankOptions";
-import { CombinationMCBuilder, CombinationMatchingBuilder } from "../builders/CombinationBuilders";
+import { CombinationMCBuilder, CombinationMatchingBuilder, CombinationOrderingBuilder } from "../builders/CombinationBuilders";
+import { Plus } from "lucide-react";
 
 const questionTypeIcons: Record<QuestionType, React.ComponentType<any>> = {
   SINGLE_CHOICE: Icons.SingleChoose,
@@ -161,8 +162,8 @@ export function StepOne({
       case "ORDERING":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "o1", label: "1", content: "", isCorrect: true, score: 1, matchValue: "" },
-          { id: "o2", label: "2", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "o1", label: "O1", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "o2", label: "O2", content: "", isCorrect: true, score: 1, matchValue: "" },
         ];
         break;
       case "MATCHING":
@@ -448,7 +449,6 @@ export function StepOne({
 
                     await fetch(uploadUrl, {
                       method: 'PUT',
-                      headers: { 'Content-Type': '' },
                       body: file,
                     });
 
@@ -462,8 +462,9 @@ export function StepOne({
                       }),
                     });
 
-                    let mediaType = "IMAGE";
-                    if (file.type.startsWith("audio/")) mediaType = "AUDIO";
+                    let mediaType = "FILE";
+                    if (file.type.startsWith("image/")) mediaType = "IMAGE";
+                    else if (file.type.startsWith("audio/")) mediaType = "AUDIO";
                     else if (file.type.startsWith("video/")) mediaType = "VIDEO";
 
                     setState({
@@ -565,6 +566,22 @@ export function StepOne({
               options={state.options}
               onChange={(nextOpts) => setState({ options: nextOpts })}
             />
+            {state.scoringMode === "combination" && (
+              <div className="mt-seek-5 border-t border-border pt-seek-4">
+                <CombinationOrderingBuilder
+                  options={state.options}
+                  combinations={state.scoringConfig?.combinations || []}
+                  onChange={(newCombos) =>
+                    setState({
+                      scoringConfig: {
+                        ...state.scoringConfig,
+                        combinations: newCombos,
+                      },
+                    })
+                  }
+                />
+              </div>
+            )}
           </CollapsibleCard>
         ) : state.type === "SHORT_TEXT" ? (
           <CollapsibleCard
@@ -631,12 +648,7 @@ export function StepOne({
             <div className="grid gap-seek-5 md:grid-cols-2">
               {/* Left Side Elements */}
               <div className="space-y-seek-4">
-                <div className="flex items-center justify-between">
-                  <Text className="font-bold text-sm text-slate-800">Зүүн тал (Сурвалжууд)</Text>
-                  <Button type="button" variant="outline" size="sm" onClick={addLeftMatchingOption}>
-                    + Зүүн утга нэмэх
-                  </Button>
-                </div>
+                
                 <div className="space-y-seek-3">
                   {state.options.map((option, index) => {
                     const isPositive = option.score > 0;
@@ -660,21 +672,29 @@ export function StepOne({
                           </div>
                           <div className="flex-1 p-seek-3 space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-700">Сурвалж L{index + 1}</span>
+                              {/* Оноо оруулах талбарыг зүүн талд нь шахах */}
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs font-semibold text-slate-600">Оноо:</span>
-                                <Input
-                                  className="w-16 h-7 text-center text-xs"
-                                  type="number"
-                                  value={option.score}
-                                  onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
-                                />
-                                <Button type="button" variant="danger" size="sm" 
-                                  onClick={() => removeOption(index)} 
-                                  className="h-7 w-7 p-0 flex items-center justify-center text-xs">
-                                  <Icons.ListX className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center bg-slate-50 border border-border rounded-seek-md px-1.5 h-8 w-20">
+                                  <Input
+                                    className="w-full border-0 bg-transparent p-0 text-center text-xs font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 h-full"
+                                    type="number"
+                                    value={option.score}
+                                    onChange={(event) => updateOption(index, { score: Number(event.target.value) })}
+                                  />
+                                </div>
                               </div>
+                              
+                              {/* Устгах товчийг баруун талд нь шахах */}
+                              <Button 
+                                type="button" 
+                                variant="outline"                                 
+                                onClick={() => removeOption(index)} 
+                                className="h-8 px-seek-4 flex items-center gap-2 rounded-seek-md border border-emerald-200 bg-emerald-50/10 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 font-bold transition-all shadow-seek-xs text-xs"
+                                title="Мөрийг устгах"
+                              >
+                                <Icons.ListX className="h-5 w-5 stroke-danger" />
+                              </Button>
                             </div>
                             <RichEditor
                               compact
@@ -689,16 +709,23 @@ export function StepOne({
                     );
                   })}
                 </div>
+                <div className="flex items-center justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addLeftMatchingOption}
+                    className="h-10 px-seek-4 flex items-center gap-2 rounded-seek-md border border-emerald-200 bg-emerald-50/10 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 font-bold transition-all shadow-seek-xs text-xs"
+                    title="Зүүн хариулт нэмэх"
+                  >
+                    <Icons.AddRow color="green"/>
+                  </Button>
+                </div>
               </div>
 
               {/* Right Side Elements */}
               <div className="space-y-seek-4">
-                <div className="flex items-center justify-between">
-                  <Text className="font-bold text-sm text-slate-800">Баруун тал (Хариултууд)</Text>
-                  <Button type="button" variant="outline" size="sm" onClick={addRightMatchingOption}>
-                    + Баруун утга нэмэх
-                  </Button>
-                </div>
+
                 <div className="space-y-seek-3">
                   {(state.scoringConfig?.rightOptions || []).map((opt: any, index: number) => (
                     <div key={opt.id} className="rounded-seek-md border border-slate-200 border-l-[4px] border-l-indigo-500 bg-indigo-50/15 overflow-hidden">
@@ -707,9 +734,16 @@ export function StepOne({
                           R{index + 1}
                         </div>
                         <div className="flex-1 p-seek-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-indigo-900">Хариулт R{index + 1}</span>
-                            <Button type="button" variant="danger" size="sm" onClick={() => removeRightMatchingOption(index)} className="h-7 w-7 p-0 text-xs">✕</Button>
+                          <div className="flex items-center justify-end">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => removeRightMatchingOption(index)} 
+                              className="h-8 px-seek-4 flex items-center gap-2 rounded-seek-md border border-indigo-200 bg-indigo-50/10 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 font-bold transition-all shadow-seek-xs text-xs"
+                                title="Мөрийг устгах"
+                            >
+                              <Icons.ListX className="h-5 w-5 stroke-danger" />
+                            </Button>
                           </div>
                           <RichEditor
                             compact
@@ -722,6 +756,18 @@ export function StepOne({
                       </div>
                     </div>
                   ))}
+                </div>
+                
+                <div className="flex items-center justify-center">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={addRightMatchingOption}
+                    className="h-10 px-seek-4 flex items-center gap-2 rounded-seek-md border border-indigo-200 bg-indigo-50/10 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 font-bold transition-all shadow-seek-xs text-xs"
+                    title="Баруун хариулт нэмэх"
+                  >
+                    <Icons.AddRow />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -782,13 +828,7 @@ export function StepOne({
               </Button>
             }
           >
-            {state.type === "SINGLE_CHOICE" && (
-              <div className="mb-seek-4 rounded-seek-md border border-blue-200 bg-blue-50/50 p-seek-3 text-xs text-blue-900 flex items-center gap-2">
-                <span className="font-bold">ℹ️ Нэг сонголттой асуулт:</span>
-                <span>Та олон сонголтод ялгаатай эерэг (+2, +1) эсвэл сөрөг (-1, -2) оноо тохируулах боломжтой. Шалгуулагч тестийн үеэр зөвхөн нэг сонголт хийнэ.</span>
-              </div>
-            )}
-
+            
             <div className="space-y-seek-4">
               {state.options.map((option, index) => {
                 const isPositive = option.score > 0;
@@ -819,10 +859,10 @@ export function StepOne({
                       <div className="flex-1 p-seek-4 space-y-seek-3">
                         <div className="flex flex-wrap items-center justify-between gap-seek-3">
                           <div className="flex items-center gap-2">
-                            <Badge variant={isPositive ? "success" : isNegative ? "danger" : "secondary"}>
+                            {/* <Badge variant={isPositive ? "success" : isNegative ? "danger" : "secondary"}>
                               {isPositive ? `Эерэг оноо (+${option.score})` : isNegative ? `Сөрөг оноо (${option.score})` : "0 оноо (Саармаг)"}
-                            </Badge>
-
+                            </Badge> */}
+{/* 
                             {state.type === "MULTIPLE_CHOICE" && state.scoringMode !== "combination" && (
                               <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none font-semibold text-slate-700 ml-2">
                                 <input
@@ -839,7 +879,7 @@ export function StepOne({
                                 />
                                 <span>Зөв хариулт</span>
                               </label>
-                            )}
+                            )} */}
                           </div>
 
                           <div className="flex items-center gap-2">

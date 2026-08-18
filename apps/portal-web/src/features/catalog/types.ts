@@ -23,6 +23,14 @@ export interface CatalogAssessment {
   requiredEarlyJoinMinutes?: number;
   totalPoints?: number;
   passingPercent?: number;
+  audienceTypeId?: string;
+  
+  // Database status additions
+  allowed?: boolean;
+  requiredAction?: "START" | "PAY" | "WAIT" | "EXPIRED" | "VIEW_RESULT";
+  attemptsUsed?: number;
+  lastAttemptId?: string;
+  enrolled?: boolean;
 }
 
 export interface CatalogFilterOption {
