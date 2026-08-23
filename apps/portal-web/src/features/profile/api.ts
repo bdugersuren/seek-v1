@@ -118,17 +118,25 @@ export async function uploadDocumentFile(
   file: File,
   type: ProfileVerificationType,
 ): Promise<{ storageKey: string; mimeType: string; sizeBytes: number }> {
-  const formData = new FormData();
-  formData.set("file", file);
-  formData.set("type", type);
+  if (file.type !== "application/pdf") {
+    throw new Error("Зөвхөн PDF файл хавсаргах боломжтой.");
+  }
+  if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
+    throw new Error("Файл 1 byte-ээс их, 10 MB-аас бага байх ёстой.");
+  }
 
-  return requestProfileJson<{ storageKey: string; mimeType: string; sizeBytes: number }>(
-    "/v1/file/upload",
-    {
-      method: "POST",
-      body: formData,
-    },
-  );
+  const { uploadUrl, storageKey } = await getPresignedUploadUrl(file.name, type);
+  const uploadResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Файлыг хадгалах санд хуулахад алдаа гарлаа. Дахин оролдоно уу.");
+  }
+
+  return { storageKey, mimeType: file.type, sizeBytes: file.size };
 }
 
 // 3. Document metadata endpoints for Portal UI

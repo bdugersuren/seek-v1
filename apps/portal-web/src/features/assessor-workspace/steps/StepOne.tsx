@@ -132,13 +132,14 @@ export function StepOne({
   const handleTypeChange = (newType: QuestionType) => {
     let nextOptions = [...state.options];
     let nextScoringMode = "per_option";
+    let nextScoringConfig = { ...state.scoringConfig };
 
     switch (newType) {
       case "TRUE_FALSE":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "A", label: "TRUE", content: "Үнэн", isCorrect: true, score: 1, matchValue: "" },
-          { id: "B", label: "FALSE", content: "Худал", isCorrect: false, score: 0, matchValue: "" },
+          { id: "A", label: "TRUE", value: "Үнэн", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "FALSE", value: "Худал", isCorrect: false, score: 0, matchValue: "" },
         ];
         break;
 
@@ -146,53 +147,51 @@ export function StepOne({
       case "SJT":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "A", label: "A", content: "", isCorrect: true, score: 1, matchValue: "" },
-          { id: "B", label: "B", content: "", isCorrect: false, score: 0, matchValue: "" },
-          { id: "C", label: "C", content: "", isCorrect: false, score: 0, matchValue: "" },
-          { id: "D", label: "D", content: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "A", label: "A", value: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "B", value: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "C", label: "C", value: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "D", label: "D", value: "", isCorrect: false, score: 0, matchValue: "" },
         ];
         break;
       case "MULTIPLE_CHOICE":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "A", label: "A", content: "", isCorrect: true, score: 1, matchValue: "" },
-          { id: "B", label: "B", content: "", isCorrect: false, score: 0, matchValue: "" },
+          { id: "A", label: "A", value: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "B", label: "B", value: "", isCorrect: false, score: 0, matchValue: "" },
         ];
         break;
       case "ORDERING":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "o1", label: "O1", content: "", isCorrect: true, score: 1, matchValue: "" },
-          { id: "o2", label: "O2", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "o1", label: "O1", value: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "o2", label: "O2", value: "", isCorrect: true, score: 1, matchValue: "" },
         ];
         break;
       case "MATCHING":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "L1", label: "L1", content: "Зүүн 1", isCorrect: true, score: 1 },
-          { id: "L2", label: "L2", content: "Зүүн 2", isCorrect: true, score: 1 },
+          { id: "L1", label: "L1", value: "Зүүн 1", isCorrect: true, score: 1 },
+          { id: "L2", label: "L2", value: "Зүүн 2", isCorrect: true, score: 1 },
         ];
-        setState({
-          scoringConfig: {
-            ...state.scoringConfig,
-            rightOptions: [
-              { id: "R1", value: "Баруун 1" },
-              { id: "R2", value: "Баруун 2" },
-              { id: "R3", value: "Баруун 3" },
-            ]
-          }
-        });
+        nextScoringConfig = {
+          ...nextScoringConfig,
+          rightOptions: [
+            { id: "R1", value: "Баруун 1" },
+            { id: "R2", value: "Баруун 2" },
+            { id: "R3", value: "Баруун 3" },
+          ]
+        };
         break;
       case "FILL_BLANK":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "blank1", label: "blank1", content: "", isCorrect: true, score: 1, matchValue: "", acceptedValues: [{ value: "", score: 1 }] },
+          { id: "blank1", label: "blank1", value: "", isCorrect: true, score: 1, matchValue: "", acceptedValues: [{ value: "", score: 1 }] },
         ];
         break;
       case "MATRIX":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "mx1", label: "Мөр 1", content: "", isCorrect: true, score: 1, matchValue: "" },
+          { id: "mx1", label: "Мөр 1", value: "", isCorrect: true, score: 1, matchValue: "" },
         ];
         break;
       case "SHORT_TEXT":
@@ -204,14 +203,14 @@ export function StepOne({
       case "NUMERIC":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "num-ans", label: "Хариулт", content: "", isCorrect: true, score: state.defaultMaxScore, matchValue: "0" }
+          { id: "num-ans", label: "Хариулт", value: "", isCorrect: true, score: state.defaultMaxScore, matchValue: "0" }
         ];
         break;
       case "LIKERT":
         nextScoringMode = "per_option";
         nextOptions = [
-          { id: "a", label: "1", content: "Маш муу", isCorrect: false, score: 1, matchValue: "" },
-          { id: "b", label: "2", content: "Муу", isCorrect: false, score: 2, matchValue: "" },
+          { id: "a", label: "1", value: "Маш муу", isCorrect: false, score: 1, matchValue: "" },
+          { id: "b", label: "2", value: "Муу", isCorrect: false, score: 2, matchValue: "" },
         ];
         break;
     }
@@ -220,6 +219,7 @@ export function StepOne({
       type: newType,
       options: nextOptions,
       scoringMode: nextScoringMode,
+      scoringConfig: nextScoringConfig,
     });
   };
 
@@ -539,7 +539,7 @@ export function StepOne({
             icon={questionTypeIcons[state.type] || Icons.Hash}
           >
             <NumericBuilder
-              option={state.options[0] || { id: "num-ans", label: "Хариулт", content: "", isCorrect: true, score: state.defaultMaxScore, matchValue: "0" }}
+              option={state.options[0] || { id: "num-ans", label: "Хариулт", value: "", isCorrect: true, score: state.defaultMaxScore, matchValue: "0" }}
               totalPoints={state.defaultMaxScore}
               onChange={(nextOpt) => setState({ options: [nextOpt] })}
             />
@@ -700,8 +700,8 @@ export function StepOne({
                               compact
                               minHeight="3.5rem"
                               placeholder="Сурвалжийн агуулга (Markdown, $...$)..."
-                              value={option.content}
-                              onChange={(markdown) => updateOption(index, { content: markdown })}
+                              value={option.value}
+                              onChange={(markdown) => updateOption(index, { value: markdown })}
                             />
                           </div>
                         </div>
@@ -913,9 +913,9 @@ export function StepOne({
                         </div>
 
                         <RichEditor
-                          value={option.content}
+                          value={option.value}
                           placeholder={`Хариулт ${option.label}-ийн агуулгыг оруулна уу (Markdown, KaTeX $...$, Mermaid)...`}
-                          onChange={(markdown) => updateOption(index, { content: markdown })}
+                          onChange={(markdown) => updateOption(index, { value: markdown })}
                         />
                       </div>
                     </div>

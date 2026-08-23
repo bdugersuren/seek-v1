@@ -76,7 +76,7 @@ export function QuestionTypePreview({ question }: { question: QuestionBankItem }
           <div className="flex items-center gap-3">
             <Input
               disabled
-              value={question.options?.[0]?.content || ""}
+              value={question.options?.[0]?.value || ""}
               placeholder="Тоон хариулт"
               className="max-w-xs"
             />
@@ -94,7 +94,7 @@ export function QuestionTypePreview({ question }: { question: QuestionBankItem }
             {question.options.map((opt, idx) => {
               const accepted = opt.acceptedValues && opt.acceptedValues.length > 0
                 ? opt.acceptedValues
-                : [{ value: opt.content || "-", score: opt.score || 1, caseSensitive: false }];
+                : [{ value: opt.value || "-", score: opt.score || 1, caseSensitive: false }];
 
               return (
                 <div key={opt.id || idx} className="rounded-seek-md border border-slate-200 border-l-[4px] border-l-teal-500 bg-white p-3 text-xs shadow-seek-xs space-y-2">
@@ -146,7 +146,7 @@ export function QuestionTypePreview({ question }: { question: QuestionBankItem }
                   </div>
                   <div className="flex-1 p-seek-3 flex items-center justify-between">
                     <div className="text-xs text-slate-800 flex-1 mr-2">
-                      <RichTextPreview value={option.content || option.value || ""} compact />
+                      <RichTextPreview value={option.value || ""} compact />
                     </div>
                     <Badge variant="success" className="font-mono text-[11px] shrink-0">
                       +{option.score !== undefined ? option.score : 1} оноо
@@ -198,7 +198,7 @@ export function QuestionTypePreview({ question }: { question: QuestionBankItem }
                 </div>
                 <div className="flex-1 p-seek-3 flex items-center justify-between text-xs text-slate-800 bg-white">
                   <div className="flex-1 mr-2 text-left">
-                    <RichTextPreview value={option.content || option.value || ""} compact />
+                    <RichTextPreview value={option.value || ""} compact />
                   </div>
                   <Badge variant="success" className="font-mono text-[11px] shrink-0">
                     +{option.score !== undefined ? option.score : 1} оноо
@@ -249,7 +249,7 @@ export function QuestionTypePreview({ question }: { question: QuestionBankItem }
               {/* Content & Score Badge */}
               <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
                 <div className="text-sm text-slate-800 flex-1 min-w-0 font-medium">
-                  <RichTextPreview value={option.content || option.value || ""} compact />
+                  <RichTextPreview value={option.value || ""} compact />
                 </div>
                 <div className="shrink-0">
                   <span

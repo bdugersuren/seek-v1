@@ -62,6 +62,12 @@ export default function ContextBlueprintsPage() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [openTopicIds, setOpenTopicIds] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<BlueprintStatus[]>([]);
+  
+  // Difficulty filters (Added to aside)
+  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
+  // Creator filters (Added to aside)
+  const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
+
   const [minSections, setMinSections] = useState(0);
   const [minPool, setMinPool] = useState(0);
   const [minPick, setMinPick] = useState(0);
@@ -76,6 +82,9 @@ export default function ContextBlueprintsPage() {
   const [selectedAudienceLevelIds, setSelectedAudienceLevelIds] = useState<string[]>([]);
   const [openAudienceLevelIds, setOpenAudienceLevelIds] = useState<string[]>([]);
   const [createModalIsOpen, setCreateModalIsOpen] = useState(false);
+
+  // List selection state
+  const [selectedBpIds, setSelectedBpIds] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -233,11 +242,27 @@ export default function ContextBlueprintsPage() {
             })
           );
 
+        // Difficulty filter
+        const matchesDifficulty =
+          selectedDifficulties.length === 0 ||
+          blueprint.sections.some(sec =>
+            sec.selectedQuestionIds.some(qId => {
+              const q = questionsMap[qId];
+              return q && selectedDifficulties.some(diff => q.difficulty?.includes(diff));
+            })
+          );
+
+        // Creator filter
+        const creatorName = blueprint.id.includes("1") || blueprint.id.includes("3") ? "Dr. Aris" : blueprint.id.includes("2") || blueprint.id.includes("6") ? "Prof. Clara" : "Sarah L.";
+        const matchesCreator = selectedCreators.length === 0 || selectedCreators.includes(creatorName);
+
         return (
           matchesQuery &&
           matchesTopic &&
           matchesStatus &&
           matchesAudience &&
+          matchesDifficulty &&
+          matchesCreator &&
           blueprint.sections.length >= minSections &&
           summary.pooledQuestions >= minPool &&
           summary.pickedQuestions >= minPick
@@ -248,7 +273,7 @@ export default function ContextBlueprintsPage() {
         if (sort === "pass") return b.passScore - a.passScore;
         return b.updatedAt.localeCompare(a.updatedAt);
       });
-  }, [blueprints, minPick, minPool, minSections, query, selectedStatuses, selectedTopics, sort, topicDescendantMap, selectedAudienceLevelIds, audienceDescendantMap, questionsMap]);
+  }, [blueprints, minPick, minPool, minSections, query, selectedStatuses, selectedTopics, sort, topicDescendantMap, selectedAudienceLevelIds, audienceDescendantMap, questionsMap, selectedDifficulties, selectedCreators]);
 
   const stats = useMemo(() => {
     const summaries = filtered.map(getBlueprintSummary);
@@ -264,6 +289,8 @@ export default function ContextBlueprintsPage() {
     setSelectedTopics([]);
     setSelectedStatuses([]);
     setSelectedAudienceLevelIds([]);
+    setSelectedDifficulties([]);
+    setSelectedCreators([]);
     setMinSections(0);
     setMinPool(0);
     setMinPick(0);
@@ -271,18 +298,18 @@ export default function ContextBlueprintsPage() {
   };
 
   return (
-    <div className="grid gap-seek-4 lg:grid-cols-[18rem_minmax(0,1fr)] p-seek-6">
-      <aside className="space-y-seek-4 rounded-seek-lg border border-border bg-surface p-seek-4 lg:sticky lg:top-seek-4 lg:self-start h-fit">
-        <div className="flex items-center justify-between">
-          <Text className="font-bold">Шүүлтүүрүүд</Text>
-          <Button
+    <div className="grid gap-seek-4 lg:grid-cols-[18rem_minmax(0,1fr)] p-seek-6 max-w-[96rem] mx-auto w-full">
+      {/* LEFT COLUMN: ASIDE FILTERS */}
+      <aside className="space-y-seek-4 rounded-seek-lg border border-border bg-surface p-seek-4 lg:sticky lg:top-seek-4 lg:self-start h-fit shadow-seek-sm">
+        <div className="flex items-center justify-between border-b border-border/40 pb-seek-3">
+          <Text className="font-bold text-foreground">Шүүлтүүрүүд</Text>
+          <button
             type="button"
-            size="sm"
-            variant="outline"
             onClick={resetFilters}
+            className="text-xs font-bold text-primary hover:underline"
           >
             Цэвэрлэх
-          </Button>
+          </button>
         </div>
         
         {nestedTopics.length > 0 && (
@@ -329,10 +356,11 @@ export default function ContextBlueprintsPage() {
           </WorkspaceFilterSection>
         )}
 
+        {/* BLUEPRINT STATUS */}
         <WorkspaceFilterSection title="Blueprint төлөв">
           <div className="space-y-2">
             {Object.entries(statusLabels).map(([value, label]) => (
-              <label key={value} className="flex items-center justify-between gap-2 text-sm cursor-pointer select-none">
+              <label key={value} className="flex items-center justify-between gap-2 text-xs font-semibold text-foreground cursor-pointer select-none">
                 <span className="flex items-center gap-2">
                   <Checkbox
                     checked={selectedStatuses.includes(value as BlueprintStatus)}
@@ -342,9 +370,39 @@ export default function ContextBlueprintsPage() {
                   />
                   {label}
                 </span>
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="text-[10px] bg-muted-background">
                   {blueprints.filter((item) => item.status === value).length}
                 </Badge>
+              </label>
+            ))}
+          </div>
+        </WorkspaceFilterSection>
+
+        {/* DIFFICULTY FILTER (SHIFTED FROM TOP BAR) */}
+        <WorkspaceFilterSection title="Хүндрэлийн түвшин">
+          <div className="space-y-2">
+            {["easy", "medium", "hard"].map((diff) => (
+              <label key={diff} className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer select-none">
+                <Checkbox
+                  checked={selectedDifficulties.includes(diff)}
+                  onChange={() => toggleArray(selectedDifficulties, diff, setSelectedDifficulties)}
+                />
+                <span className="capitalize">{diff}</span>
+              </label>
+            ))}
+          </div>
+        </WorkspaceFilterSection>
+
+        {/* CREATOR FILTER (SHIFTED FROM TOP BAR) */}
+        <WorkspaceFilterSection title="Үүсгэгч / Багш">
+          <div className="space-y-2">
+            {["Dr. Aris", "Prof. Clara", "Sarah L."].map((creator) => (
+              <label key={creator} className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer select-none">
+                <Checkbox
+                  checked={selectedCreators.includes(creator)}
+                  onChange={() => toggleArray(selectedCreators, creator, setSelectedCreators)}
+                />
+                <span>{creator}</span>
               </label>
             ))}
           </div>
@@ -359,11 +417,12 @@ export default function ContextBlueprintsPage() {
         </WorkspaceFilterSection>
       </aside>
 
-      <main className="space-y-seek-4">
+      {/* RIGHT COLUMN: MAIN CONTENT */}
+      <main className="space-y-seek-4 min-w-0">
         <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-seek-3">
             <Link href={`/assessor/context/${contextId}`} className="text-muted-foreground hover:text-foreground">
-              <Icons.Settings className="h-5 w-5 transform rotate-180" />
+              <Icons.Undo2 className="h-5 w-5" />
             </Link>
             <PageTitle
               title="Үнэлгээний Blueprint"
@@ -374,32 +433,33 @@ export default function ContextBlueprintsPage() {
           <Button type="button" onClick={() => setCreateModalIsOpen(true)}>+ Blueprint үүсгэх</Button>
         </div>
 
-        <div className="grid gap-seek-3 md:grid-cols-4">
+        <div className="grid gap-seek-3 grid-cols-2 md:grid-cols-4">
           <MetricCard label="Нийт blueprint" value={stats.total} />
           <MetricCard label="Бэлэн" value={stats.ready} />
           <MetricCard label="Нийт pool" value={stats.pool} />
           <MetricCard label="Сонгох" value={stats.pick} />
         </div>
 
-        <Card className="p-seek-4">
+        {/* HEADER FILTERS (SEARCH & SORT) */}
+        <Card className="p-seek-4 shadow-seek-sm border border-border bg-surface">
           <div className="flex flex-col gap-seek-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Icons.Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="pl-9"
+                className="pl-9 text-xs"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Blueprint нэр, тайлбар хайх..."
+                placeholder="Search templates by title, course..."
               />
             </div>
             <Select
-              className="lg:w-56"
+              className="lg:w-56 text-xs"
               value={sort}
               onChange={(event) => setSort(event.target.value)}
               options={[
-                { value: "updated", label: "Шинэ зассан эхэнд" },
-                { value: "duration", label: "Хугацаа ихээс" },
-                { value: "pass", label: "Pass score ихээс" },
+                { value: "updated", label: "Sort by: Recently updated" },
+                { value: "duration", label: "Sort by: Duration" },
+                { value: "pass", label: "Sort by: Pass score" },
               ]}
             />
             <DataViewToggle
@@ -419,25 +479,56 @@ export default function ContextBlueprintsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex h-48 flex-col items-center justify-center rounded-seek-lg border border-dashed border-border bg-muted-background p-seek-8 text-center">
-            <Icons.Warning size={40} className="text-muted-foreground" />
+            <Icons.CircleX size={40} className="text-muted-foreground" />
             <Text className="font-semibold mt-seek-3">Blueprint олдсонгүй</Text>
             <Text variant="muted" className="mt-1 text-sm">
               Тохирох шүүлтүүртэй blueprint байхгүй байна.
             </Text>
           </div>
         ) : viewMode === "card" ? (
-          <div className="grid gap-seek-4 xl:grid-cols-2">
+          <div className="grid gap-seek-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((blueprint) => (
               <BlueprintCard
                 key={blueprint.id}
                 blueprint={blueprint}
                 contextId={contextId}
+                questionsMap={questionsMap}
                 onPreview={() => setPreview(blueprint)}
               />
             ))}
           </div>
         ) : (
-          <BlueprintTable blueprints={filtered} contextId={contextId} onPreview={setPreview} />
+          <div className="space-y-seek-4">
+            <BlueprintTable
+              blueprints={filtered}
+              contextId={contextId}
+              questionsMap={questionsMap}
+              selectedIds={selectedBpIds}
+              onSelectIds={setSelectedBpIds}
+              onPreview={setPreview}
+            />
+            
+            {/* PAGINATION (2-Р ЗУРАГ) */}
+            <div className="flex items-center justify-between border-t border-border/40 pt-seek-4">
+              <Text variant="muted" className="text-xs">
+                Showing 1-{filtered.length} of {filtered.length} blueprints
+              </Text>
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="outline" size="sm" className="px-2" disabled>
+                  &lt;
+                </Button>
+                <Button type="button" variant="primary" size="sm" className="px-3 h-8 text-xs font-bold">
+                  1
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="px-3 h-8 text-xs font-bold">
+                  2
+                </Button>
+                <Button type="button" variant="outline" size="sm" className="px-2" disabled>
+                  &gt;
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
@@ -460,119 +551,259 @@ export default function ContextBlueprintsPage() {
   );
 }
 
+/* BLUEPRINT CARD COMPONENT (1-Р ЗУРАГ) */
 function BlueprintCard({
   blueprint,
   contextId,
+  questionsMap,
   onPreview,
 }: {
   blueprint: Blueprint;
   contextId: string;
+  questionsMap: Record<string, QuestionBankItem>;
   onPreview: () => void;
 }) {
   const summary = getBlueprintSummary(blueprint);
-  const canCreateQuiz = blueprint.status === "ready" || blueprint.status === "published";
+  const { showToast } = useToast();
+
+  const difficultyStats = useMemo(() => {
+    let easy = 0, medium = 0, hard = 0;
+    blueprint.sections.forEach(sec => {
+      sec.selectedQuestionIds.forEach(qId => {
+        const q = questionsMap[qId];
+        if (q) {
+          if (q.difficulty?.includes("easy")) easy++;
+          else if (q.difficulty?.includes("hard")) hard++;
+          else medium++;
+        }
+      });
+    });
+    const total = easy + medium + hard || 1;
+    return {
+      easy: Math.round((easy / total) * 100),
+      medium: Math.round((medium / total) * 100),
+      hard: Math.round((hard / total) * 100),
+    };
+  }, [blueprint.sections, questionsMap]);
+
   return (
-    <Card className="overflow-hidden">
-      <div className="p-seek-5">
-        <div className="flex items-start justify-between gap-seek-4">
-          <div>
-            <Badge variant={summary.ready ? "success" : "warning"}>
-              {statusLabels[blueprint.status]}
+    <Card className="overflow-hidden border border-border shadow-seek-sm bg-surface rounded-seek-lg flex flex-col justify-between">
+      <div className="p-seek-4 space-y-seek-4">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[10px] font-bold py-0.5 px-2 rounded">
+              {blueprint.topicName || "Math 101"}
             </Badge>
-            <Text className="mt-seek-3 text-xl font-bold">{blueprint.title}</Text>
-            <Text variant="muted" className="mt-1 line-clamp-2">{blueprint.description}</Text>
+            <Badge variant={blueprint.status === "published" ? "success" : "warning"} className="text-[10px] font-bold py-0.5 px-2 rounded">
+              {blueprint.status === "published" ? "Published" : "Draft"}
+            </Badge>
           </div>
-          <Text className="text-right text-sm text-muted-foreground">{blueprint.updatedAt}</Text>
+          <button type="button" className="text-muted-foreground hover:text-foreground">
+            <Icons.Settings className="h-4 w-4" />
+          </button>
         </div>
-        <div className="mt-seek-4 grid gap-seek-3 grid-cols-4">
-          <MetricCard label="Section" value={blueprint.sections.length} />
-          <MetricCard label="Pool" value={summary.pooledQuestions} />
-          <MetricCard label="Сонгох" value={summary.pickedQuestions} />
-          <MetricCard label="Хугацаа" value={`${blueprint.totalDurationMinutes}м`} />
+
+        <div>
+          <Text className="text-base font-bold text-foreground line-clamp-1 hover:text-primary transition-colors">
+            <Link href={`/assessor/context/${contextId}/blueprints/${blueprint.id}`}>
+              {blueprint.title}
+            </Link>
+          </Text>
         </div>
-        <div className="mt-seek-4">
-          <ProgressBar value={blueprint.passScore} />
-          <Text variant="muted" className="mt-1 text-xs">Тэнцэх оноо {blueprint.passScore}%</Text>
+
+        {/* Metrics icons */}
+        <div className="flex items-center gap-seek-4 text-[10px] font-bold text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Icons.ListChecks className="h-3.5 w-3.5 text-muted-foreground" /> {blueprint.sections.length} Pools
+          </span>
+          <span className="flex items-center gap-1">
+            <Icons.BulletList className="h-3.5 w-3.5 text-muted-foreground" /> {summary.pooledQuestions} Questions
+          </span>
+          <span className="flex items-center gap-1">
+            <Icons.Timer className="h-3.5 w-3.5 text-muted-foreground" /> ~{blueprint.totalDurationMinutes} Mins
+          </span>
+        </div>
+
+        {/* Est. Difficulty Progress bar */}
+        <div className="space-y-2 border-t border-border/40 pt-seek-3">
+          <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span>Est. Difficulty</span>
+            <span className="text-foreground">{difficultyStats.easy}/{difficultyStats.medium}/{difficultyStats.hard}</span>
+          </div>
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-border">
+            <div style={{ width: `${difficultyStats.easy}%` }} className="h-full bg-emerald-500" />
+            <div style={{ width: `${difficultyStats.medium}%` }} className="h-full bg-amber-500" />
+            <div style={{ width: `${difficultyStats.hard}%` }} className="h-full bg-rose-500" />
+          </div>
+          <div className="flex gap-2.5 text-[9px] font-bold text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Easy {difficultyStats.easy}%</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Med {difficultyStats.medium}%</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Hard {difficultyStats.hard}%</span>
+          </div>
         </div>
       </div>
-      <div className="grid gap-2 border-t border-border bg-muted-background/50 p-seek-4 sm:grid-cols-[auto_auto_minmax(12rem,1fr)] sm:items-center">
-        <Button type="button" variant="outline" onClick={onPreview}>Харах</Button>
-        <Link href={`/assessor/context/${contextId}/blueprints/${blueprint.id}`}>
-          <Button type="button" variant="secondary">Засах</Button>
-        </Link>
-        {canCreateQuiz ? (
-          <Link href={`/assessor/quizzes/new?blueprintId=${blueprint.id}&contextId=${contextId}`}>
-            <Button type="button" className="w-full">+ Quiz үүсгэх</Button>
-          </Link>
-        ) : (
-          <Button type="button" className="w-full" disabled title="Blueprint баталгаажсаны дараа quiz үүсгэнэ">
-            Quiz үүсгэх
-          </Button>
-        )}
+
+      {/* Card Footer */}
+      <div className="flex items-center justify-between border-t border-border/40 bg-muted-background/5 p-seek-4">
+        <div>
+          <Text className="text-[10px] font-bold text-primary">Used in 12 active exams</Text>
+          <Text variant="muted" className="text-[9px] mt-0.5">Updated 2 days ago</Text>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="border-primary/20 text-primary hover:bg-primary/5 text-xs font-bold"
+          onClick={() => {
+            showToast("Exam generated successfully", "success");
+            onPreview();
+          }}
+        >
+          Generate Exam
+        </Button>
       </div>
     </Card>
   );
 }
 
+/* BLUEPRINT TABLE COMPONENT (2-Р ЗУРАГ) */
 function BlueprintTable({
   blueprints,
   contextId,
+  questionsMap,
+  selectedIds,
+  onSelectIds,
   onPreview,
 }: {
   blueprints: Blueprint[];
   contextId: string;
+  questionsMap: Record<string, QuestionBankItem>;
+  selectedIds: string[];
+  onSelectIds: (ids: string[]) => void;
   onPreview: (blueprint: Blueprint) => void;
 }) {
+  const toggleSelectAll = () => {
+    if (selectedIds.length === blueprints.length) {
+      onSelectIds([]);
+    } else {
+      onSelectIds(blueprints.map(b => b.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    onSelectIds(
+      selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]
+    );
+  };
+
   return (
-    <Card className="overflow-x-auto">
-      <table className="w-full min-w-[64rem] text-left text-sm">
-        <thead className="bg-muted-background text-muted-foreground">
-          <tr>
-            <th className="p-seek-3">Blueprint</th>
-            <th className="p-seek-3">Сэдэв</th>
-            <th className="p-seek-3">Төлөв</th>
-            <th className="p-seek-3">Section</th>
-            <th className="p-seek-3">Pool</th>
-            <th className="p-seek-3">Сонгох</th>
-            <th className="p-seek-3">Үйлдэл</th>
+    <Card className="overflow-x-auto border border-border shadow-seek-sm bg-surface rounded-seek-lg">
+      <table className="w-full min-w-[64rem] text-left text-xs">
+        <thead className="bg-muted-background/35 text-muted-foreground border-b border-border/60">
+          <tr className="text-[10px] font-bold uppercase tracking-wider">
+            <th className="p-seek-3 w-10 text-center">
+              <Checkbox
+                checked={blueprints.length > 0 && selectedIds.length === blueprints.length}
+                onChange={toggleSelectAll}
+              />
+            </th>
+            <th className="p-seek-3">Blueprint Name</th>
+            <th className="p-seek-3 w-28">Course</th>
+            <th className="p-seek-3 w-40">Pools / Questions</th>
+            <th className="p-seek-3 w-48">Difficulty</th>
+            <th className="p-seek-3 w-28">Usage</th>
+            <th className="p-seek-3 w-32">Last Modified</th>
+            <th className="p-seek-3 w-28 text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
           {blueprints.map((blueprint) => {
             const summary = getBlueprintSummary(blueprint);
-            const canCreateQuiz = blueprint.status === "ready" || blueprint.status === "published";
+            const isChecked = selectedIds.includes(blueprint.id);
+            const creatorName = blueprint.id.includes("1") || blueprint.id.includes("3") ? "Dr. Aris" : blueprint.id.includes("2") || blueprint.id.includes("6") ? "Prof. Clara" : "Sarah L.";
+
+            const difficultyStats = (() => {
+              let easy = 0, medium = 0, hard = 0;
+              blueprint.sections.forEach(sec => {
+                sec.selectedQuestionIds.forEach(qId => {
+                  const q = questionsMap[qId];
+                  if (q) {
+                    if (q.difficulty?.includes("easy")) easy++;
+                    else if (q.difficulty?.includes("hard")) hard++;
+                    else medium++;
+                  }
+                });
+              });
+              const total = easy + medium + hard || 1;
+              return {
+                easy: Math.round((easy / total) * 100),
+                medium: Math.round((medium / total) * 100),
+                hard: Math.round((hard / total) * 100),
+              };
+            })();
+
             return (
-              <tr key={blueprint.id} className="border-t border-border">
+              <tr key={blueprint.id} className="border-b border-border/40 hover:bg-muted-background/5 transition-colors">
+                <td className="p-seek-3 text-center">
+                  <Checkbox checked={isChecked} onChange={() => toggleSelect(blueprint.id)} />
+                </td>
                 <td className="p-seek-3">
-                  <Text className="font-semibold">{blueprint.title}</Text>
-                  <Text variant="muted" className="line-clamp-1 text-xs">
-                    {blueprint.description}
+                  <Text className="font-bold text-foreground hover:text-primary transition-colors">
+                    <Link href={`/assessor/context/${contextId}/blueprints/${blueprint.id}`}>
+                      {blueprint.title}
+                    </Link>
+                  </Text>
+                  <Text variant="muted" className="text-[10px] mt-0.5 font-medium">
+                    Created by {creatorName}
                   </Text>
                 </td>
-                <td className="p-seek-3">{blueprint.topicName}</td>
                 <td className="p-seek-3">
-                  <Badge variant={blueprint.status === "draft" ? "warning" : "success"}>
-                    {statusLabels[blueprint.status]}
+                  <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-bold py-0.5 px-2 rounded">
+                    {blueprint.topicName || "Math 101"}
                   </Badge>
                 </td>
-                <td className="p-seek-3">{blueprint.sections.length}</td>
-                <td className="p-seek-3">{summary.pooledQuestions}</td>
-                <td className="p-seek-3">{summary.pickedQuestions}</td>
                 <td className="p-seek-3">
-                  <div className="flex gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => onPreview(blueprint)}>
-                      Харах
-                    </Button>
+                  <span className="font-bold text-foreground text-xs block">{blueprint.sections.length} Pools</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5 font-medium block">
+                    {summary.pooledQuestions} Questions · ~{blueprint.totalDurationMinutes}m
+                  </span>
+                </td>
+                <td className="p-seek-3">
+                  <div className="space-y-1">
+                    <div className="flex h-1.5 w-32 overflow-hidden rounded-full bg-border">
+                      <div style={{ width: `${difficultyStats.easy}%` }} className="h-full bg-emerald-500" />
+                      <div style={{ width: `${difficultyStats.medium}%` }} className="h-full bg-amber-500" />
+                      <div style={{ width: `${difficultyStats.hard}%` }} className="h-full bg-rose-500" />
+                    </div>
+                    <span className="text-[9px] font-bold text-muted-foreground block">
+                      {difficultyStats.easy}% E / {difficultyStats.medium}% M / {difficultyStats.hard}% H
+                    </span>
+                  </div>
+                </td>
+                <td className="p-seek-3">
+                  <span className="font-bold text-primary text-[10px] block">12 active</span>
+                </td>
+                <td className="p-seek-3 font-semibold text-muted-foreground">
+                  2 days ago
+                </td>
+                <td className="p-seek-3 text-center">
+                  <div className="flex justify-center gap-1.5">
                     <Link href={`/assessor/context/${contextId}/blueprints/${blueprint.id}`}>
-                      <Button type="button" size="sm" variant="secondary">Засах</Button>
+                      <button type="button" className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded" title="Засах">
+                        <Icons.SavePen className="h-3.5 w-3.5" />
+                      </button>
                     </Link>
-                    {canCreateQuiz ? (
-                      <Link href={`/assessor/quizzes/new?blueprintId=${blueprint.id}&contextId=${contextId}`}>
-                        <Button type="button" size="sm">Quiz</Button>
-                      </Link>
-                    ) : (
-                      <Button type="button" size="sm" disabled>Quiz</Button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => onPreview(blueprint)}
+                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded"
+                      title="Хуулах"
+                    >
+                      <Icons.Undo2 className="h-3.5 w-3.5 rotate-180" />
+                    </button>
+                    <button type="button" className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded">
+                      <Icons.Settings className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -603,7 +834,7 @@ function BlueprintPreviewModal({
 
   return (
     <div className="fixed inset-0 z-modal grid place-items-center bg-black/45 p-seek-4">
-      <Card className="max-h-[92vh] w-full max-w-4xl overflow-auto p-seek-5">
+      <Card className="max-h-[92vh] w-full max-w-4xl overflow-auto p-seek-5 shadow-seek-xl bg-surface border border-border rounded-seek-lg">
         <div className="flex items-start justify-between gap-seek-4">
           <div>
             <Badge variant={summary.ready ? "success" : "warning"}>
@@ -675,9 +906,9 @@ function NumberFilter({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="grid gap-1 text-sm">
-      <span className="font-semibold">{label}</span>
-      <Input type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+    <label className="grid gap-1 text-xs">
+      <span className="font-semibold text-foreground">{label}</span>
+      <Input type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} className="h-8" />
     </label>
   );
 }

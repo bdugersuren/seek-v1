@@ -135,7 +135,7 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     : (Array.isArray(actV.payload?.options) ? actV.payload.options : []);
 
   const options: QuestionOption[] = rawOptions.map((o: any, idx: number) => ({
-    id: o.id || o.optionKey || o.code || `opt_${idx + 1}`,
+    id: o.optionKey || o.id || o.code || `opt_${idx + 1}`,
     label: (() => {
       if (actV.type === "ORDERING") {
         const cleanL = (o.label || "").trim();
@@ -144,11 +144,9 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
       return o.label || o.optionKey || o.code || String.fromCharCode(65 + idx);
     })(),
     optionKey: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
-    value: o.value || o.content || o.body || "",
-    content: o.value || o.content || o.body || "",
+    value: o.value || o.body || "",
     isCorrect: Boolean(o.isCorrect),
     score: o.score !== undefined && o.score !== null ? Number(o.score) : (o.isCorrect ? 1 : 0),
-    negativeScore: o.negativeScore !== undefined && o.negativeScore !== null ? Number(o.negativeScore) : 0,
     matchValue: o.matchRules?.matchValue || o.metadata?.matchValue || o.matchValue || "",
     acceptedValues: o.metadata?.acceptedValues || o.acceptedValues || [],
     metadata: o.metadata || {},
@@ -161,16 +159,12 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     code: q.code,
     title: actV.title || "No Title",
     body: actV.body || "",
-    stem: actV.body || "",
     parentId: q.parentId || null,
     type: (actV.type || "SINGLE_CHOICE") as any,
     status: (q.lifecycleStatus === "ARCHIVED" ? "archived" : actV.versionStatus?.toLowerCase()) as any,
     defaultMaxScore: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
     defaultMinScore: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
     defaultTimeSeconds: actV.defaultTimeSeconds || 60,
-    points: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
-    minPoints: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
-    durationSeconds: actV.defaultTimeSeconds || 60,
     bloomLevel: (primaryClassification?.bloomLevel?.toLowerCase() || "apply") as any,
     competencyType: (primaryClassification?.competencyType?.toLowerCase() || "knowledge") as any,
     topicId,
@@ -191,7 +185,7 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
       const type = actV.type || "SINGLE_CHOICE";
       if (type === "MATCHING") {
         return options
-          .map((o: any) => `${o.value || o.content} ➔ ${o.matchValue || ""}`)
+          .map((o: any) => `${o.value} ➔ ${o.matchValue || ""}`)
           .join(", ");
       }
       if (type === "NUMERIC") {
@@ -206,7 +200,6 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     rubric: actV.rubric || actV.payload?.rubric || [],
     tags: q.tags || actV.tags || [],
     explanation,
-    feedback: explanation,
     feedbackCorrect: actV.feedbackCorrect || "",
     feedbackIncorrect: actV.feedbackIncorrect || "",
     scoringMode,
@@ -317,7 +310,7 @@ export async function fetchQuestions(filters?: any): Promise<QuestionBankItem[]>
 
 function mapToCreateQuestionDto(data: any) {
   const payloadOptions = (data.options || []).map((o: any, index: number) => {
-    const finalVal = o.content !== undefined ? o.content : (o.value || "");
+    const finalVal = o.value || "";
     return {
       code: o.optionKey || o.id || o.label || `opt_${index + 1}`,
       optionKey: o.optionKey || o.id || o.label || `opt_${index + 1}`,
@@ -325,8 +318,7 @@ function mapToCreateQuestionDto(data: any) {
       value: finalVal,
       body: finalVal,
       isCorrect: o.isCorrect || false,
-      score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.defaultMaxScore || data.points || 1) : 0)),
-      negativeScore: o.negativeScore !== undefined ? Number(o.negativeScore) : 0,
+      score: Number(o.score !== undefined ? o.score : (o.isCorrect ? (data.defaultMaxScore || 1) : 0)),
       matchValue: o.matchValue || "",
       matchRules: {
         matchValue: o.matchValue || "",
@@ -341,6 +333,10 @@ function mapToCreateQuestionDto(data: any) {
   const scoringConfig = {
     ...(data.scoringConfig || {}),
     scoringMode: data.scoringMode || data.scoringConfig?.scoringMode || "per_option",
+    combinations: (data.scoringConfig?.combinations || []).map((c: any) => ({
+      ids: c.ids || [],
+      score: Number(c.score ?? 1)
+    }))
   };
 
   return {
@@ -350,14 +346,14 @@ function mapToCreateQuestionDto(data: any) {
     ownerUserId: data.ownerUserId || null,
     parentId: data.parentId || null,
     title: data.title || "No Title",
-    body: data.body ? data.body : (data.stem || "Шинэ асуулт"),
+    body: data.body || "Шинэ асуулт",
     type: data.type || data.typeId || "SINGLE_CHOICE",
-    defaultTimeSeconds: Number(data.defaultTimeSeconds !== undefined ? data.defaultTimeSeconds : (data.durationSeconds || 60)),
-    defaultMaxScore: Number(data.defaultMaxScore !== undefined ? data.defaultMaxScore : (data.points !== undefined ? data.points : 1)),
-    defaultMinScore: Number(data.defaultMinScore !== undefined ? data.defaultMinScore : (data.minPoints !== undefined ? data.minPoints : 0)),
+    defaultTimeSeconds: Number(data.defaultTimeSeconds !== undefined ? data.defaultTimeSeconds : 60),
+    defaultMaxScore: Number(data.defaultMaxScore !== undefined ? data.defaultMaxScore : 1),
+    defaultMinScore: Number(data.defaultMinScore !== undefined ? data.defaultMinScore : 0),
     languageCode: "mn",
     tags: data.tags || [],
-    explanation: data.explanation ? data.explanation : (data.feedback || ""),
+    explanation: data.explanation || "",
     feedbackCorrect: data.feedbackCorrect || "",
     feedbackIncorrect: data.feedbackIncorrect || "",
     payload: {

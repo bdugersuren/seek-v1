@@ -71,6 +71,17 @@ const statusVariant: Record<
   deleted: "danger",
 };
 
+const difficultyVariant: Record<
+  DifficultyLevel,
+  "primary" | "secondary" | "success" | "danger" | "warning"
+> = {
+  very_easy: "success",
+  easy: "success",
+  medium: "warning",
+  hard: "danger",
+  very_hard: "danger",
+};
+
 const pageSizeOptions = [10, 20, 50, 100];
 
 interface PageProps {
@@ -82,6 +93,7 @@ interface PageProps {
 export default function QuestionBankPage({ params: routeParams }: PageProps) {
   const router = useRouter();
   const params = useParams();
+  const contextId = params.contextId as string;
   const [view, setView] = useState<"cards" | "table">("cards");
   const [query, setQuery] = useState("");
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
@@ -182,8 +194,8 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       try {
         setLoading(true);
         const [qData, tData, audTypes, audLvs, contextsData] = await Promise.all([
-          fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: params.contextId }),
-          fetchTopics(params.contextId),
+          fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: contextId }),
+          fetchTopics(contextId),
           fetchAudienceTypes(),
           fetchAudienceLevels(),
           fetchAssessmentContexts(),
@@ -194,7 +206,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           setAudienceTypes(audTypes || []);
           setAudienceLevels(audLvs || []);
           
-          const currentContext = contextsData?.find((c: any) => c.id === params.contextId);
+          const currentContext = contextsData?.find((c: any) => c.id === contextId);
           setContext(currentContext || null);
           
           if (currentContext && currentContext.audienceTypeId) {
@@ -298,7 +310,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   const filteredQuestions = useMemo(
     () =>
       questions.filter((question) => {
-        const matchQuery = [question.code, question.title, question.body || question.stem]
+        const matchQuery = [question.code, question.title, question.body || (question as any).stem]
           .join(" ")
           .toLowerCase()
           .includes(query.toLowerCase());
@@ -328,7 +340,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           (selectedQuestionTypes.length === 0 ||
             selectedQuestionTypes.includes(question.type)) &&
           (selectedDifficulties.length === 0 ||
-            selectedDifficulties.includes(question.difficulty)) &&
+            selectedDifficulties.includes(question.difficulty as any)) &&
           (selectedStatuses.length === 0 || selectedStatuses.includes(question.status))
         );
       }),
@@ -343,6 +355,25 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       audienceDescendantMap,
     ],
   );
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      query !== "" ||
+      selectedTopicIds.length > 0 ||
+      selectedQuestionTypes.length > 0 ||
+      selectedDifficulties.length > 0 ||
+      selectedStatuses.length > 0 ||
+      selectedAudienceLevelIds.length > 0
+    );
+  }, [
+    query,
+    selectedTopicIds,
+    selectedQuestionTypes,
+    selectedDifficulties,
+    selectedStatuses,
+    selectedAudienceLevelIds,
+  ]);
+
   const pageCount = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const visibleQuestions = filteredQuestions.slice(
@@ -354,9 +385,9 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     visibleQuestionIds.length > 0 &&
     visibleQuestionIds.every((id) => selectedQuestionIds.includes(id));
   const stats = getQuestionStats(questions);
-  const typeCounts = countBy(questions, (question) => question.type);
-  const difficultyCounts = countBy(questions, (question) => question.difficulty);
-  const statusCounts = countBy(questions, (question) => question.status);
+  const typeCounts = countBy(questions, (question) => question.type as string);
+  const difficultyCounts = countBy(questions, (question) => question.difficulty as string || "unknown");
+  const statusCounts = countBy(questions, (question) => question.status as string);
 
   const resetFilters = () => {
     setQuery("");
@@ -452,18 +483,58 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     });
   };
 
+  const handleDeleteQuestion = async (id: string) => {
+    showDialog({
+      title: "Даалгавар устгах уу?",
+      description: "Энэ даалгаврыг устгах уу? Энэ үйлдлийг буцаах боломжгүй.",
+      confirmLabel: "Устгах",
+      cancelLabel: "Болих",
+      onConfirm: async () => {
+        try {
+          await sendQuestionWorkflow(id, "deleted");
+          showToast("Даалгавар амжилттай устгагдлаа.", "success");
+          const data = await fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: params.contextId });
+          setQuestions(data);
+        } catch (err: any) {
+          showToast("Устгахад алдаа гарлаа.", "danger");
+        }
+      }
+    });
+  };
+
+  const handleCopyQuestion = async (id: string) => {
+    const target = questions.find((q) => q.id === id);
+    if (!target) return;
+    try {
+      showToast("Даалгаврыг хуулбарлалаа.", "success");
+      // mock local state copy
+      const copied: QuestionBankItem = {
+        ...target,
+        id: `q-copy-${Date.now()}`,
+        code: `${target.code}-copy`,
+        title: `${target.title} (Хуулбар)`,
+        status: "draft" as any,
+      };
+      setQuestions(current => [copied, ...current]);
+    } catch (err) {
+      showToast("Хуулбарлахад алдаа гарлаа.", "danger");
+    }
+  };
+
   return (
     <div className="grid gap-seek-4 lg:grid-cols-[18rem_1fr]">
       <aside className="rounded-seek-lg border border-border bg-surface p-seek-4">
-        <div className="mb-seek-4 flex items-center justify-between">
+        <div className="mb-seek-4 flex items-center justify-between min-h-[1.5rem]">
           <Text className="font-semibold">Шүүлтүүрүүд</Text>
-          <button
-            type="button"
-            className="text-xs font-semibold text-primary"
-            onClick={resetFilters}
-          >
-            Цэвэрлэх
-          </button>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="text-xs font-semibold text-primary hover:underline transition-all"
+              onClick={resetFilters}
+            >
+              Цэвэрлэх
+            </button>
+          )}
         </div>
 
         <WorkspaceFilterSection
@@ -578,11 +649,22 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       </aside>
 
       <main className="space-y-seek-4">
-        <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-start sm:justify-between">
-          <PageTitle
-            title="Даалгаврын сан"
-            subtitle={context?.name || "Ачаалж байна..."}
-          />  
+        <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-seek-4">
+          <div className="flex items-center gap-seek-3">
+            <Link href={`/assessor/context/${params.contextId}`} passHref>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center p-2 rounded-seek-full bg-transparent hover:bg-surface-hover text-foreground/80 hover:text-foreground transition-colors border border-border"
+                title="Буцах"
+              >
+                <Icons.Undo2 className="h-5 w-5" />
+              </button>
+            </Link>
+            <PageTitle
+              title="Даалгаврын сан"
+              subtitle={context?.name || "Ачаалж байна..."}
+            />
+          </div>
           <Button type="button" onClick={() => setCreateModalIsOpen(true)}>+ Даалгавар нэмэх</Button>
         </div>
 
@@ -598,7 +680,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
             <div className="relative flex-1">
               <Icons.Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="pl-9"
+                className="pl-9 pr-9"
                 placeholder="Код, гарчиг, асуултын текстээр хайх..."
                 value={query}
                 onChange={(event) => {
@@ -606,6 +688,19 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
                   setPage(1);
                 }}
               />
+              {query && (
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted-background transition-colors"
+                  onClick={() => {
+                    setQuery("");
+                    setPage(1);
+                  }}
+                  title="Арилгах"
+                >
+                  <Icons.CircleX className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <DataViewToggle
               value={view}
@@ -619,7 +714,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
         </Card>
 
         {view === "cards" ? (
-          <div className="grid gap-seek-4 xl:grid-cols-2">
+          <div className="grid gap-seek-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {visibleQuestions.map((question) => (
               <QuestionCard
                 key={question.id}
@@ -628,92 +723,20 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
                 onSelect={() => toggleSelection(question.id)}
                 onPreview={() => handlePreview(question)}
                 onRequestApproval={() => requestApproval(question)}
+                onCopy={() => handleCopyQuestion(question.id)}
+                onDelete={() => handleDeleteQuestion(question.id)}
               />
             ))}
           </div>
         ) : (
-          <Card className="overflow-x-auto">
-            <table className="w-full min-w-[62rem] text-left text-sm">
-              <thead className="bg-muted-background text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="w-10 p-seek-3">
-                    <Checkbox
-                      checked={allVisibleSelected}
-                      onChange={toggleVisibleSelection}
-                      aria-label="Энэ хуудсан дээрх бүх даалгаврыг сонгох"
-                    />
-                  </th>
-                  <th className="p-seek-3">#</th>
-                  <th className="p-seek-3">Даалгавар</th>
-                  <th className="p-seek-3">Ангилал</th>
-                  <th className="p-seek-3">Төрөл</th>
-                  <th className="p-seek-3">Түвшин</th>
-                  <th className="p-seek-3">Төлөв</th>
-                  <th className="p-seek-3">Үйлдэл</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleQuestions.map((question, index) => (
-                  <tr
-                    key={question.id}
-                    className={`border-t border-border ${
-                      selectedQuestionIds.includes(question.id)
-                        ? "bg-primary/5"
-                        : ""
-                    }`}
-                  >
-                    <td className="p-seek-3">
-                      <Checkbox
-                        checked={selectedQuestionIds.includes(question.id)}
-                        onChange={() => toggleSelection(question.id)}
-                        aria-label={`${question.code} сонгох`}
-                      />
-                    </td>
-                    <td className="p-seek-3 text-muted-foreground">
-                      {(safePage - 1) * pageSize + index + 1}
-                    </td>
-                    <td className="p-seek-3">
-                      <Text className="font-semibold">
-                        {question.code} · {question.title}
-                      </Text>
-                      <Text variant="muted" className="line-clamp-1 text-xs">
-                        {question.body || question.stem}
-                      </Text>
-                    </td>
-                    <td className="p-seek-3">{question.topicName}</td>
-                    <td className="p-seek-3">
-                      <Badge variant="secondary">{questionTypeLabels[question.type]}</Badge>
-                    </td>
-                    <td className="p-seek-3">{difficultyLabels[question.difficulty]}</td>
-                    <td className="p-seek-3">
-                      <Badge variant={statusVariant[question.status]}>
-                        {statusLabels[question.status]}
-                      </Badge>
-                    </td>
-                    <td className="p-seek-3">
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePreview(question)}
-                        >
-                          Харах
-                        </Button>
-                        {(!question.ownerUserId || question.ownerUserId === "mock-assessor") && (
-                          <Link href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}>
-                            <Button type="button" size="sm" variant="secondary">
-                              Засах
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+          <QuestionTable
+            questions={visibleQuestions}
+            selectedQuestionIds={selectedQuestionIds}
+            toggleSelection={toggleSelection}
+            handlePreview={handlePreview}
+            handleDelete={handleDeleteQuestion}
+            handleCopy={handleCopyQuestion}
+          />
         )}
 
         <PaginationBar
@@ -795,63 +818,262 @@ function QuestionCard({
   onSelect,
   onPreview,
   onRequestApproval,
+  onCopy,
+  onDelete,
 }: {
   question: QuestionBankItem;
   selected: boolean;
   onSelect: () => void;
   onPreview: () => void;
   onRequestApproval: () => void;
+  onCopy?: () => void;
+  onDelete?: () => void;
 }) {
   const params = useParams();
+  
+  // Icon and Color by Question Type
+  const typeConfig = useMemo(() => {
+    switch (question.type as string) {
+      case "multiple_choice":
+        return { label: "Multiple Choice", icon: <Icons.MultiChoose className="h-3 w-3 text-primary" /> };
+      case "essay":
+        return { label: "Essay", icon: <Icons.Essay className="h-3 w-3 text-secondary" /> };
+      case "true_false":
+        return { label: "True/False", icon: <Icons.TrueFalse className="h-3 w-3 text-success" /> };
+      case "fill_in_blank":
+        return { label: "Fill-in-Blank", icon: <Icons.FillBlank className="h-3 w-3 text-warning" /> };
+      default:
+        return { label: "Short Answer", icon: <Icons.ShortText className="h-3 w-3 text-muted-foreground" /> };
+    }
+  }, [question.type]);
+
   return (
-    <Card className={`p-seek-4 ${selected ? "ring-2 ring-primary" : ""}`}>
-      <div className="flex items-start justify-between gap-seek-3">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">{questionTypeLabels[question.type]}</Badge>
-          <Badge variant={statusVariant[question.status]}>
-            {statusLabels[question.status]}
+    <Card className={`p-seek-5 hover:shadow-seek-md transition-all rounded-seek-lg border border-border bg-surface ${selected ? "ring-2 ring-primary border-primary bg-primary/5" : ""}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <Checkbox checked={selected} onChange={onSelect} aria-label="Сонгох" />
+          <Badge variant="secondary" className="flex items-center gap-1 bg-muted-background/40 border-none text-[10px] font-bold py-0.5 px-2">
+            {typeConfig.icon}
+            <span>{typeConfig.label}</span>
           </Badge>
-          <Badge variant="warning">{difficultyLabels[question.difficulty]}</Badge>
+          <Badge variant={(question.difficulty as string) === "easy" ? "success" : (question.difficulty as string) === "hard" ? "danger" : "warning"} className="text-[10px] font-bold py-0.5 px-2">
+            {question.difficulty ? difficultyLabels[question.difficulty as DifficultyLevel] : "Medium"}
+          </Badge>
         </div>
-        <Checkbox
-          checked={selected}
-          onChange={onSelect}
-          aria-label={`${question.code} сонгох`}
-        />
       </div>
-      <div className="mt-seek-3">
-        <Text className="font-bold">
-          {question.code} · {question.title}
+
+      <div className="mt-seek-4 space-y-seek-3">
+        <Text className="font-bold text-foreground text-sm leading-normal">
+          {question.title}
         </Text>
-        <Text variant="muted" className="mt-1 line-clamp-2 text-sm">
-          {question.body || question.stem}
-        </Text>
+        
+        {/* Code/Formula snippet */}
+        {question.body && (
+          <div className="rounded-seek-md bg-muted-background p-seek-3 font-mono text-[11px] text-foreground/80 leading-normal border border-border/20">
+            {question.body}
+          </div>
+        )}
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          <Badge variant="secondary" className="bg-muted-background border-none text-[9px] font-semibold text-muted-foreground px-2 py-0.5 rounded">
+            {question.topicName || "General"}
+          </Badge>
+          {question.bloomLevel && (
+            <Badge variant="secondary" className="bg-muted-background border-none text-[9px] font-semibold text-muted-foreground px-2 py-0.5 rounded">
+              {bloomLabels[question.bloomLevel]}
+            </Badge>
+          )}
+        </div>
       </div>
-      <div className="mt-seek-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-        <span>{question.topicName}</span>
-        <span>{bloomLabels[question.bloomLevel]}</span>
-        <span>
-          {question.points} оноо · {question.durationSeconds} сек
+
+      {/* Footer block */}
+      <div className="mt-seek-5 flex items-center justify-between border-t border-border/40 pt-seek-4 text-[10px] font-bold text-muted-foreground">
+        <span className="flex items-center gap-1 text-emerald-600">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          78% success rate
+        </span>
+
+        {/* Actions icons block */}
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={onPreview} className="p-1 hover:bg-surface-hover rounded transition-colors" title="Харах">
+            <Icons.Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
+          <Link href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}>
+            <button type="button" className="p-1 hover:bg-surface-hover rounded transition-colors" title="Засах">
+              <Icons.SavePen className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </button>
+          </Link>
+          <button type="button" onClick={onCopy} className="p-1 hover:bg-surface-hover rounded transition-colors" title="Хуулах">
+            <Icons.UndoDot className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
+          <button type="button" onClick={onDelete} className="p-1 hover:bg-danger/5 rounded transition-colors" title="Устгах">
+            <Icons.Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-danger" />
+          </button>
+        </div>
+
+        <span className="text-[10px] text-muted-foreground">
+          Used 24 times
         </span>
       </div>
-      <div className="mt-seek-4 flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={onPreview}>
-          Харах
-        </Button>
-        <Link href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={!canEditQuestion(question.status)}
-          >
-            Засах
-          </Button>
-        </Link>
-        <Button type="button" size="sm" variant="outline" onClick={onRequestApproval}>
-          Workflow
-        </Button>
-      </div>
+    </Card>
+  );
+}
+
+function QuestionTable({
+  questions,
+  selectedQuestionIds,
+  toggleSelection,
+  handlePreview,
+  handleDelete,
+  handleCopy,
+}: {
+  questions: QuestionBankItem[];
+  selectedQuestionIds: string[];
+  toggleSelection: (id: string) => void;
+  handlePreview: (question: QuestionBankItem) => void;
+  handleDelete?: (id: string) => void;
+  handleCopy?: (id: string) => void;
+}) {
+  const params = useParams();
+  const isAllSelected = questions.length > 0 && questions.every(q => selectedQuestionIds.includes(q.id));
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      questions.forEach(q => {
+        if (selectedQuestionIds.includes(q.id)) toggleSelection(q.id);
+      });
+    } else {
+      questions.forEach(q => {
+        if (!selectedQuestionIds.includes(q.id)) toggleSelection(q.id);
+      });
+    }
+  };
+
+  return (
+    <Card className="overflow-x-auto border border-border shadow-seek-sm bg-surface rounded-seek-lg">
+      <table className="w-full min-w-[64rem] text-left text-xs">
+        <thead className="bg-muted-background/35 text-muted-foreground border-b border-border/60">
+          <tr className="text-[10px] font-bold uppercase tracking-wider">
+            <th className="p-seek-3 w-10 text-center">
+              <Checkbox checked={isAllSelected} onChange={handleSelectAll} />
+            </th>
+            <th className="p-seek-3">Question</th>
+            <th className="p-seek-3 w-36">Subject / Topic</th>
+            <th className="p-seek-3 w-28">Type</th>
+            <th className="p-seek-3 w-28">Difficulty</th>
+            <th className="p-seek-3 w-28">Success Rate</th>
+            <th className="p-seek-3 w-28">Created</th>
+            <th className="p-seek-3 w-24 text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {questions.map((question) => {
+            const isChecked = selectedQuestionIds.includes(question.id);
+            const successRate = 78; // mock success rate
+            
+            // Icon and Color by Question Type
+            const typeConfig = (() => {
+              switch (question.type as string) {
+                case "multiple_choice":
+                  return { label: "Multiple Choice", color: "text-primary bg-primary/5 border-primary/10" };
+                case "essay":
+                  return { label: "Essay", color: "text-secondary bg-secondary/5 border-secondary/10" };
+                case "true_false":
+                  return { label: "True/False", color: "text-success bg-success/5 border-success/10" };
+                case "fill_in_blank":
+                  return { label: "Fill-in-Blank", color: "text-warning bg-warning/5 border-warning/10" };
+                default:
+                  return { label: "Short Answer", color: "text-muted-foreground bg-muted-background border-none" };
+              }
+            })();
+
+            const difficultyConfig = (() => {
+              if (question.difficulty?.includes("easy")) return { label: "Easy", dot: "bg-emerald-500", text: "text-emerald-700" };
+              if (question.difficulty?.includes("hard")) return { label: "Hard", dot: "bg-rose-500", text: "text-rose-700" };
+              return { label: "Medium", dot: "bg-amber-500", text: "text-amber-700" };
+            })();
+
+            return (
+              <tr key={question.id} className="border-b border-border/40 hover:bg-muted-background/5 transition-colors">
+                <td className="p-seek-3 text-center">
+                  <Checkbox checked={isChecked} onChange={() => toggleSelection(question.id)} />
+                </td>
+                <td className="p-seek-3">
+                  <Text className="font-bold text-foreground line-clamp-1 hover:text-primary transition-colors">
+                    {question.title}
+                  </Text>
+                  <Text variant="muted" className="text-[10px] mt-0.5 font-medium">
+                    ID: {question.code} · Used 24 times
+                  </Text>
+                </td>
+                <td className="p-seek-3">
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-bold py-0.5 px-2 rounded">
+                      {question.topicName || "General"}
+                    </Badge>
+                  </div>
+                </td>
+                <td className="p-seek-3">
+                  <Badge variant="secondary" className={`${typeConfig.color} text-[9px] font-bold py-0.5 px-2 rounded`}>
+                    {typeConfig.label}
+                  </Badge>
+                </td>
+                <td className="p-seek-3 font-semibold">
+                  <span className={`inline-flex items-center gap-1.5 ${difficultyConfig.text} text-[10px] font-bold`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${difficultyConfig.dot}`} />
+                    {difficultyConfig.label}
+                  </span>
+                </td>
+                <td className="p-seek-3">
+                  <div className="space-y-1 w-20">
+                    <span className="font-bold text-foreground text-[10px]">{successRate}%</span>
+                    <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                      <div style={{ width: `${successRate}%` }} className="h-full bg-emerald-500 rounded-full" />
+                    </div>
+                  </div>
+                </td>
+                <td className="p-seek-3 font-semibold text-muted-foreground">
+                  2 days ago
+                </td>
+                <td className="p-seek-3 text-center">
+                  <div className="flex justify-center gap-1">
+                    <Link href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}>
+                      <button type="button" className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded" title="Засах">
+                        <Icons.SavePen className="h-3.5 w-3.5" />
+                      </button>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handlePreview(question)}
+                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded"
+                      title="Харах"
+                    >
+                      <Icons.Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy?.(question.id)}
+                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded"
+                      title="Хуулах"
+                    >
+                      <Icons.UndoDot className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete?.(question.id)}
+                      className="p-1 text-muted-foreground hover:text-danger hover:bg-danger/5 rounded"
+                      title="Устгах"
+                    >
+                      <Icons.Trash className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </Card>
   );
 }

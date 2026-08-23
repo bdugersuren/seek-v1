@@ -251,18 +251,6 @@ services:
 #      - "127.0.0.1:3160:3160"
 #    command: pnpm run start:dev
 
-  # =========================================================================
-  # AI & Integration Services
-  # =========================================================================
-  ollama:
-    ports:
-      - "127.0.0.1:11434:11434"
-
-  qdrant:
-    ports:
-      - "127.0.0.1:6333:6333"
-      - "127.0.0.1:6334:6334"
-
 #  ai:
 #    environment:
 #      - NODE_ENV=development
@@ -274,13 +262,13 @@ services:
 #      - "127.0.0.1:3120:3120"
 #    command: pnpm run start:dev
 #
-#  integration:
-#    environment:
-#      - NODE_ENV=development
-#      - PORT=3130
-#    volumes:
-#      - ./services/integration:/app/services/integration
-#      - /app/services/integration/node_modules
-#    ports:
-#      - "127.0.0.1:3130:3130"
-#    command: pnpm run start:dev
+  integration:
+    environment:
+      - NODE_ENV=development
+      - PORT=3130
+    volumes:
+      - ./services/integration:/app/services/integration
+      - /app/services/integration/node_modules
+    ports:
+      - "127.0.0.1:3130:3130"
+    command: pnpm run start:dev

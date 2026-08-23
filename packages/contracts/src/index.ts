@@ -496,6 +496,8 @@ export interface AssessmentSubmitResponse {
 
 export interface SendOtpRequest {
   phoneNumber: string;
+  /** One-time code created and verified by the Profile service. */
+  code: string;
 }
 
 export interface SendOtpResponse {

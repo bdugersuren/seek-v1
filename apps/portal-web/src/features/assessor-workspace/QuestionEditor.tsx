@@ -344,9 +344,8 @@ export function QuestionEditor({
                 const nextIsCorrect = patch.isCorrect !== undefined ? patch.isCorrect : nextScore > 0;
                 let nextOptions = current.options.map((option, optionIndex) => {
                   if (optionIndex === index) {
-                    const finalValue = patch.value !== undefined ? patch.value : (patch.content !== undefined ? patch.content : option.value);
-                    const finalContent = patch.content !== undefined ? patch.content : (patch.value !== undefined ? patch.value : option.content);
-                    return { ...option, ...patch, value: finalValue, content: finalContent, isCorrect: nextIsCorrect, score: nextScore };
+                    const finalValue = patch.value !== undefined ? patch.value : option.value;
+                    return { ...option, ...patch, value: finalValue, isCorrect: nextIsCorrect, score: nextScore };
                   }
                   return option;
                 });
@@ -365,7 +364,6 @@ export function QuestionEditor({
                     optionKey: "",
                     label: "",
                     value: "",
-                    content: "",
                     isCorrect: false,
                     score: 0,
                   },
@@ -406,7 +404,6 @@ export function QuestionEditor({
                     optionKey: `L${current.options.length + 1}`,
                     label: `L${current.options.length + 1}`,
                     value: "",
-                    content: "",
                     isCorrect: true,
                     score: 1,
                   },
@@ -666,24 +663,62 @@ function RailButton({
  */
 function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, contextId?: string): QuestionWizardState {
   const question = mode === "edit" ? source ?? mockQuestionBank.find((item) => item.code === "MX-58") : undefined;
-  const options = question?.options.length
+  const qType = question?.type ?? "MULTIPLE_CHOICE";
+  
+  const options = question?.options && question.options.length > 0
     ? question.options.map((option) => ({
         id: option.id,
         optionKey: option.optionKey || option.id,
         label: option.label,
-        value: option.value || option.content || "",
-        content: option.content || option.value || "",
+        value: option.value || "",
         isCorrect: Boolean(option.isCorrect),
-        score: option.score ?? (option.isCorrect ? (question.defaultMaxScore ?? question.points ?? 1) : 0),
+        score: option.score ?? (option.isCorrect ? (question.defaultMaxScore ?? 1) : 0),
         matchValue: option.matchValue || "",
         acceptedValues: option.acceptedValues || [],
       }))
-    : [
-        { id: "a", optionKey: "a", label: "A", value: "", content: "", isCorrect: true, score: 1, matchValue: "" },
-        { id: "b", optionKey: "b", label: "B", value: "", content: "", isCorrect: false, score: 0, matchValue: "" },
-        { id: "c", optionKey: "c", label: "C", value: "", content: "", isCorrect: false, score: 0, matchValue: "" },
-        { id: "d", optionKey: "d", label: "D", value: "", content: "", isCorrect: false, score: 0, matchValue: "" },
-      ];
+    : (() => {
+        switch (qType) {
+          case "TRUE_FALSE":
+            return [
+              { id: "A", optionKey: "A", label: "TRUE", value: "Үнэн", isCorrect: true, score: 1, matchValue: "" },
+              { id: "B", optionKey: "B", label: "FALSE", value: "Худал", isCorrect: false, score: 0, matchValue: "" },
+            ];
+          case "MATCHING":
+            return [
+              { id: "L1", optionKey: "L1", label: "L1", value: "Зүүн 1", isCorrect: true, score: 1 },
+              { id: "L2", optionKey: "L2", label: "L2", value: "Зүүн 2", isCorrect: true, score: 1 },
+            ];
+          case "ORDERING":
+            return [
+              { id: "o1", optionKey: "o1", label: "O1", value: "", isCorrect: true, score: 1, matchValue: "" },
+              { id: "o2", optionKey: "o2", label: "O2", value: "", isCorrect: true, score: 1, matchValue: "" },
+            ];
+          case "FILL_BLANK":
+            return [
+              { id: "blank1", optionKey: "blank1", label: "blank1", value: "", isCorrect: true, score: 1, matchValue: "", acceptedValues: [{ value: "", score: 1 }] },
+            ];
+          case "MATRIX":
+            return [
+              { id: "mx1", optionKey: "mx1", label: "Мөр 1", value: "", isCorrect: true, score: 1, matchValue: "" },
+            ];
+          case "NUMERIC":
+            return [
+              { id: "num-ans", optionKey: "num-ans", label: "Хариулт", value: "", isCorrect: true, score: question?.defaultMaxScore ?? 1, matchValue: "0" }
+            ];
+          case "LIKERT":
+            return [
+              { id: "a", optionKey: "a", label: "1", value: "Маш муу", isCorrect: false, score: 1, matchValue: "" },
+              { id: "b", optionKey: "b", label: "2", value: "Муу", isCorrect: false, score: 2, matchValue: "" },
+            ];
+          default:
+            return [
+              { id: "a", optionKey: "a", label: "A", value: "", isCorrect: true, score: 1, matchValue: "" },
+              { id: "b", optionKey: "b", label: "B", value: "", isCorrect: false, score: 0, matchValue: "" },
+              { id: "c", optionKey: "c", label: "C", value: "", isCorrect: false, score: 0, matchValue: "" },
+              { id: "d", optionKey: "d", label: "D", value: "", isCorrect: false, score: 0, matchValue: "" },
+            ];
+        }
+      })();
 
   const rawScoringConfig =
     question?.scoringConfig ||
@@ -701,10 +736,10 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, cont
   return {
     title: question?.title ?? "Квадрат тэгшитгэлийн язгуур",
     code: question?.code ?? `Q-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-    type: question?.type ?? "MULTIPLE_CHOICE",
-    body: question?.body ?? question?.stem ?? "Дараах тэгшитгэлийн язгууруудыг олно уу: $$x^2 - 5x + 6 = 0$$",
+    type: qType,
+    body: question?.body ?? "Дараах тэгшитгэлийн язгууруудыг олно уу: $$x^2 - 5x + 6 = 0$$",
     options,
-    explanation: question?.explanation || question?.feedback || "",
+    explanation: question?.explanation || "",
     feedbackCorrect:
       question?.feedbackCorrect || "",
     feedbackIncorrect:
@@ -716,29 +751,28 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, cont
         ...raw,
         scoringMode,
         rightOptions: raw.rightOptions || (
-          question?.type === "MATCHING"
-            ? (question.options || []).map((o, idx) => ({ id: `R${idx + 1}`, value: o.matchValue || o.content })).filter(o => o.value)
+          qType === "MATCHING"
+            ? (options.length > 0 ? options.map((o, idx) => ({ id: `R${idx + 1}`, value: o.matchValue || o.value })).filter(o => o.value) : [{ id: "R1", value: "Баруун 1" }, { id: "R2", value: "Баруун 2" }, { id: "R3", value: "Баруун 3" }])
             : []
         ),
         combinations: (() => {
           if (raw.combinations && Array.isArray(raw.combinations) && raw.combinations.length > 0) {
             return raw.combinations.map((c: any) => ({
-              answers: Array.isArray(c.answers) ? c.answers : (Array.isArray(c.ids) ? c.ids : []),
               ids: Array.isArray(c.ids) ? c.ids : (Array.isArray(c.answers) ? c.answers : []),
               score: Number(c.score ?? 1)
             }));
           }
-          if (question?.type === "MATCHING") {
-            const defaultPairs = (question.options || []).map((o, idx) => `${o.id}:R${idx + 1}`);
-            return [{ ids: defaultPairs, answers: defaultPairs, score: 1 }];
+          if (qType === "MATCHING") {
+            const defaultPairs = options.map((o, idx) => `${o.id}:R${idx + 1}`);
+            return [{ ids: defaultPairs, score: 1 }];
           }
           return [];
         })()
       };
     })(),
-    defaultMaxScore: question?.defaultMaxScore ?? question?.points ?? 3,
-    defaultMinScore: question?.defaultMinScore ?? question?.minPoints ?? 0,
-    defaultTimeSeconds: question?.defaultTimeSeconds ?? question?.durationSeconds ?? 60,
+    defaultMaxScore: question?.defaultMaxScore ?? 3,
+    defaultMinScore: question?.defaultMinScore ?? 0,
+    defaultTimeSeconds: question?.defaultTimeSeconds ?? 60,
     tags: question?.tags ?? [],
     mappings:
       question?.topicMappings && question.topicMappings.length > 0
@@ -786,13 +820,11 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, cont
 function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBankItem): QuestionBankItem {
   const primaryMapping = state.mappings[0];
   const options: QuestionOption[] = state.options.map((option) => {
-    const finalVal = option.content !== undefined ? option.content : (option.value || "");
     return {
       id: option.id,
       optionKey: option.optionKey || option.id,
       label: option.label,
-      value: finalVal,
-      content: finalVal,
+      value: option.value,
       isCorrect: option.isCorrect,
       score: option.score,
       matchValue: option.matchValue,
@@ -805,15 +837,11 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     code: state.code,
     title: state.title,
     body: state.body,
-    stem: state.body,
     type: state.type,
     status: state.status,
     defaultMaxScore: state.defaultMaxScore,
     defaultMinScore: state.defaultMinScore,
     defaultTimeSeconds: state.defaultTimeSeconds,
-    points: state.defaultMaxScore,
-    minPoints: state.defaultMinScore,
-    durationSeconds: state.defaultTimeSeconds,
     bloomLevel: (primaryMapping?.bloomLevel ?? "apply") as BloomLevel,
     competencyType: (primaryMapping?.competencyType ?? "knowledge") as CompetencyType,
     topicId: primaryMapping?.topicId ?? "unmapped",
@@ -827,7 +855,6 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
     scoringMode: state.scoringMode,
     scoringConfig: state.scoringConfig,
     explanation: state.explanation,
-    feedback: state.explanation,
     feedbackCorrect: state.feedbackCorrect,
     feedbackIncorrect: state.feedbackIncorrect,
     media: (state.media || []).map((m: any) => {

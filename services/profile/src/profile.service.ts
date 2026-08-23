@@ -268,7 +268,18 @@ export class ProfileService {
     const expiresAt = new Date(now + OTP_TTL_MS);
 
     // Call mock SMS provider via integration service
-    await callIntegrationApi("/integration/sms/send-otp", { phoneNumber: cleanPhone });
+    const delivery = await callIntegrationApi<{ success: boolean; message?: string }>(
+      "/integration/sms/send-otp",
+      {
+      phoneNumber: cleanPhone,
+      code: otpCode,
+      },
+    );
+    if (!delivery.success) {
+      throw new BadRequestException(
+        delivery.message || "OTP код илгээх боломжгүй байна.",
+      );
+    }
 
     const newMetadata: Record<string, any> = {
       ...currentMetadata,

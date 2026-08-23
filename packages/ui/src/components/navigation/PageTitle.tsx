@@ -11,8 +11,8 @@ interface PageTitleProps {
 
 export function PageTitle({ title, subtitle, className }: PageTitleProps) {
   return (
-    <div className={clsx("flex flex-col gap-seek-1", className)}>
-      <Heading level={1}>{title}</Heading>
+    <div className={clsx("flex flex-col gap-seek-1 ", className)}>
+      <Heading level={3}>{title}</Heading>
       {subtitle && <Text variant="muted">{subtitle}</Text>}
     </div>
   );

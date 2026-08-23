@@ -311,6 +311,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      integration:
+        condition: service_healthy
 
   organisation:
     image: seek-organisation:latest
@@ -589,21 +591,29 @@ services:
 #    networks:
 #      - shared-net
 #
-#  integration:
-#    profiles:
-#      - integration
-#    image: seek-integration:latest
-#    build:
-#      context: .
-#      dockerfile: services/integration/Dockerfile
-#    container_name: seek-integration
-#    restart: unless-stopped
-#    expose:
-#      - "3130"
-#    environment:
-#      PORT: 3130
-#    networks:
-#      - shared-net
+  integration:
+    image: seek-integration:latest
+    build:
+      context: .
+      dockerfile: services/integration/Dockerfile
+    container_name: seek-integration
+    restart: unless-stopped
+    expose:
+      - "3130"
+    environment:
+      PORT: 3130
+      NODE_ENV: ${NODE_ENV:-development}
+    networks:
+      - shared-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e ''require("http").get("http://localhost:3130/health/ready", (r) => process.exit(r.statusCode === 200 ? 0 : 1))''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nginx-proxy:
     image: seek-npm:latest

@@ -110,7 +110,7 @@ export default function AssessorContextDashboard() {
       <div className="border-b border-border pb-seek-4 space-y-seek-2">
         <div className="flex items-center gap-seek-3">
           <Link href="/assessor/context" className="text-muted-foreground hover:text-foreground">
-            <Icons.Settings className="h-5 w-5 transform rotate-180" />
+            <Icons.Undo2 />
           </Link>
           <span className="font-mono text-xs text-muted-foreground px-seek-2 py-seek-1 bg-muted-background rounded-seek-sm">
             {context.code}

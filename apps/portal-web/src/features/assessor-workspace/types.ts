@@ -56,16 +56,19 @@ export interface QuestionOption {
   id: string;
   optionKey?: string;
   label: string;
-  value?: string;
-  content?: string;
+  value: string;
   contentJson?: unknown;
   contentHtml?: string;
   isCorrect?: boolean;
-  score?: number;
-  negativeScore?: number;
+  score: number;
   matchValue?: string;
   acceptedValues?: { value: string; score: number; caseSensitive?: boolean }[];
   metadata?: Record<string, any>;
+}
+
+export interface RightMatchingOption {
+  id: string;
+  value: string;
 }
 
 export interface QuestionMedia {
@@ -104,7 +107,6 @@ export interface QuestionBankItem {
   code: string;
   title: string;
   body?: string;
-  stem?: string;
   parentId?: string | null;
   ownerUserId?: string;
   contentJson?: unknown;
@@ -115,9 +117,6 @@ export interface QuestionBankItem {
   defaultMaxScore?: number;
   defaultMinScore?: number;
   defaultTimeSeconds?: number;
-  points?: number;
-  minPoints?: number;
-  durationSeconds?: number;
   bloomLevel?: BloomLevel;
   competencyType?: CompetencyType;
   topicId: string;
@@ -129,7 +128,6 @@ export interface QuestionBankItem {
   answerKey?: string;
   rubric?: any;
   explanation?: string;
-  feedback?: string;
   feedbackCorrect?: string;
   feedbackIncorrect?: string;
   scoringMode?: string;
@@ -222,18 +220,6 @@ export interface Quiz {
   questionOverrides: QuizQuestionOverride[];
 }
 
-export interface EditorOption {
-  id: string;
-  optionKey?: string;
-  label: string;
-  value?: string;
-  content: string;
-  isCorrect: boolean;
-  score: number;
-  matchValue?: string;
-  acceptedValues?: { value: string; score: number; caseSensitive?: boolean }[];
-}
-
 export interface TopicNode {
   id: string;
   label: string;
@@ -245,7 +231,7 @@ export interface QuestionWizardState {
   code: string;
   type: QuestionType;
   body: string;
-  options: EditorOption[];
+  options: QuestionOption[];
   explanation: string;
   feedbackCorrect: string;
   feedbackIncorrect: string;

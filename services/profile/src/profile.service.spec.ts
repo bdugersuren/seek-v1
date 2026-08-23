@@ -572,7 +572,12 @@ describe("ProfileService", () => {
 
       const res = await service.sendPhoneOtp("user-1", "99112233");
       expect(res.success).toBe(true);
-      expect(global.fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/integration/sms/send-otp"),
+        expect.objectContaining({
+          body: expect.stringMatching(/"phoneNumber":"99112233"/),
+        }),
+      );
       expect(prisma.userProfile.upsert).toHaveBeenCalledWith(expect.objectContaining({
         update: expect.objectContaining({
           metadata: expect.objectContaining({
@@ -582,6 +587,26 @@ describe("ProfileService", () => {
           }),
         }),
       }));
+    });
+
+    it("does not persist an OTP when the provider rejects delivery", async () => {
+      prisma.userProfile.findUnique.mockResolvedValue({
+        userId: "user-1",
+        phoneNumber: "",
+        metadata: {},
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          success: false,
+          message: "Provider unavailable",
+        }),
+      });
+
+      await expect(service.sendPhoneOtp("user-1", "99112233")).rejects.toThrow(
+        "Provider unavailable",
+      );
+      expect(prisma.userProfile.upsert).not.toHaveBeenCalled();
     });
 
     it("verifies phone OTP successfully and sets phoneNumberVerifiedAt", async () => {
