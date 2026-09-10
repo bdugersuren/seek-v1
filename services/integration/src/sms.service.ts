@@ -1,9 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { SendOtpRequest, SendOtpResponse } from "@seek/contracts";
 
 @Injectable()
 export class SmsService {
   async sendOtp(dto: SendOtpRequest): Promise<SendOtpResponse> {
+    if (process.env.NODE_ENV === "production") {
+      throw new ServiceUnavailableException("SMS нийлүүлэгч одоогоор тохируулагдаагүй байна.");
+    }
     if (!/^\d{6}$/.test(dto.code)) {
       return {
         success: false,

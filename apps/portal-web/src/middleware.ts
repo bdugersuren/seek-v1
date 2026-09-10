@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
+  const unavailable = ["/payments", "/wallet", "/notifications"];
+  if (process.env.NEXT_PUBLIC_OPTIONAL_MODULES === "false" && unavailable.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + "/"))) {
+    return new NextResponse("Энэ боломж одоогоор идэвхгүй байна.", { status: 404 });
+  }
   const enableMock = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH !== "false";
 
   // Хэрэв mock горим асаалттай бол middleware-ийг алгасна

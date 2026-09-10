@@ -15,6 +15,7 @@ export class RabbitMQAttemptEventPublisher
 
   private async publishEvent(routingKey: string, payload: any): Promise<void> {
     if (!this.channel) {
+      if (process.env.NODE_ENV === "production") throw new Error("RabbitMQ publisher unavailable");
       console.warn(
         `[RabbitMQ] Channel not initialized. Falling back to log-only. Event: routingKey=${routingKey}, attemptId=${payload.attemptId}`
       );
@@ -26,8 +27,10 @@ export class RabbitMQAttemptEventPublisher
       this.channel.publish(this.exchangeName, routingKey, messageBuffer, {
         persistent: true,
       });
+      if ("waitForConfirms" in this.channel) await (this.channel as amqp.ConfirmChannel).waitForConfirms();
       console.log(`[RabbitMQ] Event published: routingKey=${routingKey}, attemptId=${payload.attemptId}`);
     } catch (err) {
+      if (process.env.NODE_ENV === "production") throw err;
       console.error(
         `[RabbitMQ] Failed to publish event: routingKey=${routingKey}, attemptId=${payload.attemptId}`,
         err

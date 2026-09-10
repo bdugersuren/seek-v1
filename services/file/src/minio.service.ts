@@ -37,6 +37,7 @@ export class MinioService implements OnModuleInit {
         console.log(`[MinIO] Bucket "${this.bucket}" already exists.`);
       }
     } catch (err) {
+      if (process.env.NODE_ENV === "production") throw new Error("MinIO bucket initialization failed");
       console.error(`[MinIO] Failed to initialize bucket "${this.bucket}":`, err);
     }
 
@@ -58,6 +59,7 @@ export class MinioService implements OnModuleInit {
       console.log(`[MinIO] Public client initialized for ${publicUrl.hostname}:${port}`);
     } catch (err: any) {
       console.error(`[MinIO] Failed to initialize public client, using fallback: ${err.message}`);
+      if (process.env.NODE_ENV === "production") throw new Error("Invalid MINIO_PUBLIC_ENDPOINT");
       this.publicMinioClient = this.minioClient;
     }
   }
@@ -85,7 +87,7 @@ export class MinioService implements OnModuleInit {
       storageKey.includes("QUESTION_ATTACHMENT");
       
     const hasAdminRole = userRoles.some((role) =>
-      ["SUPER_ADMIN", "ASSESSOR", "ORGANIZATION_ADMIN"].includes(role),
+      (process.env.NODE_ENV === "production" ? ["SUPER_ADMIN"] : ["SUPER_ADMIN", "ASSESSOR", "ORGANIZATION_ADMIN"]).includes(role),
     );
 
     if (!isSharedOrPublic && !hasAdminRole) {

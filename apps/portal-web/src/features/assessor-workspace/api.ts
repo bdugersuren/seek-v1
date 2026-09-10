@@ -4,6 +4,8 @@ import type {
   Blueprint,
   BlueprintSection,
   QuestionBankItem,
+  QuestionTopicMapping,
+  QuestionOption,
   QuestionWorkflowStatus,
   Quiz,
   QuizQuestionOverride,

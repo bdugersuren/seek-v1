@@ -48,3 +48,8 @@ Thumbs.db
 
 # Project-specific
 .gemini/
+
+# Production secrets and operational artifacts
+.env.production
+.production/
+.backups/

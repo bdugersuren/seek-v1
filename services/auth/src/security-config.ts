@@ -1,6 +1,7 @@
 const PLACEHOLDER_SECRET_PATTERNS = [
   "seek_jwt_secret_key_placeholder",
   "placeholder",
+  "seek_jwt_key_safe_entropy",
   "change_me",
   "changeme",
   "secret",
@@ -17,7 +18,6 @@ export function validateProductionAuthConfig(serviceName: string): void {
     normalized.includes(pattern),
   );
 
-  console.log(`[DEBUG JWT SECRET] service=${serviceName} len=${secret.length} hasPlaceholder=${hasPlaceholder} val="${secret}"`);
 
   if (!secret || secret.length < 32 || hasPlaceholder) {
     throw new Error(

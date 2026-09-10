@@ -20,16 +20,15 @@ export function TrueFalseBuilder({
   onChange,
   totalPoints = 1,
 }: TrueFalseBuilderProps) {
-  const trueOpt = options[0] || { id: "A", label: "TRUE", content: "Үнэн", isCorrect: true, score: 1, matchValue: "" };
-  const falseOpt = options[1] || { id: "B", label: "FALSE", content: "Худал", isCorrect: false, score: 0, matchValue: "" };
+  const trueOpt = options[0] || { id: "A", label: "TRUE", value: "Үнэн", isCorrect: true, score: 1, matchValue: "" };
+  const falseOpt = options[1] || { id: "B", label: "FALSE", value: "Худал", isCorrect: false, score: 0, matchValue: "" };
 
   const updateTrueOpt = (patch: Partial<EditorOption>) => {
     const nextScore = patch.score !== undefined ? patch.score : trueOpt.score;
     const nextIsCorrect = nextScore > 0;
-    const finalValue = patch.value !== undefined ? patch.value : (patch.content !== undefined ? patch.content : trueOpt.value);
-    const finalContent = patch.content !== undefined ? patch.content : (patch.value !== undefined ? patch.value : trueOpt.content);
+    const finalValue = patch.value ?? trueOpt.value;
     
-    const nextTrue = { ...trueOpt, ...patch, value: finalValue, content: finalContent, isCorrect: nextIsCorrect, score: nextScore };
+    const nextTrue = { ...trueOpt, ...patch, value: finalValue, isCorrect: nextIsCorrect, score: nextScore };
     const nextFalse = {
       ...falseOpt,
       isCorrect: !nextIsCorrect,
@@ -46,10 +45,9 @@ export function TrueFalseBuilder({
   const updateFalseOpt = (patch: Partial<EditorOption>) => {
     const nextScore = patch.score !== undefined ? patch.score : falseOpt.score;
     const nextIsCorrect = nextScore > 0;
-    const finalValue = patch.value !== undefined ? patch.value : (patch.content !== undefined ? patch.content : falseOpt.value);
-    const finalContent = patch.content !== undefined ? patch.content : (patch.value !== undefined ? patch.value : falseOpt.content);
+    const finalValue = patch.value ?? falseOpt.value;
     
-    const nextFalse = { ...falseOpt, ...patch, value: finalValue, content: finalContent, isCorrect: nextIsCorrect, score: nextScore };
+    const nextFalse = { ...falseOpt, ...patch, value: finalValue, isCorrect: nextIsCorrect, score: nextScore };
     const nextTrue = {
       ...trueOpt,
       isCorrect: !nextIsCorrect,
@@ -95,9 +93,9 @@ export function TrueFalseBuilder({
             <RichEditor
               compact
               minHeight="4rem"
-              value={trueOpt.content}
+              value={trueOpt.value}
               placeholder="Үнэн хариултын тодотгол текст..."
-              onChange={(content) => updateTrueOpt({ content })}
+              onChange={(value) => updateTrueOpt({ value })}
             />
           </div>
         </div>
@@ -133,9 +131,9 @@ export function TrueFalseBuilder({
             <RichEditor
               compact
               minHeight="4rem"
-              value={falseOpt.content}
+              value={falseOpt.value}
               placeholder="Худал хариултын тодотгол текст..."
-              onChange={(content) => updateFalseOpt({ content })}
+              onChange={(value) => updateFalseOpt({ value })}
             />
           </div>
         </div>

@@ -14,6 +14,7 @@ export class RabbitMQConsumerService implements OnApplicationBootstrap, BeforeAp
 
   async onApplicationBootstrap() {
     if (!this.channel) {
+      if (process.env.NODE_ENV === "production" && process.env.USE_RABBITMQ === "true") throw new Error("RabbitMQ consumer requires a channel");
       console.log("[RabbitMQ Consumer] Channel not initialized. Skipping subscription.");
       return;
     }
@@ -38,7 +39,7 @@ export class RabbitMQConsumerService implements OnApplicationBootstrap, BeforeAp
           if (!msg) return;
           try {
             const content = JSON.parse(msg.content.toString());
-            console.log("[RabbitMQ Consumer] Received attempt.started event:", content);
+
             
             if (content && content.attemptId && content.unlockKey) {
               this.sseService.emitUnlock(content.attemptId, content.unlockKey);
@@ -55,6 +56,7 @@ export class RabbitMQConsumerService implements OnApplicationBootstrap, BeforeAp
       this.consumerTag = consumeResult.consumerTag;
       console.log(`[RabbitMQ Consumer] Subscribed to attempt.started events on queue: ${queueName}`);
     } catch (err) {
+      if (process.env.NODE_ENV === "production") throw err;
       console.error("[RabbitMQ Consumer] Failed to setup subscription:", err);
     }
   }

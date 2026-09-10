@@ -227,7 +227,7 @@ export default function AdminQuestionsPage() {
   const filteredQuestions = useMemo(
     () =>
       questions.filter((question) => {
-        const matchQuery = [question.code, question.title, question.body || question.stem]
+        const matchQuery = [question.code, question.title, question.body || question.body]
           .join(" ")
           .toLowerCase()
           .includes(query.toLowerCase());
@@ -257,7 +257,7 @@ export default function AdminQuestionsPage() {
           (selectedQuestionTypes.length === 0 ||
             selectedQuestionTypes.includes(question.type)) &&
           (selectedDifficulties.length === 0 ||
-            selectedDifficulties.includes(question.difficulty)) &&
+            selectedDifficulties.includes(question.difficulty ?? "medium")) &&
           (selectedStatuses.length === 0 || selectedStatuses.includes(question.status))
         );
       }),
@@ -284,7 +284,7 @@ export default function AdminQuestionsPage() {
     visibleQuestionIds.every((id) => selectedQuestionIds.includes(id));
   const stats = getQuestionStats(questions);
   const typeCounts = countBy(questions, (question) => question.type);
-  const difficultyCounts = countBy(questions, (question) => question.difficulty);
+  const difficultyCounts = countBy(questions, (question) => question.difficulty ?? "medium");
   const statusCounts = countBy(questions, (question) => question.status);
 
   const resetFilters = () => {
@@ -616,14 +616,14 @@ export default function AdminQuestionsPage() {
                         {question.code} · {question.title}
                       </Text>
                       <Text variant="muted" className="line-clamp-1 text-xs">
-                        {question.body || question.stem}
+                        {question.body || question.body}
                       </Text>
                     </td>
                     <td className="p-seek-3">{question.topicName}</td>
                     <td className="p-seek-3">
                       <Badge variant="secondary">{questionTypeLabels[question.type]}</Badge>
                     </td>
-                    <td className="p-seek-3">{difficultyLabels[question.difficulty]}</td>
+                    <td className="p-seek-3">{difficultyLabels[question.difficulty ?? "medium"]}</td>
                     <td className="p-seek-3">
                       <Badge variant={statusVariant[question.status]}>
                         {statusLabels[question.status]}
@@ -739,7 +739,7 @@ function QuestionCard({
           <Badge variant={statusVariant[question.status]}>
             {statusLabels[question.status]}
           </Badge>
-          <Badge variant="warning">{difficultyLabels[question.difficulty]}</Badge>
+          <Badge variant="warning">{difficultyLabels[question.difficulty ?? "medium"]}</Badge>
         </div>
         <Checkbox
           checked={selected}
@@ -752,14 +752,14 @@ function QuestionCard({
           {question.code} · {question.title}
         </Text>
         <Text variant="muted" className="mt-1 line-clamp-2 text-sm">
-          {question.body || question.stem}
+          {question.body || question.body}
         </Text>
       </div>
       <div className="mt-seek-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
         <span>{question.topicName}</span>
-        <span>{bloomLabels[question.bloomLevel]}</span>
+        <span>{bloomLabels[question.bloomLevel ?? "understand"]}</span>
         <span>
-          {question.points} оноо · {question.durationSeconds} сек
+          {question.defaultMaxScore} оноо · {question.defaultTimeSeconds} сек
         </span>
       </div>
       <div className="mt-seek-4 flex flex-wrap gap-2">

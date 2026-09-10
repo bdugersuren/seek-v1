@@ -1,0 +1,12 @@
+ARG DEPENDENCIES_IMAGE=seek-dependencies:production
+FROM ${DEPENDENCIES_IMAGE} AS source
+COPY . .
+RUN pnpm --filter @seek/contracts build && pnpm --filter @seek/auth-client build
+
+FROM source AS backend
+RUN set -eu; for service in auth profile organisation assessment execution file; do pnpm --filter @seek/${service} exec prisma generate; done
+RUN set -eu; for service in auth gateway profile organisation assessment execution file integration; do pnpm --filter @seek/${service} build; if [ -d services/${service}/generated ]; then cp -r services/${service}/generated services/${service}/dist/generated; fi; done
+ENV NODE_ENV=production
+USER node
+ENTRYPOINT ["/app/scripts/production-entrypoint.sh"]
+

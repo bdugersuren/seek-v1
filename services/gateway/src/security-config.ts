@@ -1,6 +1,7 @@
 const PLACEHOLDER_SECRET_PATTERNS = [
   "seek_jwt_secret_key_placeholder",
   "placeholder",
+  "seek_jwt_key_safe_entropy",
   "change_me",
   "changeme",
   "secret",

@@ -86,7 +86,7 @@ export function QuestionTypePreview({ question }: { question: QuestionBankItem }
               </Badge>
             )}
             <Badge variant="success" className="font-mono text-xs">
-              +{question.defaultMaxScore || question.points || 1} оноо
+              +{question.defaultMaxScore || question.defaultMaxScore || 1} оноо
             </Badge>
           </div>
         ) : (

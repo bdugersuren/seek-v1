@@ -665,7 +665,7 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, cont
   const question = mode === "edit" ? source ?? mockQuestionBank.find((item) => item.code === "MX-58") : undefined;
   const qType = question?.type ?? "MULTIPLE_CHOICE";
   
-  const options = question?.options && question.options.length > 0
+  const options: QuestionOption[] = question?.options && question.options.length > 0
     ? question.options.map((option) => ({
         id: option.id,
         optionKey: option.optionKey || option.id,
@@ -919,7 +919,7 @@ function validateWizard(state: QuestionWizardState) {
       return true;
     }
     if (state.type === "NUMERIC") {
-      return (state.options[0]?.value || state.options[0]?.content || "").trim().length > 0;
+      return (state.options[0]?.value || state.options[0]?.value || "").trim().length > 0;
     }
     if (state.scoringMode === "combination") {
       return (state.scoringConfig?.combinations || []).length > 0;

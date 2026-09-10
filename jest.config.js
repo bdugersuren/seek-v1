@@ -7,6 +7,7 @@ module.exports = {
   },
   collectCoverageFrom: ["**/*.(t|j)s"],
   coverageDirectory: "./coverage",
+  modulePathIgnorePatterns: ["<rootDir>/dist/"],
   testEnvironment: "node",
   passWithNoTests: true,
 };

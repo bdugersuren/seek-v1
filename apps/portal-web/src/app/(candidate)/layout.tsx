@@ -188,7 +188,7 @@ export default function CandidateLayout({
         {/* Mobile Nav Links drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 px-seek-6 py-2 flex flex-col gap-2 shadow-seek-sm">
-            {navLinks.map((link) => {
+            {navLinks.filter(link => process.env.NEXT_PUBLIC_OPTIONAL_MODULES !== "false" || !["/payments", "/wallet", "/notifications"].includes(link.href)).map((link) => {
               const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
               return (
                 <Link
@@ -207,7 +207,7 @@ export default function CandidateLayout({
         {/* Subheader Navigation (Desktop and Mobile Horizontal layout) */}
         <section className="bg-white border-b border-slate-100/80 px-seek-6">
           <div className="max-w-[1400px] mx-auto flex items-center gap-seek-8 overflow-x-auto whitespace-nowrap scrollbar-none py-1">
-            {navLinks.map((link) => {
+            {navLinks.filter(link => process.env.NEXT_PUBLIC_OPTIONAL_MODULES !== "false" || !["/payments", "/wallet", "/notifications"].includes(link.href)).map((link) => {
               const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
               return (
                 <Link

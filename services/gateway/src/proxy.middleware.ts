@@ -114,9 +114,11 @@ export class ProxyMiddleware implements NestMiddleware {
   }
 
   use(req: Request, res: Response, next: NextFunction) {
-    console.log(
-      `Gateway received request: ${req.method} ${this.getRequestUrl(req)} path: ${req.path}`,
-    );
+    const service = this.getRequestUrl(req).match(/^\/api\/v1\/([^/?]+)/)?.[1];
+    const disabled = (process.env.DISABLED_SERVICES || "").split(",");
+    if (service && disabled.includes(service)) {
+      return res.status(503).json({ statusCode: 503, code: "FEATURE_UNAVAILABLE", message: "Энэ боломж одоогоор идэвхгүй байна." });
+    }
     // CSRF Origin validation for state-changing requests
     const allowedOrigins = (
       process.env.AUTH_ALLOWED_ORIGINS ||
@@ -195,6 +197,21 @@ export class ProxyMiddleware implements NestMiddleware {
       } catch (err) {
         // Хэрэв токен буруу эсвэл хугацаа дууссан бол дотоод сүлжээнд зөвшөөрөхгүй
         // Гэхдээ зарим нийтийн зам байж болох тул шууд алдаа шидэхгүй, дотоод үйлчилгээ өөрөө шийднэ
+      }
+    }
+
+    if (process.env.NODE_ENV === "production") {
+      const pathname = this.getRequestUrl(req).split("?")[0];
+      const roles = String(req.headers["x-user-roles"] || "").split(",");
+      // Until the domain implements tenant authorization, authoring is superadmin-only.
+      if (pathname.startsWith("/api/v1/assessment/") && !pathname.startsWith("/api/v1/assessment/catalog") && !pathname.includes("/health") && !roles.includes("SUPER_ADMIN")) {
+        return res.status(req.headers["x-user-id"] ? 403 : 401).json({message: "Үнэлгээ удирдах эрх шаардлагатай."});
+      }
+      if (pathname.startsWith("/api/v1/assessment/questions/db")) {
+        return res.status(404).json({message: "Not found"});
+      }
+      if (pathname === "/api/v1/execution/attempts" || pathname.includes("/mock-trigger-unlock/")) {
+        return res.status(503).json({code: "FEATURE_UNAVAILABLE", message: "Үнэлгээ эхлүүлэх боломж одоогоор идэвхгүй байна."});
       }
     }
 

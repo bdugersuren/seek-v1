@@ -7,6 +7,9 @@ export class CryptoKMSService {
 
   constructor() {
     const secret = process.env.KMS_SECRET || "seek_local_kms_secret_key_placeholder_safe_entropy_12345";
+    if (process.env.NODE_ENV === "production" && (!process.env.KMS_SECRET || secret.length < 32 || secret.includes("placeholder"))) {
+      throw new Error("Production requires a strong KMS_SECRET");
+    }
     this.kmsKey = crypto.createHash("sha256").update(secret).digest();
   }
 

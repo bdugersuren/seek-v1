@@ -1,150 +1,811 @@
-# Production-like local overrides.
-# This file removes frontend dev bind mounts/watch mode and starts Next.js with
-# `next start` from the image built by each frontend Dockerfile.
-
+name: seek
 services:
-#  node-modules-init:
-#    image: node:18-slim
-#    container_name: seed-node_modules
-#    working_dir: /app
-#    command: sh -c "apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/* && npm install -g pnpm && pnpm install --frozen-lockfile --force"
-#    volumes:
-#      - .:/app
-#      - shared_node_modules:/app/node_modules
-#      - pnpm_store:/root/.local/share/pnpm/store
-
-  auth:
+  postgres:
+    restart: unless-stopped
     environment:
+      POSTGRES_USER: ${POSTGRES_USER:-seek_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required production secret}
+      POSTGRES_DB: ${POSTGRES_DB:-seek_core_db}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    image: postgres:15-alpine
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
+    - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    command:
+    - postgres
+    - -c
+    - max_connections=150
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    restart: unless-stopped
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    image: redis:7-alpine
+    command:
+    - sh
+    - -c
+    - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"
+    volumes:
+    - redis_data:/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Required production secret}
+  rabbitmq:
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-seek_mq_user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Required production secret}
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    image: rabbitmq:3.13-management-alpine
+    volumes:
+    - rabbitmq_data:/var/lib/rabbitmq
+    hostname: seek-rabbitmq
+    healthcheck:
+      test:
+      - CMD
+      - rabbitmq-diagnostics
+      - -q
+      - ping
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+  minio:
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-seek_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Required production secret}
+      MINIO_API_CORS_ALLOW_ORIGIN: https://seek.mn,https://quiz.seek.mn
+    networks:
+      backend: {}
+      proxy_net:
+        aliases:
+        - seek-minio
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    volumes:
+    - minio_data:/data
+    command:
+    - server
+    - /data
+    - --console-address
+    - 127.0.0.1:9001
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:9000/minio/health/ready
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  auth:
+    restart: unless-stopped
+    environment:
+      PORT: '3020'
       NODE_ENV: production
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
-      AUTH_COOKIE_SECURE: "true"
-      AUTH_CSRF_ALLOW_MISSING_ORIGIN: "false"
-      AUTH_PUBLIC_APP_URL: ${AUTH_PUBLIC_APP_URL:-https://portal.seek.mn}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/auth_db
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?Required production secret}
+      AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
+      AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
+      AUTH_PUBLIC_APP_URL: https://seek.mn
       AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-no-reply@seek.mn}
       AUTH_EMAIL_VERIFICATION_TTL_HOURS: ${AUTH_EMAIL_VERIFICATION_TTL_HOURS:-24}
       AUTH_EMAIL_DELIVERY_MODE: smtp
-      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-10}
-      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
-      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST is required in production}
+      AUTH_RATE_LIMIT_MAX: '10'
+      AUTH_RATE_LIMIT_WINDOW_MS: '900000'
+      SMTP_HOST: ${SMTP_HOST:?Required production SMTP configuration}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
-      SMTP_USER: ${SMTP_USER:?SMTP_USER is required in production}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is required in production}
+      SMTP_USER: ${SMTP_USER:?Required production SMTP configuration}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?Required production SMTP configuration}
       SMTP_HELO_DOMAIN: ${SMTP_HELO_DOMAIN:-seek.mn}
-    volumes: !reset []
-
-#  auth-migrate:
-#    volumes:
-#      - shared_node_modules:/app/node_modules
-#    depends_on:
-#      node-modules-init:
-#        condition: service_completed_successfully
-#
-#  auth-seed:
-#    environment:
-#      TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}'
-#    volumes:
-#      - shared_node_modules:/app/node_modules
-#    depends_on:
-#      node-modules-init:
-#        condition: service_completed_successfully
-
+      RUN_SEED: 'false'
+      TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}'
+      AUTH_COOKIE_SECURE: 'true'
+      AUTH_CSRF_ALLOW_MISSING_ORIGIN: 'false'
+      AUTH_COOKIE_DOMAIN: .seek.mn
+      SERVICE_DIR: /app/services/auth
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-migrate:
+        condition: service_completed_successfully
   gateway:
+    restart: unless-stopped
+    environment:
+      PORT: '3010'
+      NODE_ENV: production
+      AUTH_SERVICE_URL: http://auth:3020
+      PROFILE_SERVICE_URL: http://profile:3030
+      ORGANISATION_SERVICE_URL: http://organisation:3040
+      ASSESSMENT_SERVICE_URL: http://assessment:3070
+      EXECUTION_SERVICE_URL: http://execution:3090
+      COMMERCE_SERVICE_URL: http://commerce:3080
+      FILE_SERVICE_URL: http://file:3140
+      NOTIFICATION_SERVICE_URL: http://notification:3170
+      REPORTING_SERVICE_URL: http://reporting:3150
+      AUTH_ALLOWED_ORIGINS: https://seek.mn,https://quiz.seek.mn
+      AUTH_CSRF_ALLOW_MISSING_ORIGIN: ${AUTH_CSRF_ALLOW_MISSING_ORIGIN:-false}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?Required production secret}
+      AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
+      AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
+      AUTH_COOKIE_SECURE: 'true'
+      INTEGRATION_SERVICE_URL: http://integration:3130
+      DISABLED_SERVICES: commerce,notification,reporting,ai,learning,verification,competency,platform
+      SERVICE_DIR: /app/services/gateway
+    networks:
+      backend: {}
+      proxy_net:
+        aliases:
+        - seek-gateway
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      auth:
+        condition: service_healthy
+      profile:
+        condition: service_healthy
+      organisation:
+        condition: service_healthy
+      assessment:
+        condition: service_healthy
+      execution:
+        condition: service_healthy
+      file:
+        condition: service_healthy
+      integration:
+        condition: service_healthy
+  portal-web:
+    restart: unless-stopped
+    working_dir: /app/apps/portal-web
     environment:
       NODE_ENV: production
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-seek_jwt_key_safe_entropy_1234567890_super_secure}
-      AUTH_COOKIE_SECURE: "true"
-
+      INTERNAL_API_URL: http://gateway:3010/api
+      NEXT_PUBLIC_API_URL: https://quiz-api.seek.mn/api
+      NEXT_PUBLIC_ENABLE_MOCK_AUTH: 'false'
+      PORT: '8081'
+      NEXT_PUBLIC_MOCK_MODE: 'false'
+      NEXT_PUBLIC_OPTIONAL_MODULES: 'false'
+      NEXT_PUBLIC_EXECUTION_URL: https://quiz-api.seek.mn/api/v1/execution
+      NEXT_PUBLIC_ASSESSMENT_WEB_URL: https://quiz.seek.mn
+    networks:
+      backend: {}
+      proxy_net:
+        aliases:
+        - seek-portal-web
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    image: seek-portal-web:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend.production
+      target: frontend
+      args:
+        SERVICE: portal-web
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - require('http').get('http://127.0.0.1:8081/',r=>process.exit(r.statusCode>=200&&r.statusCode<400?0:1)).on('error',()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      gateway:
+        condition: service_healthy
+  assessment-web:
+    restart: unless-stopped
+    working_dir: /app/apps/assessment-web
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://quiz-api.seek.mn/api
+      NEXT_PUBLIC_EXECUTION_URL: https://quiz-api.seek.mn/api/v1/execution
+      NEXT_PUBLIC_MOCK_MODE: 'false'
+      PORT: '8082'
+      NEXT_PUBLIC_ENABLE_MOCK_AUTH: 'false'
+      NEXT_PUBLIC_OPTIONAL_MODULES: 'false'
+      INTERNAL_API_URL: http://gateway:3010/api
+      NEXT_PUBLIC_ASSESSMENT_WEB_URL: https://quiz.seek.mn
+    networks:
+      backend: {}
+      proxy_net:
+        aliases:
+        - seek-assessment-web
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2
+    image: seek-assessment-web:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend.production
+      target: frontend
+      args:
+        SERVICE: assessment-web
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - require('http').get('http://127.0.0.1:8082/',r=>process.exit(r.statusCode>=200&&r.statusCode<400?0:1)).on('error',()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      gateway:
+        condition: service_healthy
   profile:
+    restart: unless-stopped
     environment:
-      NODE_ENV: production
+      PORT: '3030'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/profile_db?connection_limit=5
       FILE_SERVICE_URL: http://file:3140
       INTEGRATION_SERVICE_URL: http://integration:3130
-    volumes: !reset []
-
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/profile
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      profile-migrate:
+        condition: service_completed_successfully
   organisation:
+    restart: unless-stopped
     environment:
+      PORT: '3040'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/organisation_db?connection_limit=5
       NODE_ENV: production
-
+      SERVICE_DIR: /app/services/organisation
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      organisation-migrate:
+        condition: service_completed_successfully
   assessment:
+    restart: unless-stopped
     environment:
+      PORT: '3070'
+      ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/assessment_db?connection_limit=5
       NODE_ENV: production
-
-#  commerce:
-#    environment:
-#      NODE_ENV: production
-#    volumes:
-#      - shared_node_modules:/app/node_modules
-#    depends_on:
-#      node-modules-init:
-#        condition: service_completed_successfully
-
+      SERVICE_DIR: /app/services/assessment
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      assessment-migrate:
+        condition: service_completed_successfully
   execution:
+    restart: unless-stopped
     environment:
+      PORT: '3090'
+      USE_REDIS: 'true'
+      USE_RABBITMQ: 'true'
+      ENABLE_SIGNATURE_VERIFICATION: 'false'
+      EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/execution_db?connection_limit=5
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Required production secret}@redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-seek_mq_user}:${RABBITMQ_DEFAULT_PASS:?Required
+        production secret}@rabbitmq:5672
       NODE_ENV: production
-
+      SERVICE_DIR: /app/services/execution
+      KMS_SECRET: ${KMS_SECRET:?Required production encryption secret}
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      execution-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
   file:
+    restart: unless-stopped
     environment:
+      PORT: '3140'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/file_db?connection_limit=5
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_ENDPOINT: https://files.seek.mn
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-seek_minio_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Required production secret}
+      MINIO_BUCKET: seek-files
       NODE_ENV: production
-    volumes: !reset []
-
-#  notification:
-#    environment:
-#      NODE_ENV: production
-#    volumes:
-#      - shared_node_modules:/app/node_modules
-#    depends_on:
-#      node-modules-init:
-#        condition: service_completed_successfully
-#
-#  reporting:
-#    environment:
-#      NODE_ENV: production
-#    volumes:
-#      - shared_node_modules:/app/node_modules
-#    depends_on:
-#      node-modules-init:
-#        condition: service_completed_successfully
-#
-#  integration:
-#    environment:
-#      NODE_ENV: production
-#    volumes:
-#      - shared_node_modules:/app/node_modules
-#    depends_on:
-#      node-modules-init:
-#        condition: service_completed_successfully
-
-  portal-web:
+      SERVICE_DIR: /app/services/file
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
     build:
-      args:
-        NEXT_PUBLIC_API_URL: https://quiz-api.seek.mn/api
-        NEXT_PUBLIC_ASSESSMENT_WEB_URL: https://quiz.seek.mn
-        INTERNAL_API_URL: http://gateway:3010/api
-        NEXT_PUBLIC_ENABLE_MOCK_AUTH: "false"
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      file-migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+  integration:
+    restart: unless-stopped
     environment:
-      - NODE_ENV=production
-      - INTERNAL_API_URL=http://gateway:3010/api
-      - NEXT_PUBLIC_API_URL=https://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_ASSESSMENT_WEB_URL=https://quiz.seek.mn
-      - NEXT_PUBLIC_ENABLE_MOCK_AUTH=false
-    volumes: !reset []
-    command: pnpm --filter @seek/portal-web start
-
-  assessment-web:
+      PORT: '3130'
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/integration
+    networks:
+      backend: {}
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    mem_limit: 768m
+    cpus: 2
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
     build:
-      args:
-        NEXT_PUBLIC_API_URL: https://quiz-api.seek.mn/api
-        NEXT_PUBLIC_EXECUTION_URL: https://quiz-api.seek.mn/api/v1/execution
-        NEXT_PUBLIC_MOCK_MODE: "false"
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - /app/scripts/production-readiness.cjs
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+  auth-migrate:
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://quiz-api.seek.mn/api
-      - NEXT_PUBLIC_EXECUTION_URL=https://quiz-api.seek.mn/api/v1/execution
-      - NEXT_PUBLIC_MOCK_MODE=false
-    volumes: !reset []
-    command: pnpm --filter @seek/assessment-web start
-#volumes:
-#  shared_node_modules:
-#  pnpm_store:
+      PORT: '3020'
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/auth_db
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?Required production secret}
+      AUTH_TOKEN_ISSUER: ${AUTH_TOKEN_ISSUER:-seek.mn}
+      AUTH_TOKEN_AUDIENCE: ${AUTH_TOKEN_AUDIENCE:-seek.mn}
+      AUTH_PUBLIC_APP_URL: https://seek.mn
+      AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-no-reply@seek.mn}
+      AUTH_EMAIL_VERIFICATION_TTL_HOURS: ${AUTH_EMAIL_VERIFICATION_TTL_HOURS:-24}
+      AUTH_EMAIL_DELIVERY_MODE: smtp
+      AUTH_RATE_LIMIT_MAX: '10'
+      AUTH_RATE_LIMIT_WINDOW_MS: '900000'
+      SMTP_HOST: ${SMTP_HOST:?Required production SMTP configuration}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_USER: ${SMTP_USER:?Required production SMTP configuration}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?Required production SMTP configuration}
+      SMTP_HELO_DOMAIN: ${SMTP_HELO_DOMAIN:-seek.mn}
+      RUN_SEED: 'false'
+      TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}'
+      AUTH_COOKIE_SECURE: 'true'
+      AUTH_CSRF_ALLOW_MISSING_ORIGIN: 'false'
+      SERVICE_DIR: /app/services/auth
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    restart: 'no'
+    networks:
+      backend: {}
+    command:
+    - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  profile-migrate:
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    environment:
+      PORT: '3030'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/profile_db?connection_limit=5
+      FILE_SERVICE_URL: http://file:3140
+      INTEGRATION_SERVICE_URL: http://integration:3130
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/profile
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    restart: 'no'
+    networks:
+      backend: {}
+    command:
+    - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  organisation-migrate:
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    environment:
+      PORT: '3040'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/organisation_db?connection_limit=5
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/organisation
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    restart: 'no'
+    networks:
+      backend: {}
+    command:
+    - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  assessment-migrate:
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    environment:
+      PORT: '3070'
+      ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/assessment_db?connection_limit=5
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/assessment
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    restart: 'no'
+    networks:
+      backend: {}
+    command:
+    - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  execution-migrate:
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    environment:
+      PORT: '3090'
+      USE_REDIS: 'true'
+      USE_RABBITMQ: 'true'
+      ENABLE_SIGNATURE_VERIFICATION: 'false'
+      EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/execution_db?connection_limit=5
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Required production secret}@redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-seek_mq_user}:${RABBITMQ_DEFAULT_PASS:?Required
+        production secret}@rabbitmq:5672
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/execution
+      KMS_SECRET: ${KMS_SECRET:?Required production encryption secret}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    restart: 'no'
+    networks:
+      backend: {}
+    command:
+    - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+  file-migrate:
+    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.production
+      target: backend
+    environment:
+      PORT: '3140'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
+        production secret}@postgres:5432/file_db?connection_limit=5
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_ENDPOINT: https://files.seek.mn
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-seek_minio_admin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Required production secret}
+      MINIO_BUCKET: seek-files
+      NODE_ENV: production
+      SERVICE_DIR: /app/services/file
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    security_opt:
+    - no-new-privileges:true
+    restart: 'no'
+    networks:
+      backend: {}
+    command:
+    - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+networks:
+  backend: {}
+  proxy_net:
+    external: true
+    name: proxy_net
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  rabbitmq_data: {}
+  minio_data: {}

@@ -33,7 +33,7 @@ export function MatrixBuilder({
       {
         id: `row_${Date.now()}_${nextIdx}`,
         label: `Мөр ${nextIdx}`,
-        content: `Үнэлэх өгүүлбэр ${nextIdx}`,
+        value: `Үнэлэх өгүүлбэр ${nextIdx}`,
         isCorrect: true,
         score: 1,
         matchValue: columns[0]?.id || "col_1",
@@ -117,9 +117,9 @@ export function MatrixBuilder({
               <tr key={row.id}>
                 <td className="p-seek-3">
                   <Input
-                    value={row.content}
+                    value={row.value}
                     placeholder="Өгүүлбэр бичих..."
-                    onChange={(e) => updateRow(rIdx, { content: e.target.value })}
+                    onChange={(e) => updateRow(rIdx, { value: e.target.value })}
                     className="text-xs"
                   />
                 </td>

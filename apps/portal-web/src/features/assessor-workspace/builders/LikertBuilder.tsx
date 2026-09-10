@@ -19,21 +19,21 @@ export function LikertBuilder({
   const setScale = (scaleCount: 5 | 7) => {
     if (scaleCount === 5) {
       onChange([
-        { id: "likert_1", label: "1", content: "Огт зөвшөөрөхгүй", isCorrect: false, score: 1 },
-        { id: "likert_2", label: "2", content: "Зөвшөөрөхгүй", isCorrect: false, score: 2 },
-        { id: "likert_3", label: "3", content: "Саармаг", isCorrect: false, score: 3 },
-        { id: "likert_4", label: "4", content: "Зөвшөөрч байна", isCorrect: false, score: 4 },
-        { id: "likert_5", label: "5", content: "Бүрэн зөвшөөрч байна", isCorrect: false, score: 5 },
+        { id: "likert_1", label: "1", value: "Огт зөвшөөрөхгүй", isCorrect: false, score: 1 },
+        { id: "likert_2", label: "2", value: "Зөвшөөрөхгүй", isCorrect: false, score: 2 },
+        { id: "likert_3", label: "3", value: "Саармаг", isCorrect: false, score: 3 },
+        { id: "likert_4", label: "4", value: "Зөвшөөрч байна", isCorrect: false, score: 4 },
+        { id: "likert_5", label: "5", value: "Бүрэн зөвшөөрч байна", isCorrect: false, score: 5 },
       ]);
     } else {
       onChange([
-        { id: "likert_1", label: "1", content: "Огт үгүй", isCorrect: false, score: 1 },
-        { id: "likert_2", label: "2", content: "Үгүй", isCorrect: false, score: 2 },
-        { id: "likert_3", label: "3", content: "Бага зэрэг үгүй", isCorrect: false, score: 3 },
-        { id: "likert_4", label: "4", content: "Саармаг", isCorrect: false, score: 4 },
-        { id: "likert_5", label: "5", content: "Бага зэрэг тийм", isCorrect: false, score: 5 },
-        { id: "likert_6", label: "6", content: "Тийм", isCorrect: false, score: 6 },
-        { id: "likert_7", label: "7", content: "Бүрэн тийм", isCorrect: false, score: 7 },
+        { id: "likert_1", label: "1", value: "Огт үгүй", isCorrect: false, score: 1 },
+        { id: "likert_2", label: "2", value: "Үгүй", isCorrect: false, score: 2 },
+        { id: "likert_3", label: "3", value: "Бага зэрэг үгүй", isCorrect: false, score: 3 },
+        { id: "likert_4", label: "4", value: "Саармаг", isCorrect: false, score: 4 },
+        { id: "likert_5", label: "5", value: "Бага зэрэг тийм", isCorrect: false, score: 5 },
+        { id: "likert_6", label: "6", value: "Тийм", isCorrect: false, score: 6 },
+        { id: "likert_7", label: "7", value: "Бүрэн тийм", isCorrect: false, score: 7 },
       ]);
     }
   };
@@ -82,8 +82,8 @@ export function LikertBuilder({
               </div>
             </div>
             <Input
-              value={opt.content}
-              onChange={(e) => updateItem(idx, { content: e.target.value })}
+              value={opt.value}
+              onChange={(e) => updateItem(idx, { value: e.target.value })}
               className="text-xs"
               placeholder="Түвшний тайлбар"
             />

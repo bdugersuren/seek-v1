@@ -1,3 +1,4 @@
+import { AttemptOwnerGuard } from "./attempt-owner.guard";
 import { Module } from "@nestjs/common";
 import Redis from "ioredis";
 import * as amqp from "amqplib";
@@ -16,6 +17,7 @@ import { SignatureGuard } from "./infrastructure/guards/signature.guard";
   controllers: [ExecutionController],
   providers: [
     ExecutionService,
+    AttemptOwnerGuard,
     SseService,
     RabbitMQConsumerService,
     PrismaService,
@@ -45,12 +47,18 @@ import { SignatureGuard } from "./infrastructure/guards/signature.guard";
         const rabbitmqUrl = process.env.RABBITMQ_URL || "amqp://localhost:5672";
         try {
           const conn = await amqp.connect(rabbitmqUrl);
-          const channel = await conn.createChannel();
+          // A lost broker connection must restart the worker, never silently drop events.
+          conn.on("error", () => console.error("RabbitMQ connection error"));
+          conn.on("close", () => { if (process.env.NODE_ENV === "production") process.exit(1); });
+          const channel = await conn.createConfirmChannel();
+          channel.on("error", () => console.error("RabbitMQ channel error"));
+          channel.on("close", () => { if (process.env.NODE_ENV === "production") process.exit(1); });
           await channel.assertExchange("assessment.events", "topic", {
             durable: true,
           });
           return channel;
         } catch (err) {
+          if (process.env.NODE_ENV === "production") throw new Error("RabbitMQ connection required in production");
           console.error(
             "Failed to connect to RabbitMQ, using log fallback for publisher.",
             err

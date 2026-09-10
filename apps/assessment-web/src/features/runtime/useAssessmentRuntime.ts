@@ -143,7 +143,7 @@ export function useAssessmentRuntime(attemptId: string) {
         }
         const restored = await runtimeSnapshotStorage.load(
           attemptId,
-          unlockKey || attemptId
+          attemptId // Pre-unlock snapshot; the next effect restores with the delivered key.
         );
         if (restored) {
           const expired = getRemainingSeconds(session.session.endsAt, offset) <= 0;
@@ -210,7 +210,6 @@ export function useAssessmentRuntime(attemptId: string) {
       try {
         const parsed = JSON.parse(event.data);
         if (parsed && parsed.unlockKey) {
-          console.log("[SSE] Received unlock key:", parsed.unlockKey);
           setUnlockKey(parsed.unlockKey);
           setUnlockReceived(true);
           setAttempt((current) =>

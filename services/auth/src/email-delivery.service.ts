@@ -17,6 +17,10 @@ export class EmailDeliveryService {
       deliveryMode === "smtp" ||
       (process.env.NODE_ENV === "production" && deliveryMode !== "log");
 
+    if (process.env.NODE_ENV === "production" && (!shouldUseSmtp || !process.env.SMTP_HOST)) {
+      throw new Error("Production email requires SMTP configuration");
+    }
+
     if (!shouldUseSmtp || !process.env.SMTP_HOST) {
       this.logToDevOutbox(message);
       return;

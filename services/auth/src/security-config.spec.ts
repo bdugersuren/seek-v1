@@ -49,4 +49,14 @@ describe("validateProductionAuthConfig", () => {
 
     expect(() => validateProductionAuthConfig("auth service")).not.toThrow();
   });
+  it("rejects the formerly shipped production secret without logging it", () => {
+    process.env.NODE_ENV = "production";
+    process.env.AUTH_JWT_SECRET = "seek_jwt_key_safe_entropy_1234567890_super_secure";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    const log = jest.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      expect(() => validateProductionAuthConfig("service")).toThrow(/AUTH_JWT_SECRET/);
+      expect(log).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
+  });
 });

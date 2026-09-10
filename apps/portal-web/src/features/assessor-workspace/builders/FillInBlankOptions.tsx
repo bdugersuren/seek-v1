@@ -31,7 +31,7 @@ export function FillInBlankOptions({
       {
         id: `blank${n}`,
         label: `blank${n}`,
-        content: "",
+        value: "",
         isCorrect: true,
         score: 1,
         matchValue: "insensitive",

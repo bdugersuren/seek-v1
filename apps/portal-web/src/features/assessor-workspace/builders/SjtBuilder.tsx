@@ -33,7 +33,7 @@ export function SjtBuilder({
       {
         id: `sjt_${Date.now()}_${nextIdx}`,
         label: String.fromCharCode(64 + nextIdx),
-        content: "",
+        value: "",
         isCorrect: false,
         score: 1,
         matchValue: "effective",
@@ -117,9 +117,9 @@ export function SjtBuilder({
                     </div>
                   </div>
                   <RichEditor
-                    value={opt.content}
+                    value={opt.value}
                     placeholder={`Нөхцөлт хариу үйлдэл / сонголт ${opt.label}-ийн агуулга...`}
-                    onChange={(content) => updateOption(idx, { content })}
+                    onChange={(value) => updateOption(idx, { value })}
                   />
                 </div>
               </div>

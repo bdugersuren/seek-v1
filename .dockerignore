@@ -11,3 +11,12 @@ docker-compose*
 .git
 .github
 **/.log
+**/.env
+**/.env.*
+env
+**/*.pem
+**/*.key
+**/generated
+cookies.txt
+.production
+.backups

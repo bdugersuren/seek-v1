@@ -103,6 +103,7 @@ export class AuthController {
 
     res.cookie(this.cookieName, refreshToken, {
       httpOnly: true,
+      domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
       secure: process.env.AUTH_COOKIE_SECURE === "true",
       sameSite:
         (process.env.AUTH_COOKIE_SAME_SITE as "lax" | "strict" | "none") ||
@@ -138,6 +139,7 @@ export class AuthController {
 
     res.cookie(this.cookieName, newRefreshToken, {
       httpOnly: true,
+      domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
       secure: process.env.AUTH_COOKIE_SECURE === "true",
       sameSite:
         (process.env.AUTH_COOKIE_SAME_SITE as "lax" | "strict" | "none") ||
@@ -166,6 +168,7 @@ export class AuthController {
 
     res.clearCookie(this.cookieName, {
       httpOnly: true,
+      domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
       secure: process.env.AUTH_COOKIE_SECURE === "true",
       sameSite:
         (process.env.AUTH_COOKIE_SAME_SITE as "lax" | "strict" | "none") ||
@@ -213,6 +216,7 @@ export class AuthController {
     await this.authService.logoutAll(userId, "LOGOUT_ALL");
     res.clearCookie(this.cookieName, {
       httpOnly: true,
+      domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
       secure: process.env.AUTH_COOKIE_SECURE === "true",
       sameSite:
         (process.env.AUTH_COOKIE_SAME_SITE as "lax" | "strict" | "none") ||

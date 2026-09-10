@@ -303,6 +303,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   ) as PortalUser | null;
   const currentRole = user?.role || "assessor";
   const visibleItems = navItems
+    .filter((item) => process.env.NEXT_PUBLIC_OPTIONAL_MODULES !== "false" || !["/payments", "/wallet", "/notifications"].includes(item.href || ""))
     .filter((item) => item.roles.includes(currentRole))
     .map((item) => ({
       ...item,

@@ -242,7 +242,9 @@ function checkAdminRole(req: Request): string {
     "VIEWER",
     "TESTER",
   ];
-  const hasAdminRole = roles.some(role => allowedAdminRoles.includes(role));
+  const hasAdminRole = process.env.NODE_ENV === "production"
+    ? roles.includes("SUPER_ADMIN")
+    : roles.some(role => allowedAdminRoles.includes(role));
 
   if (!hasAdminRole) {
     throw new ForbiddenException("Уг үйлдлийг хийх эрх хүрэлцэхгүй байна.");

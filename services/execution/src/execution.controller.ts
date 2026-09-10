@@ -1,3 +1,4 @@
+import { AttemptOwnerGuard } from "./attempt-owner.guard";
 import { Controller, Get, Post, Body, Param, Sse, Res, UseGuards } from "@nestjs/common";
 import { Observable } from "rxjs";
 import {
@@ -18,6 +19,7 @@ import { SseService, SseMessageEvent } from "./infrastructure/sse.service";
 import { SignatureGuard } from "./infrastructure/guards/signature.guard";
 
 @Controller("execution")
+@UseGuards(AttemptOwnerGuard)
 export class ExecutionController {
   constructor(
     private readonly executionService: ExecutionService,

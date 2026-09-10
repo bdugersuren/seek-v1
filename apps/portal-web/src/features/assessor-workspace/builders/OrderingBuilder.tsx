@@ -36,7 +36,7 @@ export function OrderingBuilder({
       {
         id: `ord_${Date.now()}_${nextIndex}`,
         label: `O${nextIndex}`,
-        content: "",
+        value: "",
         isCorrect: true,
         score: 1,
         matchValue: "",
@@ -123,9 +123,9 @@ export function OrderingBuilder({
                 <RichEditor
                   compact
                   minHeight="3.5rem"
-                  value={option.content}
+                  value={option.value}
                   placeholder={`Алхам ${index + 1}-ийн агуулгыг оруулна уу...`}
-                  onChange={(content) => updateStep(index, { content })}
+                  onChange={(value) => updateStep(index, { value })}
                 />
               </div>
             </div>

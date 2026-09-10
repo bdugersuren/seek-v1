@@ -25,9 +25,8 @@
     "dev:auth-test": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test up --build",
     "dev:auth-test:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down",
     "dev:auth-test:down-v": "docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile auth-test down -v",
-    "prod:verification-test": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-test --profile assessment --profile frontend up -d --build node-modules-init postgres redis rabbitmq minio auth profile organisation assessment execution commerce file integration gateway portal-web assessment-web nginx-proxy",
-    "prod:verification-test:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-test --profile frontend down",
-    "prod:verification-test:down-v": "docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile auth-test --profile frontend down -v"
+    "prod:up": "docker compose --env-file .env.production -f docker-compose.prod.yml up -d --wait",
+    "prod:config": "docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.0.0",

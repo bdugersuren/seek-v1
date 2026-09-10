@@ -1,0 +1,19 @@
+ARG DEPENDENCIES_IMAGE=seek-dependencies:production
+FROM ${DEPENDENCIES_IMAGE} AS source
+COPY . .
+RUN pnpm --filter @seek/contracts build && pnpm --filter @seek/auth-client build
+
+FROM source AS frontend
+ARG SERVICE
+ARG NEXT_PUBLIC_API_URL=https://quiz-api.seek.mn/api
+ARG NEXT_PUBLIC_ASSESSMENT_WEB_URL=https://quiz.seek.mn
+ARG NEXT_PUBLIC_EXECUTION_URL=https://quiz-api.seek.mn/api/v1/execution
+ARG INTERNAL_API_URL=http://gateway:3010/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_ASSESSMENT_WEB_URL=$NEXT_PUBLIC_ASSESSMENT_WEB_URL NEXT_PUBLIC_EXECUTION_URL=$NEXT_PUBLIC_EXECUTION_URL INTERNAL_API_URL=$INTERNAL_API_URL
+ENV NEXT_PUBLIC_ENABLE_MOCK_AUTH=false NEXT_PUBLIC_MOCK_MODE=false NEXT_PUBLIC_OPTIONAL_MODULES=false NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @seek/${SERVICE} build
+RUN chown -R node:node apps/${SERVICE}/.next
+ENV NODE_ENV=production
+WORKDIR /app/apps/${SERVICE}
+USER node
+CMD ["pnpm", "start"]

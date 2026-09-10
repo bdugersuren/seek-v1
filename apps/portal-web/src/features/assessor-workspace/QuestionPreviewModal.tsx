@@ -194,9 +194,9 @@ export function QuestionPreviewModal({
     (activeQuestion.contentJson as any)?.payload?.scoringMode ||
     "per_option";
 
-  const totalPoints = activeQuestion.defaultMaxScore !== undefined ? activeQuestion.defaultMaxScore : (activeQuestion.points !== undefined ? activeQuestion.points : 1);
-  const minPoints = activeQuestion.defaultMinScore !== undefined ? activeQuestion.defaultMinScore : (activeQuestion.minPoints !== undefined ? activeQuestion.minPoints : 0);
-  const durationSeconds = activeQuestion.defaultTimeSeconds || activeQuestion.durationSeconds || 60;
+  const totalPoints = activeQuestion.defaultMaxScore ?? 1;
+  const minPoints = activeQuestion.defaultMinScore ?? 0;
+  const durationSeconds = activeQuestion.defaultTimeSeconds ?? 60;
 
   return (
     <div className="fixed inset-0 z-modal grid place-items-center bg-slate-900/60 backdrop-blur-sm p-seek-4 transition-all duration-300">
@@ -307,8 +307,8 @@ export function QuestionPreviewModal({
                 <Text className="text-sm font-bold text-slate-800">Correct Feedback</Text>
                 <div className="rounded-seek-xl border border-slate-200 bg-emerald-50/5 overflow-hidden border-l-[4px] border-l-emerald-500 p-seek-4 shadow-seek-xs">
                   <div className="text-sm text-slate-600 font-medium leading-relaxed">
-                    {activeQuestion.feedbackCorrect || activeQuestion.feedback ? (
-                      <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.feedback || ""} />
+                    {activeQuestion.feedbackCorrect || activeQuestion.explanation ? (
+                      <RichTextPreview value={activeQuestion.feedbackCorrect || activeQuestion.explanation || ""} />
                     ) : (
                       <Text variant="muted" className="text-xs italic">Тайлбар тохируулаагүй.</Text>
                     )}
@@ -587,7 +587,7 @@ export function QuestionPreviewModal({
                         {mapping.cognitiveLevels && mapping.cognitiveLevels.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5 mt-0.5">
                             {mapping.cognitiveLevels.map((lvl, lIdx) => (
-                              <Badge key={lIdx} variant="outline" className="bg-white text-slate-700 border-slate-200 text-[10px] py-0.5 px-2 font-semibold">
+                              <Badge key={lIdx} variant="secondary" className="bg-white text-slate-700 border-slate-200 text-[10px] py-0.5 px-2 font-semibold">
                                 {lvl.name || lvl.cognitiveLevelId} ({lvl.weight})
                               </Badge>
                             ))}
@@ -603,7 +603,7 @@ export function QuestionPreviewModal({
                         {mapping.competencies && mapping.competencies.length > 0 ? (
                           <div className="flex flex-wrap gap-1.5 mt-0.5">
                             {mapping.competencies.map((comp, cIdx) => (
-                              <Badge key={cIdx} variant="outline" className="bg-white text-slate-700 border-slate-200 text-[10px] py-0.5 px-2 font-semibold">
+                              <Badge key={cIdx} variant="secondary" className="bg-white text-slate-700 border-slate-200 text-[10px] py-0.5 px-2 font-semibold">
                                 {comp.name || comp.competenceId} ({comp.weight})
                               </Badge>
                             ))}
@@ -667,7 +667,7 @@ export function QuestionPreviewModal({
  * харагдахыг урьдчилан үзүүлдэг компонент.
  */
 function LearnerQuestionPreview({ question }: { question: QuestionBankItem }) {
-  const stem = question.stem || question.body || "";
+  const stem = question.body || "";
 
   return (
     <div className="space-y-seek-4">

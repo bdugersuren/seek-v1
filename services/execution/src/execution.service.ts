@@ -1,5 +1,6 @@
 import {
   Injectable,
+  ServiceUnavailableException,
   Inject,
   NotFoundException,
   BadRequestException,
@@ -187,6 +188,9 @@ export class ExecutionService {
   async createAttempt(
     request: CreateAssessmentAttemptRequest
   ): Promise<CreateAssessmentAttemptResponse> {
+    if (process.env.NODE_ENV === "production") {
+      throw new ServiceUnavailableException("Production attempt creation requires published schedule materialization; demo attempts are disabled");
+    }
     const assessment = this.getSupportedAssessment(request.assessmentId);
     if (!assessment) {
       throw new NotFoundException(

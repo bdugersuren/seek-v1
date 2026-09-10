@@ -63,7 +63,7 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
 
     if (!attempt) {
       // Seed mock data for local testing fallback matching Redis state store behavior
-      if (attemptId === "mock-attempt-001") {
+      if (process.env.NODE_ENV !== "production" && attemptId === "mock-attempt-001") {
         return this.getMockSession();
       }
       return null;
@@ -184,7 +184,7 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
     });
 
     if (!snapshot) {
-      if (attemptId === "mock-attempt-001") {
+      if (process.env.NODE_ENV !== "production" && attemptId === "mock-attempt-001") {
         return this.getMockSnapshot();
       }
       return null;
@@ -320,7 +320,7 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
     });
 
     if (attemptQuestions.length === 0) {
-      if (attemptId === "mock-attempt-001") {
+      if (process.env.NODE_ENV !== "production" && attemptId === "mock-attempt-001") {
         return this.getMockQuestions();
       }
       return null;

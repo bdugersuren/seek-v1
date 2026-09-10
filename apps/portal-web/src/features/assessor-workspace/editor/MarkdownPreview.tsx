@@ -196,7 +196,7 @@ function MermaidDiagram({ chart }: { chart: string }) {
         mermaid.initialize({
           startOnLoad: false,
           theme: "default",
-          securityLevel: "loose",
+          securityLevel: "strict",
         });
         if (cancelled || !containerRef.current) return;
         const { svg } = await mermaid.render(idRef.current, chart);
@@ -205,7 +205,7 @@ function MermaidDiagram({ chart }: { chart: string }) {
         }
       } catch (err) {
         if (!cancelled && containerRef.current) {
-          containerRef.current.innerHTML = `<pre class="text-xs text-red-500 p-2">Mermaid диаграм алдаатай: ${String(err)}</pre>`;
+          containerRef.current.textContent = "Mermaid диаграм алдаатай.";
         }
       }
     }

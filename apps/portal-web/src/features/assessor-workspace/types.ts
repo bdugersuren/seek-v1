@@ -66,6 +66,8 @@ export interface QuestionOption {
   metadata?: Record<string, any>;
 }
 
+export type EditorOption = QuestionOption;
+
 export interface RightMatchingOption {
   id: string;
   value: string;
@@ -196,6 +198,7 @@ export interface QuizQuestionOverride {
 }
 
 export interface Quiz {
+  description?: string;
   id: string;
   title: string;
   blueprintId: string;
@@ -216,7 +219,7 @@ export interface Quiz {
   showCorrectAnswers: boolean;
   showExplanations: boolean;
   resultReleaseMode: QuizResultReleaseMode;
-  status: "draft" | "scheduled" | "active" | "closed";
+  status: "draft" | "ready" | "published" | "scheduled" | "active" | "closed";
   questionOverrides: QuizQuestionOverride[];
 }
 

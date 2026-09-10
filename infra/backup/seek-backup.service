@@ -1,0 +1,12 @@
+[Unit]
+Description=SEEK encrypted remote backup
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=exe
+WorkingDirectory=/home/exe/seek-v1
+ExecStart=/usr/bin/python3 /home/exe/seek-v1/scripts/backup-production.py
+UMask=0077
+TimeoutStartSec=2h

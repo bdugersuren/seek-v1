@@ -43,12 +43,12 @@ export function NumericBuilder({
             type="number"
             step="any"
             placeholder="Жишээ нь: 12.5"
-            value={option?.content || ""}
+            value={option?.value || ""}
             onChange={(e) =>
               onChange({
                 id: option?.id || "num-ans",
                 label: "Хариулт",
-                content: e.target.value,
+                value: e.target.value,
                 isCorrect: true,
                 score: option?.score !== undefined ? option.score : totalPoints,
                 matchValue: option?.matchValue || "0",
@@ -66,7 +66,7 @@ export function NumericBuilder({
               onChange({
                 id: option?.id || "num-ans",
                 label: "Хариулт",
-                content: option?.content || "",
+                value: option?.value || "",
                 isCorrect: true,
                 score: option?.score !== undefined ? option.score : totalPoints,
                 matchValue: e.target.value,
@@ -83,7 +83,7 @@ export function NumericBuilder({
               onChange({
                 id: option?.id || "num-ans",
                 label: "Хариулт",
-                content: option?.content || "",
+                value: option?.value || "",
                 isCorrect: true,
                 score: Number(e.target.value),
                 matchValue: option?.matchValue || "0",

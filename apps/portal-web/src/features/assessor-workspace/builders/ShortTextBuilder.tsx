@@ -23,7 +23,7 @@ export function ShortTextBuilder({
       {
         id: `st_${Date.now()}_${options.length + 1}`,
         label: `Хувилбар ${options.length + 1}`,
-        content: "",
+        value: "",
         isCorrect: true,
         score: 1,
         matchValue: "exact",
@@ -74,9 +74,9 @@ export function ShortTextBuilder({
             <div className="grid gap-seek-3 sm:grid-cols-3">
               <div className="sm:col-span-2">
                 <Input
-                  value={opt.content}
+                  value={opt.value}
                   placeholder="Зөвшөөрөх үг / өгүүлбэр (жишээ нь: Улаанбаатар)..."
-                  onChange={(e) => updateKeyword(index, { content: e.target.value })}
+                  onChange={(e) => updateKeyword(index, { value: e.target.value })}
                 />
               </div>
               <div>

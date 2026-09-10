@@ -385,7 +385,7 @@ export function QuizEditor({
                               {question?.code} · {question?.title}
                             </Text>
                             <Text variant="muted" className="line-clamp-2 text-xs">
-                              {question?.body || question?.stem}
+                              {question?.body}
                             </Text>
                           </div>
                           <div className="flex flex-wrap gap-2">
