@@ -203,8 +203,12 @@ export class ProxyMiddleware implements NestMiddleware {
     if (process.env.NODE_ENV === "production") {
       const pathname = this.getRequestUrl(req).split("?")[0];
       const roles = String(req.headers["x-user-roles"] || "").split(",");
-      // Until the domain implements tenant authorization, authoring is superadmin-only.
-      if (pathname.startsWith("/api/v1/assessment/") && !pathname.startsWith("/api/v1/assessment/catalog") && !pathname.includes("/health") && !roles.includes("SUPER_ADMIN")) {
+      // Assessment service enforces per-context grants and resource ownership.
+      const assessorRoute = roles.includes("ASSESSOR") && (
+        (req.method === "GET" && /^\/api\/v1\/assessment\/questions\/metadata\/(assessment-contexts|audience-types|audience-levels|topics|difficulty-scales|difficulty-levels|cognitive-frameworks|cognitive-levels|competence-frameworks|competence-types)\/?$/.test(pathname)) ||
+        /^[\/]api\/v1\/assessment\/(questions|blueprints|quizzes)(\/[^/]+)?(\/workflow)?\/?$/.test(pathname)
+      );
+      if (pathname.startsWith("/api/v1/assessment/") && !pathname.startsWith("/api/v1/assessment/catalog") && !pathname.includes("/health") && !roles.includes("SUPER_ADMIN") && !assessorRoute) {
         return res.status(req.headers["x-user-id"] ? 403 : 401).json({message: "Үнэлгээ удирдах эрх шаардлагатай."});
       }
       if (pathname.startsWith("/api/v1/assessment/questions/db")) {

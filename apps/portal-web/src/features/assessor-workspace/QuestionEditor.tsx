@@ -34,7 +34,8 @@ import {
   fetchCompetenceFrameworks,
   fetchAudienceTypes,
   fetchAudienceLevels,
-  fetchDbData
+  sendQuestionWorkflow,
+  fetchCognitiveFrameworks
 } from "./api";
 
 // Steps components
@@ -110,7 +111,7 @@ export function QuestionEditor({
           fetchCompetenceFrameworks(),
           fetchAudienceTypes(),
           fetchAudienceLevels(),
-          fetchDbData("cognitiveFramework"),
+          fetchCognitiveFrameworks(),
         ]);
         setTopics(t);
         setDifficultyLevels(d);
@@ -255,17 +256,17 @@ export function QuestionEditor({
   // Ноорог хадгалах үйлдэл
   const saveDraft = async () => {
     try {
-      const qData = buildQuestionFromState({ ...stateWithPoints, status: "draft" }, sourceQuestion);
+      const qData = buildQuestionFromState({ ...stateWithPoints, mappings: stateWithPoints.mappings.filter(m => m.topicId && !["unmapped", "general"].includes(m.topicId)), status: "draft" }, sourceQuestion);
       if (mode === "edit" && sourceQuestion?.id) {
         await updateQuestion(sourceQuestion.id, qData);
         showToast("Ноорогийг амжилттай шинэчиллээ.", "success");
       } else {
-        await createQuestion(qData);
+        await createQuestion({ ...qData, assessmentContextId: params?.contextId });
         showToast("Ноорог амжилттай хадгалагдлаа.", "success");
         router.push(backUrl);
       }
     } catch (err: any) {
-      showToast("Хадгалахад алдаа гарлаа.", "danger");
+      showToast(err?.message || "Хадгалахад алдаа гарлаа.", "danger");
     }
   };
 
@@ -292,15 +293,15 @@ export function QuestionEditor({
       setSubmitted(true);
       const nextStatus = mode === "edit" ? "resubmitted" : "approval_requested";
       const qData = buildQuestionFromState({ ...stateWithPoints, status: nextStatus }, sourceQuestion);
-      if (mode === "edit" && sourceQuestion?.id) {
-        await updateQuestion(sourceQuestion.id, qData);
-      } else {
-        await createQuestion(qData);
-      }
+      const saved = mode === "edit" && sourceQuestion?.id
+        ? await updateQuestion(sourceQuestion.id, qData)
+        : await createQuestion({ ...qData, assessmentContextId: params?.contextId });
+      await sendQuestionWorkflow(saved.id, nextStatus, state.workflowComment);
       showToast("Хадгалагдаж батлуулахаар илгээгдлээ.", "success");
       router.push(backUrl);
     } catch (err: any) {
-      showToast("Илгээхэд алдаа гарлаа.", "danger");
+      showToast(err?.message || "Илгээхэд алдаа гарлаа.", "danger");
+      setSubmitted(false);
     }
   };
 
@@ -451,6 +452,9 @@ export function QuestionEditor({
           />
         )}
 
+        {!loadingMetadata && topics.length === 0 && (
+          <p role="status" className="rounded border border-border bg-surface p-seek-4">Энэ контекстэд сэдэв тохируулаагүй байна. Ноорог хадгалж болно. Батлуулахын өмнө админаар тухайн контекстийн сэдвийн санг тохируулуулж, сэдэв болон түвшнүүдээ сонгоно уу.</p>
+        )}
         {step === 2 && (
           <StepTwo
             mappings={stateWithPoints.mappings}

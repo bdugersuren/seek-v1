@@ -1,3 +1,5 @@
+> **Production deployment (external Nginx Proxy Manager):** [Монгол заавар](docs/runbooks/production-external-npm.md). `docker-compose.prod.yml` нь дангаар хэрэглэгдэнэ. [Нээлттэй release blockers](docs/audits/2026-09-10-production-deployment.md)-ийг хаагаагүй тул одоогоор нийтэд гаргахад бэлэн биш. Доорх хуучин local/dev зааврыг production команд гэж хэрэглэхгүй.
+
 # seek.mn Platform Monorepo
 
 Монрепо бүтцийн хөгжүүлэлтийн орчин.

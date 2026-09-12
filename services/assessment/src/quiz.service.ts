@@ -38,7 +38,7 @@ export class QuizService {
       throw new NotFoundException(`Blueprint with ID ${dto.blueprintId} not found`);
     }
 
-    return await this.prisma.$transaction(async (tx) => {
+    const quizId = await this.prisma.$transaction(async (tx) => {
       const code = `quiz-${dto.blueprintId}-${Date.now()}`;
 
       // 1. Create parent Quiz
@@ -47,7 +47,7 @@ export class QuizService {
           templateId: dto.blueprintId,
           code,
           title: dto.title,
-          createdBy: "system_author",
+          createdBy: dto.createdBy || "system_author",
           version: 1,
         },
       });
@@ -58,7 +58,7 @@ export class QuizService {
           quizId: quiz.id,
           revisionNumber: 1,
           revisionStatus: "DRAFT",
-          assessmentContextId: "context-civil-service", // Default fallback context from seed
+          assessmentContextId: blueprint.assessmentContextId,
           title: dto.title,
           description: dto.description || null,
           durationMinutes: dto.durationMinutes,
@@ -67,7 +67,7 @@ export class QuizService {
           paymentRequired: (dto.priceMnt || 0) > 0,
           defaultPrice: dto.priceMnt || 0,
           currencyCode: "MNT",
-          createdBy: "system_author",
+          createdBy: dto.createdBy || "system_author",
           runtimePolicy: {
             questionOverrides: dto.questionOverrides || [],
           } as any,
@@ -126,8 +126,9 @@ export class QuizService {
         }
       }
 
-      return this.findOne(quiz.id);
+      return quiz.id;
     });
+    return this.findOne(quizId);
   }
 
   async findAll(contextId?: string) {
@@ -194,7 +195,7 @@ export class QuizService {
       throw new BadRequestException("No revision history found for this quiz");
     }
 
-    return await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       // A. If latest revision is DRAFT, edit it directly
       if (lastRevision.revisionStatus === "DRAFT") {
         await tx.quizRevision.update({
@@ -284,7 +285,7 @@ export class QuizService {
           }
         }
 
-        return this.findOne(id);
+        return;
       }
 
       // B. If latest revision is PUBLISHED/APPROVED, create a new revision as DRAFT
@@ -390,8 +391,9 @@ export class QuizService {
         data: { version: nextRevNumber },
       });
 
-      return this.findOne(id);
+      return;
     });
+    return this.findOne(id);
   }
 
   async remove(id: string) {

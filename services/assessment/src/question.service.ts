@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
 import { CreateQuestionDto, UpdateQuestionDto } from "./dto/question.dto";
 import { Prisma } from "../generated/prisma-client";
@@ -36,6 +36,7 @@ export class QuestionService {
       where: { questionId },
     });
 
+    if (!topicMappings.length) return;
     const dbDiffLevels = await tx.difficultyLevel.findMany();
     const dbCogLevels = await tx.cognitiveLevel.findMany();
     let context = await tx.assessmentContext.findFirst();
@@ -199,6 +200,7 @@ export class QuestionService {
       // 1. Create parent Question
       const questionData: any = {
         code: dto.code,
+        assessmentContextId: dto.assessmentContextId || null,
         lifecycleStatus: dto.lifecycleStatus || "ACTIVE",
         visibilityScope: dto.visibilityScope || "PRIVATE",
         ownerUserId: dto.ownerUserId || null,
@@ -286,11 +288,12 @@ export class QuestionService {
     });
   }
 
-  async findAll(filters: { status?: string; type?: string; search?: string; ownerUserId?: string }) {
+  async findAll(filters: { status?: string; type?: string; search?: string; ownerUserId?: string; assessmentContextId?: string }) {
     const whereClause: any = {
       deletedAt: null,
     };
 
+    if (filters.assessmentContextId) whereClause.AND = [{OR:[{assessmentContextId:filters.assessmentContextId},{classifications:{some:{assessmentContextId:filters.assessmentContextId}}}]}];
     if (filters.status) {
       whereClause.lifecycleStatus = filters.status;
     }
@@ -632,12 +635,6 @@ export class QuestionService {
     });
   }
 
-  async getCognitiveLevels() {
-    return await this.prisma.cognitiveLevel.findMany({
-      orderBy: { rank: "asc" },
-    });
-  }
-
   // Topics CRUD
   async createTopic(dto: { title: string; parentId?: string; code?: string; path?: string; assessmentContextId?: string }) {
     const code = dto.code || `TOPIC-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
@@ -720,40 +717,6 @@ export class QuestionService {
     });
   }
 
-  // Cognitive Levels CRUD
-  async createCognitiveLevel(dto: { name: string; code?: string; rank: number }) {
-    const code = dto.code || `COG-${dto.name.toUpperCase().replace(/[^A-Z0-9-]/g, "-")}`;
-    const framework = await this.prisma.cognitiveFramework.findFirst();
-    if (!framework) {
-      throw new BadRequestException("No cognitive framework found in DB");
-    }
-    return await this.prisma.cognitiveLevel.create({
-      data: {
-        cognitiveFrameworkId: framework.id,
-        code,
-        name: dto.name,
-        rank: Number(dto.rank),
-      },
-    });
-  }
-
-  async updateCognitiveLevel(id: string, dto: { name?: string; rank?: number; isActive?: boolean }) {
-    return await this.prisma.cognitiveLevel.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        rank: dto.rank !== undefined ? Number(dto.rank) : undefined,
-        isActive: dto.isActive,
-      },
-    });
-  }
-
-  async deleteCognitiveLevel(id: string) {
-    return await this.prisma.cognitiveLevel.delete({
-      where: { id },
-    });
-  }
-
   // AssessmentContext CRUD
   async getAssessmentContexts() {
     return await this.prisma.assessmentContext.findMany({
@@ -822,14 +785,11 @@ export class QuestionService {
   }
 
   async deleteAssessmentContext(id: string) {
+    if(await this.prisma.question.count({where:{assessmentContextId:id}})) throw new ConflictException("Context contains questions and cannot be deleted");
+    if(await this.prisma.assessorContextGrant.count({where:{contextId:id}})) throw new ConflictException("Revoke context assignments before deleting the context");
     return await this.prisma.assessmentContext.delete({
       where: { id },
     });
-  }
-
-  // CognitiveFramework metadata
-  async getCognitiveFrameworks() {
-    return await this.prisma.cognitiveFramework.findMany();
   }
 
   // DifficultyScale CRUD
@@ -926,75 +886,6 @@ export class QuestionService {
 
   async deleteCompetenceType(id: string) {
     return await this.prisma.competenceType.delete({
-      where: { id },
-    });
-  }
-
-  // AudienceLevel CRUD
-  async getAudienceLevels() {
-    return await this.prisma.audienceLevel.findMany();
-  }
-
-  async createAudienceLevel(dto: { name: string; code?: string; rank?: number; audienceTypeId?: string }) {
-    const code = dto.code || `AL-${dto.name.toUpperCase().replace(/[^A-Z0-9-]/g, "-")}`;
-    const audType = dto.audienceTypeId || (await this.prisma.audienceType.findFirst())?.id;
-    if (!audType) {
-      throw new BadRequestException("No audience type found in DB to associate with level");
-    }
-    return await this.prisma.audienceLevel.create({
-      data: {
-        code,
-        name: dto.name,
-        orderIndex: dto.rank || 1,
-        audienceTypeId: audType,
-      },
-    });
-  }
-
-  async updateAudienceLevel(id: string, dto: { name?: string; rank?: number; isActive?: boolean }) {
-    return await this.prisma.audienceLevel.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        orderIndex: dto.rank !== undefined ? Number(dto.rank) : undefined,
-        isActive: dto.isActive,
-      },
-    });
-  }
-
-  async deleteAudienceLevel(id: string) {
-    return await this.prisma.audienceLevel.delete({
-      where: { id },
-    });
-  }
-
-  // AudienceType CRUD
-  async getAudienceTypes() {
-    return await this.prisma.audienceType.findMany();
-  }
-
-  async createAudienceType(dto: { name: string; code?: string }) {
-    const code = dto.code || `AT-${dto.name.toUpperCase().replace(/[^A-Z0-9-]/g, "-")}`;
-    return await this.prisma.audienceType.create({
-      data: {
-        code,
-        name: dto.name,
-      },
-    });
-  }
-
-  async updateAudienceType(id: string, dto: { name?: string; isActive?: boolean }) {
-    return await this.prisma.audienceType.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        isActive: dto.isActive,
-      },
-    });
-  }
-
-  async deleteAudienceType(id: string) {
-    return await this.prisma.audienceType.delete({
       where: { id },
     });
   }

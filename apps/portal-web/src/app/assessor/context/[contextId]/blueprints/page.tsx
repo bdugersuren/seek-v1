@@ -93,7 +93,7 @@ export default function ContextBlueprintsPage() {
         setLoading(true);
         const [bpData, qData, tData, contextsData, audTypes, audLvs] = await Promise.all([
           fetchBlueprints(contextId),
-          fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: contextId }),
+          fetchQuestions({ assessmentContextId: contextId }),
           fetchTopics(contextId),
           fetchAssessmentContexts(),
           fetchAudienceTypes(),

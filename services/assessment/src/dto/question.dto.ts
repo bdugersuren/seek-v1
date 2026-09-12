@@ -1,6 +1,7 @@
 import { QuestionType, ScoringConfig } from "./question-types.contract";
 
 export class CreateQuestionDto {
+  assessmentContextId?: string;
   code: string;
   lifecycleStatus?: "ACTIVE" | "ARCHIVED";
   visibilityScope?: "PRIVATE" | "TENANT" | "PUBLIC";

@@ -4,6 +4,7 @@ export class QuizQuestionOverrideDto {
 }
 
 export class CreateQuizDto {
+  createdBy?: string;
   title: string;
   description?: string;
   blueprintId: string;

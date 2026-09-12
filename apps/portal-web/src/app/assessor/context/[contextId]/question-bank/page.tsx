@@ -194,7 +194,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       try {
         setLoading(true);
         const [qData, tData, audTypes, audLvs, contextsData] = await Promise.all([
-          fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: contextId }),
+          fetchQuestions({ assessmentContextId: contextId }),
           fetchTopics(contextId),
           fetchAudienceTypes(),
           fetchAudienceLevels(),
@@ -447,7 +447,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
         try {
           await sendQuestionWorkflow(question.id, "approval_requested");
           showToast("Батлуулах хүсэлт амжилттай илгээгдлээ.", "success");
-          const data = await fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: params.contextId });
+          const data = await fetchQuestions({ assessmentContextId: params.contextId });
           setQuestions(data);
         } catch (err: any) {
           showToast(err.message || "Хүсэлт илгээхэд алдаа гарлаа.", "danger");
@@ -474,7 +474,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           );
           showToast("Төлөв амжилттай шинэчлэгдлээ.", "success");
           setSelectedQuestionIds([]);
-          const data = await fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: params.contextId });
+          const data = await fetchQuestions({ assessmentContextId: params.contextId });
           setQuestions(data);
         } catch (err: any) {
           showToast("Төлөв шинэчлэхэд алдаа гарлаа.", "danger");
@@ -493,7 +493,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
         try {
           await sendQuestionWorkflow(id, "deleted");
           showToast("Даалгавар амжилттай устгагдлаа.", "success");
-          const data = await fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: params.contextId });
+          const data = await fetchQuestions({ assessmentContextId: params.contextId });
           setQuestions(data);
         } catch (err: any) {
           showToast("Устгахад алдаа гарлаа.", "danger");
@@ -770,6 +770,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
 
       {createModalIsOpen && (
         <CreateQuestionModal
+          assessmentContextId={contextId}
           isOpen={createModalIsOpen}
           onClose={() => setCreateModalIsOpen(false)}
           onSuccess={(questionId) => {

@@ -33,7 +33,7 @@ def main():
          '-e','POSTGRES_USER=restore_admin','--mount',f'type=volume,src={prefix}-postgres-data,dst=/var/lib/postgresql/data',
          'postgres:15-alpine'], env=env, stdout=subprocess.DEVNULL)
     for _ in range(60):
-        if subprocess.run(['docker','exec',postgres,'pg_isready','-U','restore_admin'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+        if subprocess.run(['docker','exec',postgres,'pg_isready','-h','127.0.0.1','-U','restore_admin'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
             break
         time.sleep(1)
     else:

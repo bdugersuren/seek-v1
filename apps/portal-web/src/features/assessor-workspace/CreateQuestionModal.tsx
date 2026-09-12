@@ -13,6 +13,7 @@ import { questionTypeLabels } from './mock-data';
 import { createQuestion } from './api';
 
 interface CreateQuestionModalProps {
+  assessmentContextId?: string;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (questionId: string) => void;
@@ -36,6 +37,7 @@ const questionTypeIcons: Record<QuestionType, React.ComponentType<any>> = {
 };
 
 export function CreateQuestionModal({
+  assessmentContextId,
   isOpen,
   onClose,
   onSuccess,
@@ -130,7 +132,7 @@ export function CreateQuestionModal({
         title: title.trim() || 'Гарчиггүй асуулт',
         type,
         visibilityScope,
-        ownerUserId: 'mock-assessor',
+        assessmentContextId,
         stem: '',
         options: [],
         feedbackCorrect: '',

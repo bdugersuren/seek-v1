@@ -20,3 +20,5 @@ env
 cookies.txt
 .production
 .backups
+
+**/__pycache__

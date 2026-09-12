@@ -33,7 +33,7 @@
 - Gateway-д идэвхгүй модуль 503; payments/wallet/notifications UI route-уудыг production flag-аар хаасан. Энэ нь бүх mock UI-г бүрэн арилгасан гэсэн үг биш.
 - Portal lint-д 105 асуудал (80 error/25 warning) илэрсэн; TypeScript болон build давсан нь lint gate давсан гэсэн үг биш. Ихэнх нь unused code/hook dependencies; тусад нь цэвэрлэж бүх lint-ийг дахин ажиллуулах.
 - RabbitMQ publisher confirm нэмсэн ч өгөгдлийн transaction + outbox publish atomicity/retry-ийг бүрэн батлаагүй. Хүлээн авсан submit event алдагдахгүй recovery баталгаа шаардлагатай.
-- Backup скрипт бэлтгэсэн; remote credential, timer activation болон жинхэнэ restore drill хүлээгдэж байна. Volume бол backup биш.
+- Backup скрипт бэлтгэсэн; локаль SQL/archive restore ба MinIO файлын агуулгын шалгалт давсан. Remote credential, timer activation болон гадаад хадгалалтаас restore drill хүлээгдэж байна. Volume бол backup биш.
 - API/DB бүх endpoint-ийн tenant authorization, файл хэмжээ/төрөл/малваре шалгалт, ачаалал, monitoring/alert болон DR тест бүрэн хийгдээгүй.
 
 ## Сервер ба гадаад тохиргоо
@@ -43,7 +43,7 @@
 - SMTP credential, NPM API/UI access, backup S3 endpoint/credential болон анхны admin email-ийн файлын зам ирээгүй.
 - `.env.production` нь 0600 эрхтэй, шинээр үүсгэсэн тусдаа нууцуудтай; SMTP талбарууд зориуд хоосон бөгөөд production Compose fail-closed.
 - Verification stack тусдаа `seek-verify_backend`/volumes дээр, host port болон proxy_net холболтгүй. NPM host, public TLS, production stack-ийг өөрчлөөгүй.
-- Дискний сул зай бага: анх 12 GB орчим, build үед багассан. Хуучин cache цэвэрлэсэн; бусад workload-ийн image/volume устгаагүй. Production өгөгдлийн өсөлтөд диск өргөтгөх шаардлагатай.
+- Диск анх 12 GB орчим сул байсан. Хуучин cache цэвэрлэсэн; дараагийн шалгалтаар диск 489 GB болж өргөжсөн, эцсийн build-ийн дараа 382 GB сул байна. Бусад workload-ийн image/volume устгаагүй.
 
 ## Баталгаажуулалт
 

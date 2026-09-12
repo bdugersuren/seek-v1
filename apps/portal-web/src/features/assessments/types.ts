@@ -111,6 +111,7 @@ export interface DifficultyLevel {
 }
 
 export interface AudienceType {
+  levelCount?: number;
   id: string;
   tenantId?: string | null;
   code: string;

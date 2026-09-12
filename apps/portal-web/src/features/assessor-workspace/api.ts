@@ -1,3 +1,8 @@
+import type { CognitiveFramework, CognitiveLevel, CognitiveFrameworkInput, CognitiveLevelInput } from "@/features/cognitive-management/types";
+import type { AudienceType, AudienceLevel } from "@/features/assessments/types";
+export type AudienceTypeInput = Pick<AudienceType,"name"|"code"> & Partial<Pick<AudienceType,"description"|"isActive">>;
+export type AudienceLevelInput = Pick<AudienceLevel,"audienceTypeId"|"name"|"code"> & Partial<Pick<AudienceLevel,"parentId"|"orderIndex"|"levelKind"|"externalCode"|"isActive">> & {rank?:number};
+export class AssessmentApiError extends Error { constructor(public status: number, public code?: string) { super("Assessment request failed"); } }
 import { authFetch } from "@/lib/auth-client";
 import { mockBlueprints, mockQuestionBank } from "./mock-data";
 import type {
@@ -22,7 +27,7 @@ async function requestAssessmentJson<T>(url: string, options: RequestInit = {}):
 
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(payload.message || "Request failed");
+    throw Object.assign(new Error(payload.message || "Request failed"), {status: res.status, code: payload.code});
   }
   return payload as T;
 }
@@ -171,16 +176,7 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     competencyType: (primaryClassification?.competencyType?.toLowerCase() || "knowledge") as any,
     topicId,
     topicName,
-    topicMappings: topicMappings.length > 0 ? topicMappings : [
-      {
-        topicId,
-        topicName,
-        bloomLevel: "apply",
-        competencyType: "knowledge",
-        difficulty: "medium",
-        weight: 1,
-      },
-    ],
+    topicMappings,
     difficulty: (primaryClassification?.difficulty?.toLowerCase() || "medium") as any,
     options,
     answerKey: (() => {
@@ -342,6 +338,7 @@ function mapToCreateQuestionDto(data: any) {
   };
 
   return {
+    assessmentContextId: data.assessmentContextId,
     code: data.code,
     lifecycleStatus: "ACTIVE",
     visibilityScope: data.visibilityScope || "PRIVATE",
@@ -712,32 +709,29 @@ export async function deleteDifficultyLevel(id: string): Promise<void> {
   });
 }
 
-export async function fetchCognitiveFrameworks(): Promise<any[]> {
-  return await requestAssessmentJson<any[]>("/api/v1/assessment/questions/metadata/cognitive-frameworks");
+export async function fetchCognitiveFrameworks(): Promise<CognitiveFramework[]> {
+  return requestAssessmentJson<CognitiveFramework[]>("/api/v1/assessment/questions/metadata/cognitive-frameworks");
 }
-
-export async function fetchCognitiveLevels(): Promise<any[]> {
-  return await requestAssessmentJson<any[]>("/api/v1/assessment/questions/metadata/cognitive-levels");
+export async function fetchCognitiveLevels(cognitiveFrameworkId?: string): Promise<CognitiveLevel[]> {
+  return requestAssessmentJson<CognitiveLevel[]>("/api/v1/assessment/questions/metadata/cognitive-levels" + (cognitiveFrameworkId ? "?cognitiveFrameworkId=" + encodeURIComponent(cognitiveFrameworkId) : ""));
 }
-
-export async function createCognitiveLevel(dto: any): Promise<any> {
-  return await requestAssessmentJson<any>("/api/v1/assessment/questions/metadata/cognitive-levels", {
-    method: "POST",
-    body: JSON.stringify(dto),
-  });
+export async function createCognitiveFramework(dto: CognitiveFrameworkInput): Promise<CognitiveFramework> {
+  return requestAssessmentJson<CognitiveFramework>("/api/v1/assessment/questions/metadata/cognitive-frameworks", {method: "POST", body: JSON.stringify(dto)});
 }
-
-export async function updateCognitiveLevel(id: string, dto: any): Promise<any> {
-  return await requestAssessmentJson<any>(`/api/v1/assessment/questions/metadata/cognitive-levels/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(dto),
-  });
+export async function updateCognitiveFramework(id: string, dto: Partial<CognitiveFrameworkInput>): Promise<CognitiveFramework> {
+  return requestAssessmentJson<CognitiveFramework>(`/api/v1/assessment/questions/metadata/cognitive-frameworks/${id}`, {method: "PUT", body: JSON.stringify(dto)});
 }
-
+export async function deleteCognitiveFramework(id: string): Promise<void> {
+  return requestAssessmentJson<void>(`/api/v1/assessment/questions/metadata/cognitive-frameworks/${id}`, {method: "DELETE"});
+}
+export async function createCognitiveLevel(dto: CognitiveLevelInput): Promise<CognitiveLevel> {
+  return requestAssessmentJson<CognitiveLevel>("/api/v1/assessment/questions/metadata/cognitive-levels", {method: "POST", body: JSON.stringify(dto)});
+}
+export async function updateCognitiveLevel(id: string, dto: Partial<CognitiveLevelInput>): Promise<CognitiveLevel> {
+  return requestAssessmentJson<CognitiveLevel>(`/api/v1/assessment/questions/metadata/cognitive-levels/${id}`, {method: "PUT", body: JSON.stringify(dto)});
+}
 export async function deleteCognitiveLevel(id: string): Promise<void> {
-  await requestAssessmentJson<void>(`/api/v1/assessment/questions/metadata/cognitive-levels/${id}`, {
-    method: "DELETE",
-  });
+  return requestAssessmentJson<void>(`/api/v1/assessment/questions/metadata/cognitive-levels/${id}`, {method: "DELETE"});
 }
 
 // AssessmentContext API
@@ -841,18 +835,18 @@ export async function deleteCompetenceType(id: string): Promise<void> {
 }
 
 // AudienceLevel API
-export async function fetchAudienceLevels(): Promise<any[]> {
-  return await requestAssessmentJson<any[]>("/api/v1/assessment/questions/metadata/audience-levels");
+export async function fetchAudienceLevels(audienceTypeId?: string): Promise<AudienceLevel[]> {
+  return await requestAssessmentJson<AudienceLevel[]>("/api/v1/assessment/questions/metadata/audience-levels" + (audienceTypeId ? `?audienceTypeId=${encodeURIComponent(audienceTypeId)}` : ""));
 }
 
-export async function createAudienceLevel(dto: any): Promise<any> {
+export async function createAudienceLevel(dto: AudienceLevelInput): Promise<AudienceLevel> {
   return await requestAssessmentJson<any>("/api/v1/assessment/questions/metadata/audience-levels", {
     method: "POST",
     body: JSON.stringify(dto),
   });
 }
 
-export async function updateAudienceLevel(id: string, dto: any): Promise<any> {
+export async function updateAudienceLevel(id: string, dto: Partial<AudienceLevelInput>): Promise<AudienceLevel> {
   return await requestAssessmentJson<any>(`/api/v1/assessment/questions/metadata/audience-levels/${id}`, {
     method: "PUT",
     body: JSON.stringify(dto),
@@ -866,18 +860,18 @@ export async function deleteAudienceLevel(id: string): Promise<void> {
 }
 
 // AudienceType API
-export async function fetchAudienceTypes(): Promise<any[]> {
-  return await requestAssessmentJson<any[]>("/api/v1/assessment/questions/metadata/audience-types");
+export async function fetchAudienceTypes(): Promise<AudienceType[]> {
+  return await requestAssessmentJson<AudienceType[]>("/api/v1/assessment/questions/metadata/audience-types");
 }
 
-export async function createAudienceType(dto: any): Promise<any> {
+export async function createAudienceType(dto: AudienceTypeInput): Promise<AudienceType> {
   return await requestAssessmentJson<any>("/api/v1/assessment/questions/metadata/audience-types", {
     method: "POST",
     body: JSON.stringify(dto),
   });
 }
 
-export async function updateAudienceType(id: string, dto: any): Promise<any> {
+export async function updateAudienceType(id: string, dto: Partial<AudienceTypeInput>): Promise<AudienceType> {
   return await requestAssessmentJson<any>(`/api/v1/assessment/questions/metadata/audience-types/${id}`, {
     method: "PUT",
     body: JSON.stringify(dto),

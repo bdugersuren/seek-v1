@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useI18n } from "@/i18n/use-t";
 import { useParams } from "next/navigation";
 import {
   Card,
+  Button,
   Icons,
   PageTitle,
   Text,
-  useToast,
 } from "@seek/ui";
 import {
   fetchAssessmentContexts,
@@ -20,7 +21,9 @@ import {
 export default function AssessorContextDashboard() {
   const params = useParams();
   const contextId = params.contextId as string;
-  const { showToast } = useToast();
+  const { t } = useI18n();
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [context, setContext] = useState<any>(null);
@@ -39,9 +42,10 @@ export default function AssessorContextDashboard() {
     async function loadData() {
       try {
         setLoading(true);
+        setError("");
         const [contexts, questions, blueprints, quizzes] = await Promise.all([
           fetchAssessmentContexts(),
-          fetchQuestions({ ownerUserId: "mock-assessor", assessmentContextId: contextId }),
+          fetchQuestions({ assessmentContextId: contextId }),
           fetchBlueprints(contextId),
           fetchQuizzes(contextId),
         ]);
@@ -72,8 +76,8 @@ export default function AssessorContextDashboard() {
           draftQuizzes: draftQz,
         });
       } catch (err) {
-        console.error("Failed to load dashboard data", err);
-        showToast("Мэдээллийг татаж чадсангүй.", "danger");
+        const status = (err as {status?: number}).status;
+        setError(t(status === 401 ? "context.signIn" : status === 403 ? "context.denied" : "context.failed"));
       } finally {
         setLoading(false);
       }
@@ -82,7 +86,7 @@ export default function AssessorContextDashboard() {
     if (contextId) {
       loadData();
     }
-  }, [contextId, showToast]);
+  }, [contextId, reload]);
 
   if (loading) {
     return (
@@ -90,6 +94,13 @@ export default function AssessorContextDashboard() {
         <Text variant="muted">Мэдээллийг уншиж байна, түр хүлээнэ үү...</Text>
       </div>
     );
+  }
+
+  if (error) {
+    return <Card role="alert" className="p-seek-6 space-y-seek-3">
+      <Text>{error}</Text>
+      <Button onClick={() => setReload(n => n + 1)}>{t("context.retry")}</Button>
+    </Card>;
   }
 
   if (!context) {

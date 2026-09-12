@@ -1,5 +1,6 @@
 "use client";
 
+import { ContextAssignments } from "@/features/context-access/assignments";
 import React, { useEffect, useState } from "react";
 import {
   Badge,
@@ -438,6 +439,7 @@ export default function AssessmentContextsPage() {
           )}
         </Card>
       </div>
+      {selectedItem && !isCreating && <ContextAssignments key={selectedItem.id} contextId={selectedItem.id} />}
     </PageContainer>
   );
 }

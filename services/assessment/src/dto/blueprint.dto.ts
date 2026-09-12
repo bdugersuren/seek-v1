@@ -6,6 +6,7 @@ export class CreateBlueprintSectionDto {
 }
 
 export class CreateBlueprintDto {
+  createdBy?: string;
   name: string;
   code?: string;
   description?: string;

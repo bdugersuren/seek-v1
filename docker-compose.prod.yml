@@ -231,7 +231,7 @@ services:
     - no-new-privileges:true
     mem_limit: 768m
     cpus: 2
-    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    image: ${SEEK_GATEWAY_IMAGE:-seek-backend:${SEEK_IMAGE_TAG:-production}}
     build:
       context: .
       dockerfile: docker/Dockerfile.production
@@ -288,7 +288,7 @@ services:
     - no-new-privileges:true
     mem_limit: 1g
     cpus: 2
-    image: seek-portal-web:${SEEK_IMAGE_TAG:-production}
+    image: ${SEEK_PORTAL_IMAGE:-seek-portal-web:${SEEK_IMAGE_TAG:-production}}
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend.production
@@ -456,7 +456,7 @@ services:
     - no-new-privileges:true
     mem_limit: 768m
     cpus: 2
-    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    image: ${SEEK_ASSESSMENT_IMAGE:-seek-backend:${SEEK_IMAGE_TAG:-production}}
     build:
       context: .
       dockerfile: docker/Dockerfile.production
@@ -707,7 +707,7 @@ services:
       postgres:
         condition: service_healthy
   assessment-migrate:
-    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    image: ${SEEK_ASSESSMENT_IMAGE:-seek-backend:${SEEK_IMAGE_TAG:-production}}
     build:
       context: .
       dockerfile: docker/Dockerfile.production

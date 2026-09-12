@@ -1,10 +1,27 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import { CognitiveService } from "./cognitive.service";
+import { CognitiveFrameworkInput, CognitiveLevelInput } from "./dto/cognitive.dto";
+import { AudienceService } from "./audience.service";
+import { AudienceTypeInput, AudienceLevelInput } from "./dto/audience.dto";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from "@nestjs/common";
 import { QuestionService } from "./question.service";
 import { CreateQuestionDto, UpdateQuestionDto } from "./dto/question.dto";
 
 @Controller("assessment/questions")
 export class QuestionController {
-  constructor(private readonly questionService: QuestionService) {}
+  constructor(
+    private readonly questionService: QuestionService,
+    private readonly audienceService: AudienceService,
+    private readonly cognitiveService: CognitiveService,
+  ) {}
 
   @Post()
   async create(@Body() dto: CreateQuestionDto) {
@@ -16,9 +33,16 @@ export class QuestionController {
     @Query("status") status?: string,
     @Query("type") type?: string,
     @Query("search") search?: string,
-    @Query("ownerUserId") ownerUserId?: string
+    @Query("ownerUserId") ownerUserId?: string,
+    @Query("assessmentContextId") assessmentContextId?: string,
   ) {
-    return await this.questionService.findAll({ status, type, search, ownerUserId });
+    return await this.questionService.findAll({
+      status,
+      type,
+      search,
+      ownerUserId,
+      assessmentContextId,
+    });
   }
 
   @Get("metadata/topics")
@@ -32,8 +56,8 @@ export class QuestionController {
   }
 
   @Get("metadata/cognitive-levels")
-  async getCognitiveLevels() {
-    return await this.questionService.getCognitiveLevels();
+  async getCognitiveLevels(@Query("cognitiveFrameworkId") id?: string) {
+    return await this.cognitiveService.levels(id);
   }
 
   // AssessmentContext endpoints
@@ -60,8 +84,15 @@ export class QuestionController {
   // CognitiveFramework endpoints
   @Get("metadata/cognitive-frameworks")
   async getCognitiveFrameworks() {
-    return await this.questionService.getCognitiveFrameworks();
+    return await this.cognitiveService.frameworks();
   }
+
+  @Post("metadata/cognitive-frameworks")
+  createCognitiveFramework(@Body() dto: CognitiveFrameworkInput) { return this.cognitiveService.saveFramework(dto); }
+  @Put("metadata/cognitive-frameworks/:id")
+  updateCognitiveFramework(@Param("id") id: string, @Body() dto: CognitiveFrameworkInput) { return this.cognitiveService.saveFramework(dto, id); }
+  @Delete("metadata/cognitive-frameworks/:id")
+  deleteCognitiveFramework(@Param("id") id: string) { return this.cognitiveService.deleteFramework(id); }
 
   // DifficultyScale endpoints
   @Get("metadata/difficulty-scales")
@@ -128,44 +159,50 @@ export class QuestionController {
 
   // AudienceLevel endpoints
   @Get("metadata/audience-levels")
-  async getAudienceLevels() {
-    return await this.questionService.getAudienceLevels();
+  async getAudienceLevels(@Query("audienceTypeId") typeId?: string) {
+    return await this.audienceService.levels(typeId);
   }
 
   @Post("metadata/audience-levels")
-  async createAudienceLevel(@Body() dto: any) {
-    return await this.questionService.createAudienceLevel(dto);
+  async createAudienceLevel(@Body() dto: AudienceLevelInput) {
+    return await this.audienceService.saveLevel(dto);
   }
 
   @Put("metadata/audience-levels/:id")
-  async updateAudienceLevel(@Param("id") id: string, @Body() dto: any) {
-    return await this.questionService.updateAudienceLevel(id, dto);
+  async updateAudienceLevel(
+    @Param("id") id: string,
+    @Body() dto: AudienceLevelInput,
+  ) {
+    return await this.audienceService.saveLevel(dto, id);
   }
 
   @Delete("metadata/audience-levels/:id")
   async deleteAudienceLevel(@Param("id") id: string) {
-    return await this.questionService.deleteAudienceLevel(id);
+    return await this.audienceService.deleteLevel(id);
   }
 
   // AudienceType endpoints
   @Get("metadata/audience-types")
   async getAudienceTypes() {
-    return await this.questionService.getAudienceTypes();
+    return await this.audienceService.types();
   }
 
   @Post("metadata/audience-types")
-  async createAudienceType(@Body() dto: any) {
-    return await this.questionService.createAudienceType(dto);
+  async createAudienceType(@Body() dto: AudienceTypeInput) {
+    return await this.audienceService.saveType(dto);
   }
 
   @Put("metadata/audience-types/:id")
-  async updateAudienceType(@Param("id") id: string, @Body() dto: any) {
-    return await this.questionService.updateAudienceType(id, dto);
+  async updateAudienceType(
+    @Param("id") id: string,
+    @Body() dto: AudienceTypeInput,
+  ) {
+    return await this.audienceService.saveType(dto, id);
   }
 
   @Delete("metadata/audience-types/:id")
   async deleteAudienceType(@Param("id") id: string) {
-    return await this.questionService.deleteAudienceType(id);
+    return await this.audienceService.deleteType(id);
   }
 
   // Topics CRUD endpoints
@@ -202,18 +239,18 @@ export class QuestionController {
 
   // Cognitive Levels CRUD endpoints
   @Post("metadata/cognitive-levels")
-  async createCognitiveLevel(@Body() dto: any) {
-    return await this.questionService.createCognitiveLevel(dto);
+  async createCognitiveLevel(@Body() dto: CognitiveLevelInput) {
+    return await this.cognitiveService.saveLevel(dto);
   }
 
   @Put("metadata/cognitive-levels/:id")
-  async updateCognitiveLevel(@Param("id") id: string, @Body() dto: any) {
-    return await this.questionService.updateCognitiveLevel(id, dto);
+  async updateCognitiveLevel(@Param("id") id: string, @Body() dto: CognitiveLevelInput) {
+    return await this.cognitiveService.saveLevel(dto, id);
   }
 
   @Delete("metadata/cognitive-levels/:id")
   async deleteCognitiveLevel(@Param("id") id: string) {
-    return await this.questionService.deleteCognitiveLevel(id);
+    return await this.cognitiveService.deleteLevel(id);
   }
 
   // Dynamic Database Explorer endpoints
@@ -236,13 +273,16 @@ export class QuestionController {
   async updateDbData(
     @Param("modelName") modelName: string,
     @Param("id") id: string,
-    @Body() dto: any
+    @Body() dto: any,
   ) {
     return await this.questionService.updateDbData(modelName, id, dto);
   }
 
   @Delete("db/:modelName/:id")
-  async deleteDbData(@Param("modelName") modelName: string, @Param("id") id: string) {
+  async deleteDbData(
+    @Param("modelName") modelName: string,
+    @Param("id") id: string,
+  ) {
     return await this.questionService.deleteDbData(modelName, id);
   }
 

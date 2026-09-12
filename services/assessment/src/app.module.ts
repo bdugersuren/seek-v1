@@ -1,3 +1,7 @@
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { ContextAccessGuard, ContextAccessFilter, ContextAccessController } from "./context-access";
+import { CognitiveService } from "./cognitive.service";
+import { AudienceService } from "./audience.service";
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AssessmentWorkflowController } from "./assessment-workflow.controller";
@@ -19,6 +23,7 @@ import * as amqp from "amqplib";
   imports: [],
   controllers: [
     AppController,
+    ContextAccessController,
     AssessmentWorkflowController,
     QuestionController,
     BlueprintController,
@@ -27,6 +32,10 @@ import * as amqp from "amqplib";
     CatalogController,
   ],
   providers: [
+    {provide: APP_GUARD, useClass: ContextAccessGuard},
+    {provide: APP_INTERCEPTOR, useClass: ContextAccessFilter},
+    AudienceService,
+    CognitiveService,
     AssessmentWorkflowService,
     PrismaService,
     QuestionService,
@@ -38,14 +47,22 @@ import * as amqp from "amqplib";
       provide: "RABBITMQ_CHANNEL",
       useFactory: async (): Promise<amqp.Channel | null> => {
         try {
-          const rabbitmqUrl = process.env.RABBITMQ_URL || "amqp://localhost:5672";
+          const rabbitmqUrl =
+            process.env.RABBITMQ_URL || "amqp://localhost:5672";
           const conn = await amqp.connect(rabbitmqUrl);
           const channel = await conn.createChannel();
-          await channel.assertExchange("assessment.events", "topic", { durable: true });
-          console.log("[RabbitMQ] Connected successfully in assessment service");
+          await channel.assertExchange("assessment.events", "topic", {
+            durable: true,
+          });
+          console.log(
+            "[RabbitMQ] Connected successfully in assessment service",
+          );
           return channel;
         } catch (err) {
-          console.error("[RabbitMQ] Failed to connect in assessment service", err);
+          console.error(
+            "[RabbitMQ] Failed to connect in assessment service",
+            err,
+          );
           return null;
         }
       },
@@ -53,5 +70,3 @@ import * as amqp from "amqplib";
   ],
 })
 export class AppModule {}
-
-

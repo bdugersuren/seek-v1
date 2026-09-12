@@ -42,6 +42,7 @@ def main():
     running = output(COMPOSE + ['ps', '--services', '--status', 'running']).splitlines()
     if 'postgres' not in running:
         raise SystemExit('Production postgres must be running')
+    container_ids = {s: output(COMPOSE + ['ps', '-q', s]) for s in running}
     writers = [s for s in running if s not in ('postgres', 'minio', 'redis', 'rabbitmq') and not s.endswith('-migrate')]
     stores = [s for s in ('minio', 'redis', 'rabbitmq') if s in running]
     root = ROOT / '.backups'
@@ -70,7 +71,7 @@ def main():
         # Start dependencies first, then only the workloads that were running before.
         for group in (stores, writers):
             if group and any(s in stopped for s in group):
-                run(COMPOSE + ['start'] + group)
+                run(['docker', 'start'] + [container_ids[s] for s in group if s in stopped])
     try:
         run(['docker','run','--rm','--env-file',str(ENV),'--mount',f'type=bind,src={stage},dst=/snapshot,readonly',restic_image,
              'backup','--host','seek-production','--tag','seek-consistent','/snapshot'])

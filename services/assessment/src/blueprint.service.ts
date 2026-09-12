@@ -28,7 +28,7 @@ export class BlueprintService {
           assessmentContextId: dto.assessmentContextId || "context-civil-service", // Default fallback from seed
           defaultDurationMinutes: 60,
           defaultPassingScore: 70.0,
-          createdBy: "system_author",
+          createdBy: dto.createdBy || "system_author",
         },
       });
 

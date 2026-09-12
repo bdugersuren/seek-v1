@@ -1,597 +1,532 @@
 "use client";
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
-  Card,
-  Heading,
-  Icons,
   Input,
-  PageContainer,
-  PageTitle,
-  Stack,
-  Text,
   Textarea,
-  useDialog,
+  Select,
+  Switch,
+  PageContainer,
   useToast,
-  IconButton,
 } from "@seek/ui";
+import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { useI18n } from "@/i18n/use-t";
+import type { AudienceType, AudienceLevel } from "@/features/assessments/types";
 import {
   fetchAudienceTypes,
+  fetchAudienceLevels,
   createAudienceType,
   updateAudienceType,
   deleteAudienceType,
-  fetchAudienceLevels,
   createAudienceLevel,
   updateAudienceLevel,
   deleteAudienceLevel,
 } from "@/features/assessor-workspace/api";
-import type { AudienceType, AudienceLevel } from "@/features/assessments/types";
+import { FormModal } from "@/features/audience-management/form-modal";
+import {
+  LevelTree,
+  descendants,
+} from "@/features/audience-management/level-tree";
 
+type Form = {
+  name: string;
+  code: string;
+  description: string;
+  isActive: boolean;
+  parentId: string;
+  orderIndex: number;
+  levelKind: string;
+  externalCode: string;
+};
+type Editor = {
+  kind: "type" | "level";
+  id?: string;
+  typeId?: string;
+  initial: Form;
+};
+const empty: Form = {
+  name: "",
+  code: "",
+  description: "",
+  isActive: true,
+  parentId: "",
+  orderIndex: 1,
+  levelKind: "LEVEL",
+  externalCode: "",
+};
 export default function AudienceTypesManagementPage() {
+  const { t } = useI18n();
   const { showToast } = useToast();
-  const { showDialog } = useDialog();
-
-  const [types, setTypes] = useState<AudienceType[]>([]);
-  const [levels, setLevels] = useState<AudienceLevel[]>([]);
-  const [loadingTypes, setLoadingTypes] = useState(true);
-  const [loadingLevels, setLoadingLevels] = useState(false);
-  const [selectedType, setSelectedType] = useState<AudienceType | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState<AudienceLevel | null>(null);
-
-  // Type form states
-  const [typeName, setTypeName] = useState("");
-  const [typeCode, setTypeCode] = useState("");
-  const [typeDescription, setTypeDescription] = useState("");
-  const [isTypeEdit, setIsTypeEdit] = useState(false);
-
-  // Level form states
-  const [levelName, setLevelName] = useState("");
-  const [levelCode, setLevelCode] = useState("");
-  const [levelOrder, setLevelOrder] = useState(1);
-  const [levelParentId, setLevelParentId] = useState<string | null>(null);
-  const [isLevelEdit, setIsLevelEdit] = useState(false);
-  const [draggedNode, setDraggedNode] = useState<AudienceLevel | null>(null);
-
-  const loadTypes = async () => {
-    setLoadingTypes(true);
-    try {
-      const data = await fetchAudienceTypes();
-      setTypes(data || []);
-      if (data && data.length > 0 && !selectedType) {
-        setSelectedType(data[0]);
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Зорилтот бүлгийн төрлийг татаж чадсангүй.", "danger");
-    } finally {
-      setLoadingTypes(false);
-    }
-  };
-
-  const loadLevels = async (typeId: string) => {
-    setLoadingLevels(true);
-    try {
-      const data = await fetchAudienceLevels();
-      const filtered = (data || []).filter((l) => l.audienceTypeId === typeId);
-      setLevels(filtered);
-    } catch (err) {
-      console.error(err);
-      showToast("Зорилтот бүлгийн түвшнүүдийг татаж чадсангүй.", "danger");
-    } finally {
-      setLoadingLevels(false);
-    }
-  };
-
-  useEffect(() => {
-    loadTypes();
-  }, []);
-
-  useEffect(() => {
-    if (selectedType) {
-      loadLevels(selectedType.id);
-      resetLevelForm();
-    }
-  }, [selectedType]);
-
-  // Type actions
-  const handleSaveType = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!typeName.trim()) {
-      showToast("Нэр заавал оруулна.", "warning");
-      return;
-    }
-
-    try {
-      if (isTypeEdit && selectedType) {
-        await updateAudienceType(selectedType.id, {
-          name: typeName,
-          description: typeDescription,
-        });
-        showToast("Зорилтот бүлгийн төрөл засагдлаа.", "success");
-      } else {
-        await createAudienceType({
-          name: typeName,
-          code: typeCode || `AUDIENCE-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-          description: typeDescription,
-        });
-        showToast("Шинэ зорилтот бүлгийн төрөл үүсгэлээ.", "success");
-      }
-      resetTypeForm();
-      loadTypes();
-    } catch (err) {
-      console.error(err);
-      showToast("Хадгалж чадсангүй.", "danger");
-    }
-  };
-
-  const handleDeleteType = (id: string) => {
-    showDialog({
-      title: "Зорилтот бүлгийн төрлийг устгах уу?",
-      description: "Энэ төрлийг устгаснаар түүнд хамаарах бүх зорилтот түвшин устах болно.",
-      confirmLabel: "Устгах",
-      cancelLabel: "Болих",
-      onConfirm: async () => {
-        try {
-          await deleteAudienceType(id);
-          showToast("Төрөл устгагдлаа.", "success");
-          if (selectedType?.id === id) {
-            setSelectedType(null);
-          }
-          loadTypes();
-        } catch (err) {
-          console.error(err);
-          showToast("Устгаж чадсангүй.", "danger");
-        }
-      },
-    });
-  };
-
-  // Level actions
-  const handleSaveLevel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedType) return;
-    if (!levelName.trim() || !levelCode.trim()) {
-      showToast("Нэр болон код заавал байна.", "warning");
-      return;
-    }
-
-    try {
-      if (isLevelEdit && selectedLevel) {
-        await updateAudienceLevel(selectedLevel.id, {
-          name: levelName,
-          orderIndex: Number(levelOrder),
-          parentId: levelParentId,
-        });
-        showToast("Түвшин амжилттай засагдлаа.", "success");
-      } else {
-        await createAudienceLevel({
-          audienceTypeId: selectedType.id,
-          name: levelName,
-          code: levelCode,
-          orderIndex: Number(levelOrder),
-          parentId: levelParentId,
-        });
-        showToast("Түвшин нэмэгдлээ.", "success");
-      }
-      resetLevelForm();
-      loadLevels(selectedType.id);
-    } catch (err) {
-      console.error(err);
-      showToast("Түвшин хадгалж чадсангүй.", "danger");
-    }
-  };
-
-  const handleDeleteLevel = (id: string) => {
-    if (!selectedType) return;
-    showDialog({
-      title: "Зорилтот түвшнийг устгах уу?",
-      description: "Энэ түвшинг устгахдаа итгэлтэй байна уу?",
-      confirmLabel: "Устгах",
-      cancelLabel: "Болих",
-      onConfirm: async () => {
-        try {
-          await deleteAudienceLevel(id);
-          showToast("Түвшин устгагдлаа.", "success");
-          if (selectedLevel?.id === id) {
-            setSelectedLevel(null);
-          }
-          loadLevels(selectedType.id);
-        } catch (err) {
-          console.error(err);
-          showToast("Устгаж чадсангүй.", "danger");
-        }
-      },
-    });
-  };
-
-  const resetTypeForm = () => {
-    setTypeName("");
-    setTypeCode("");
-    setTypeDescription("");
-    setIsTypeEdit(false);
-  };
-
-  const resetLevelForm = () => {
-    setLevelName("");
-    setLevelCode("");
-    setLevelOrder(levels.length + 1);
-    setLevelParentId(null);
-    setSelectedLevel(null);
-    setIsLevelEdit(false);
-  };
-
-  const selectTypeForEdit = (type: AudienceType) => {
-    setSelectedType(type);
-    setTypeName(type.name);
-    setTypeCode(type.code);
-    setTypeDescription(type.description || "");
-    setIsTypeEdit(true);
-  };
-
-  const selectLevelForEdit = (lvl: AudienceLevel) => {
-    setSelectedLevel(lvl);
-    setLevelName(lvl.name);
-    setLevelCode(lvl.code);
-    setLevelOrder(lvl.orderIndex);
-    setLevelParentId(lvl.parentId || null);
-    setIsLevelEdit(true);
-  };
-
-  const selectLevelForAddChild = (parent: AudienceLevel) => {
-    resetLevelForm();
-    setLevelParentId(parent.id);
-    setSelectedLevel(parent);
-    setIsLevelEdit(false);
-  };
-
-  // Build hierarchical audience levels tree
-  const buildLevelTree = (nodes: AudienceLevel[], pId: string | null = null): AudienceLevel[] => {
-    return nodes
-      .filter((n) => n.parentId === pId)
-      .map((n) => ({
-        ...n,
-        children: buildLevelTree(nodes, n.id),
-      }))
-      .sort((a, b) => a.orderIndex - b.orderIndex);
-  };
-
-  const levelTree = buildLevelTree(levels);
-
-  // Drag and drop logic for audience levels
-  const handleDragStart = (e: React.DragEvent, node: AudienceLevel) => {
-    setDraggedNode(node);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetNode: AudienceLevel) => {
-    e.preventDefault();
-    if (!draggedNode || draggedNode.id === targetNode.id || !selectedType) return;
-
-    let p = targetNode.parentId;
-    while (p) {
-      if (p === draggedNode.id) {
-        showToast("Түвшнийг өөрийнх нь дэд түвшин рүү шилжүүлэх боломжгүй.", "warning");
-        return;
-      }
-      const parentNode = levels.find((l) => l.id === p);
-      p = parentNode ? parentNode.parentId : null;
-    }
-
-    try {
-      await updateAudienceLevel(draggedNode.id, {
-        parentId: targetNode.id,
-      });
-      showToast(`${draggedNode.name} түвшнийг ${targetNode.name}-ийн дэд болголоо.`, "success");
-      loadLevels(selectedType.id);
-    } catch (err) {
-      console.error(err);
-      showToast("Байршил өөрчилж чадсангүй.", "danger");
-    } finally {
-      setDraggedNode(null);
-    }
-  };
-
-  // Recursive Level Node
-  const LevelNode = ({ node, depth = 0 }: { node: AudienceLevel; depth: number }) => {
-    const hasChildren = node.children && node.children.length > 0;
-    const [collapsed, setCollapsed] = useState(false);
-
-    return (
-      <div
-        className="select-none"
-        draggable
-        onDragStart={(e) => handleDragStart(e, node)}
-        onDragOver={handleDragOver}
-        onDrop={(e) => handleDrop(e, node)}
-      >
-        <div
-          className={`flex items-center justify-between gap-seek-2 rounded-seek-md border px-seek-3 py-seek-2 transition-all cursor-grab active:cursor-grabbing mb-seek-2 ${
-            selectedLevel?.id === node.id && isLevelEdit
-              ? "border-primary bg-primary/5"
-              : "border-border bg-surface hover:bg-surface-hover"
-          }`}
-          style={{ marginLeft: `${depth * 1.5}rem` }}
-        >
-          <div className="flex items-center gap-seek-2">
-            <button
-              type="button"
-              onClick={() => setCollapsed(!collapsed)}
-              className={`p-1 rounded hover:bg-muted-background ${hasChildren ? "opacity-100" : "opacity-0 cursor-default"}`}
-            >
-              <Icons.ChevronRight className={`h-4 w-4 transition-transform ${!collapsed && hasChildren ? "rotate-90" : ""}`} />
-            </button>
-            <Icons.User className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <span className="font-sans font-medium text-foreground">{node.name}</span>
-              <span className="ml-seek-2 font-mono text-xs text-muted-foreground">{node.code}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <IconButton
-              ariaLabel="Дэд түвшин нэмэх"
-              className="hover:bg-surface-hover text-foreground"
-              onClick={() => selectLevelForAddChild(node)}
-            >
-              <Icons.FilePlus size={16} />
-            </IconButton>
-            <IconButton
-              ariaLabel="Засах"
-              className="hover:bg-surface-hover text-foreground"
-              onClick={() => selectLevelForEdit(node)}
-            >
-              <Icons.SavePen size={16} />
-            </IconButton>
-            <IconButton
-              ariaLabel="Устгах"
-              onClick={() => handleDeleteLevel(node.id)}
-              className="text-danger hover:bg-danger-background"
-            >
-              <Icons.Trash size={16} />
-            </IconButton>
-          </div>
-        </div>
-        {!collapsed && hasChildren && (
-          <div>
-            {node.children!.map((child) => (
-              <LevelNode key={child.id} node={child} depth={depth + 1} />
-            ))}
-          </div>
-        )}
-      </div>
+  const [types, setTypes] = useState<AudienceType[]>([]),
+    [levels, setLevels] = useState<AudienceLevel[]>([]),
+    [selected, setSelected] = useState(""),
+    [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true),
+    [loadingLevels, setLoadingLevels] = useState(false),
+    [error, setError] = useState(""),
+    [levelError, setLevelError] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set()),
+    [editor, setEditor] = useState<Editor | null>(null),
+    [form, setForm] = useState<Form>(empty),
+    [busy, setBusy] = useState(false),
+    [formError, setFormError] = useState("");
+  const request = useRef(0);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const message = (e: unknown) => {
+    const a = e as { status?: number; code?: string };
+    return t(
+      a.status === 401 || a.status === 403
+        ? "audience.denied"
+        : a.code === "IN_USE"
+          ? "audience.inUse"
+          : a.code === "DUPLICATE_CODE"
+            ? "audience.duplicate"
+            : a.status === 400
+              ? "audience.invalid"
+              : "audience.failed",
     );
   };
-
+  const loadTypes = async (preferred?: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const rows = await fetchAudienceTypes();
+      setTypes(rows);
+      setSelected((current) =>
+        rows.some((x) => x.id === (preferred ?? current))
+          ? (preferred ?? current)
+          : rows[0]?.id || "",
+      );
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+  const loadLevels = async (id: string) => {
+    const seq = ++request.current;
+    setLoadingLevels(true);
+    setLevelError("");
+    try {
+      const rows = await fetchAudienceLevels(id);
+      if (seq === request.current && selectedRef.current === id)
+        setLevels(rows);
+    } catch (e) {
+      if (seq === request.current) setLevelError(message(e));
+    } finally {
+      if (seq === request.current) setLoadingLevels(false);
+    }
+  };
+  useEffect(() => {
+    void loadTypes();
+  }, []);
+  useEffect(() => {
+    setLevels([]);
+    setCollapsed(new Set());
+    if (selected) void loadLevels(selected);
+    else {
+      ++request.current;
+      setLoadingLevels(false);
+      setLevelError("");
+    }
+  }, [selected]);
+  const chosen = types.find((x) => x.id === selected);
+  const open = (
+    kind: "type" | "level",
+    record?: AudienceType | AudienceLevel,
+    parentId = "",
+  ) => {
+    const level = record as AudienceLevel | undefined;
+    const initial: Form = record
+      ? {
+          ...empty,
+          name: record.name,
+          code: record.code,
+          isActive: record.isActive,
+          description: (record as AudienceType).description || "",
+          parentId: level?.parentId || "",
+          orderIndex: level?.orderIndex ?? 1,
+          levelKind: level?.levelKind ?? "",
+          externalCode: level?.externalCode || "",
+        }
+      : {
+          ...empty,
+          parentId,
+          orderIndex:
+            Math.max(
+              0,
+              ...levels
+                .filter((l) => (l.parentId || "") === parentId)
+                .map((l) => l.orderIndex),
+            ) + 1,
+        };
+    setForm(initial);
+    setFormError("");
+    setEditor({ kind, id: record?.id, typeId: selected, initial });
+  };
+  const change = <K extends keyof Form>(key: K, value: Form[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editor || busy) return;
+    setBusy(true);
+    setFormError("");
+    try {
+      if (editor.kind === "type") {
+        const payload = {
+          name: form.name.trim(),
+          code: form.code,
+          description: form.description || null,
+          isActive: form.isActive,
+        };
+        const row = editor.id
+          ? await updateAudienceType(editor.id, payload)
+          : await createAudienceType(payload);
+        await loadTypes(row.id);
+      } else {
+        const payload = {
+          audienceTypeId: editor.typeId!,
+          name: form.name.trim(),
+          code: form.code,
+          parentId: form.parentId || null,
+          orderIndex: form.orderIndex,
+          levelKind: form.levelKind || null,
+          externalCode: form.externalCode || null,
+          isActive: form.isActive,
+        };
+        if (editor.id) await updateAudienceLevel(editor.id, payload);
+        else await createAudienceLevel(payload);
+        setCollapsed((old) => {
+          const next = new Set(old);
+          next.delete(form.parentId);
+          return next;
+        });
+        await Promise.all([
+          loadTypes(editor.typeId),
+          loadLevels(editor.typeId!),
+        ]);
+      }
+      setEditor(null);
+      showToast(t("audience.saved"), "success");
+    } catch (e) {
+      setFormError(message(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async (kind: "type" | "level", id: string) => {
+    if (!window.confirm(t("audience.confirmDelete"))) return;
+    try {
+      if (kind === "type") {
+        await deleteAudienceType(id);
+        await loadTypes();
+      } else {
+        await deleteAudienceLevel(id);
+        await Promise.all([loadTypes(), loadLevels(selected)]);
+      }
+    } catch (e) {
+      showToast(message(e), "danger");
+    }
+  };
+  const excluded =
+    editor?.kind === "level" && editor.id
+      ? descendants(levels, editor.id)
+      : new Set<string>();
+  const field = (label: string, children: React.ReactElement) => (
+    <label className="block space-y-1.5 text-sm font-medium">
+      {label}
+      {React.cloneElement(children, { "aria-label": label })}
+    </label>
+  );
+  const skeleton = (
+    <div
+      role="status"
+      aria-label={t("audience.saving")}
+      className="space-y-3 p-4 animate-pulse"
+    >
+      {[1, 2, 3].map((n) => (
+        <div key={n} className="h-12 rounded bg-muted" />
+      ))}
+    </div>
+  );
+  const failure = (text: string, retry: () => void) => (
+    <div role="alert" className="space-y-3 p-5 text-sm">
+      <p>{text}</p>
+      <Button variant="outline" onClick={retry}>
+        {t("audience.retry")}
+      </Button>
+    </div>
+  );
   return (
     <PageContainer>
-      <PageTitle
-        title="Зорилтот бүлгийн удирдлага"
-        subtitle="Шалгуулагчдын зорилтот бүлгийн төрлийг (жишээ нь: Сургууль, Аж ахуйн нэгж) үүсгэх болон тэдгээрийн анги, түвшний шатлалыг удирдах цонх."
-      />
-
-      <div className="grid grid-cols-1 gap-seek-5 xl:grid-cols-[18rem_1fr_22rem] mt-seek-4">
-        {/* SCALES LIST */}
-        <Card className="min-h-[400px]">
-          <Stack gap={4}>
-            <Heading level={3}>Зорилтот бүлгүүд</Heading>
-            {loadingTypes ? (
-              <Text variant="muted">Уншиж байна...</Text>
-            ) : (
-              <div className="flex flex-col gap-seek-2">
-                {types.map((t) => (
+      <h1 className="mb-5 text-xl font-semibold">{t("audience.title")}</h1>
+      <div className="grid min-w-0 grid-cols-1 overflow-hidden rounded-xl border border-border bg-surface md:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="space-y-3 border-b border-border p-4 md:border-b-0 md:border-r">
+          <div className="relative">
+            <Search
+              size={15}
+              className="absolute left-3 top-3 text-muted-foreground"
+            />
+            <Input
+              aria-label={t("audience.search")}
+              placeholder={t("audience.search")}
+              className="pl-9 text-sm"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <Button className="w-full gap-1 text-sm" onClick={() => open("type")}>
+            <Plus size={15} />
+            {t("audience.newType")}
+          </Button>
+          {loading ? (
+            skeleton
+          ) : error ? (
+            failure(error, () => void loadTypes())
+          ) : types.length === 0 ? (
+            <p className="py-5 text-sm text-muted-foreground">
+              {t("audience.emptyTypes")}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {types
+                .filter((x) =>
+                  `${x.name} ${x.code}`
+                    .toLowerCase()
+                    .includes(query.toLowerCase()),
+                )
+                .map((x) => (
                   <div
-                    key={t.id}
-                    className={`flex items-center justify-between gap-seek-2 px-seek-3 py-seek-2 rounded-seek-md border transition-all cursor-pointer ${
-                      selectedType?.id === t.id
-                        ? "border-primary bg-primary/5 font-semibold"
-                        : "border-border bg-surface hover:bg-surface-hover"
-                    }`}
-                    onClick={() => setSelectedType(t)}
+                    key={x.id}
+                    className={`flex items-center gap-2 rounded-lg border p-3 ${selected === x.id ? "border-primary bg-primary/5" : "border-border"}`}
                   >
-                    <div>
-                      <Text className="text-sm">{t.name}</Text>
-                      <Text variant="muted" className="text-xs">
-                        {t.code}
-                      </Text>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <IconButton
-                        ariaLabel="Засах"
-                        className="hover:bg-surface-hover text-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectTypeForEdit(t);
-                        }}
-                      >
-                        <Icons.SavePen size={14} />
-                      </IconButton>
-                      <IconButton
-                        ariaLabel="Устгах"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteType(t.id);
-                        }}
-                        className="text-danger hover:bg-danger-background"
-                      >
-                        <Icons.Trash size={14} />
-                      </IconButton>
-                    </div>
+                    <button
+                      className="min-w-0 flex-1 text-left"
+                      aria-pressed={selected === x.id}
+                      onClick={() => setSelected(x.id)}
+                    >
+                      <span className="block break-words text-sm font-semibold">
+                        {x.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        ({x.code})
+                      </span>
+                      <span className="mt-1 block text-xs text-primary">
+                        {x.levelCount ?? 0} {t("audience.levels")}
+                        {!x.isActive ? ` · ${t("audience.inactive")}` : ""}
+                      </span>
+                    </button>
+                    <button
+                      aria-label={`${t("audience.edit")} ${x.name}`}
+                      className="text-primary"
+                      onClick={() => open("type", x)}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      aria-label={`${t("audience.delete")} ${x.name}`}
+                      onClick={() => void remove("type", x.id)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetTypeForm}
-                  className="mt-seek-2"
-                >
-                  Шинэ төрөл үүсгэх
-                </Button>
-              </div>
-            )}
-          </Stack>
-        </Card>
-
-        {/* TREE VIEW */}
-        <Card className="min-h-[400px]">
-          <Stack gap={4}>
-            <Heading level={3}>
-              {selectedType ? `"${selectedType.name}" - Анги, түвшний шатлал` : "Сонгогдсон төрөл байхгүй"}
-            </Heading>
-            <Text variant="muted" className="text-sm">
-              Түвшнүүдийг чирээд (drag) өөр түвшин дээр тавьснаар (drop) шатлалын бүтцийг удирдах боломжтой.
-            </Text>
-
-            {loadingLevels ? (
-              <div className="flex h-48 items-center justify-center">
-                <Text variant="muted">Уншиж байна...</Text>
-              </div>
-            ) : !selectedType ? (
-              <Text variant="muted" className="text-center py-12">
-                Түвшнүүдийг харахын тулд зүүн талаас төрөл сонгоно уу.
-              </Text>
-            ) : levels.length === 0 ? (
-              <div className="flex h-48 flex-col items-center justify-center rounded-seek-lg border border-dashed border-border bg-muted-background p-seek-8 text-center">
-                <Icons.User size={40} className="text-muted-foreground" />
-                <Text className="font-semibold mt-seek-3">Анги, түвшний мэдээлэл байхгүй байна</Text>
-                <Text variant="muted" className="mt-1 text-sm">
-                  Энэ бүлэгт шинээр түвшин нэмнэ үү.
-                </Text>
-              </div>
-            ) : (
-              <div className="space-y-seek-2 max-h-[600px] overflow-y-auto pr-seek-2">
-                {levelTree.map((node) => (
-                  <LevelNode key={node.id} node={node} depth={0} />
-                ))}
-              </div>
-            )}
-          </Stack>
-        </Card>
-
-        {/* FORMS */}
-        <Card className="h-fit sticky top-seek-5">
-          <Stack gap={6}>
-            {/* TYPE FORM */}
-            {!isLevelEdit && (
-              <form onSubmit={handleSaveType}>
-                <Stack gap={5}>
-                  <Heading level={3}>
-                    {isTypeEdit ? "Төрөл засах" : "Шинэ төрөл үүсгэх"}
-                  </Heading>
-                  <label className="space-y-seek-2">
-                    <span className="font-sans text-sm font-medium text-foreground">Бүлгийн нэр</span>
-                    <Input
-                      required
-                      placeholder="Сургууль, Аж ахуйн нэгж г.м."
-                      value={typeName}
-                      onChange={(e) => setTypeName(e.target.value)}
-                    />
-                  </label>
-                  <label className="space-y-seek-2">
-                    <span className="font-sans text-sm font-medium text-foreground">Код</span>
-                    <Input
-                      placeholder="Жишээ: ACADEMIC, ENTERPRISE"
-                      disabled={isTypeEdit}
-                      value={typeCode}
-                      onChange={(e) => setTypeCode(e.target.value)}
-                    />
-                  </label>
-                  <label className="space-y-seek-2">
-                    <span className="font-sans text-sm font-medium text-foreground">Тайлбар</span>
-                    <Textarea
-                      placeholder="Төрлийн тайлбар..."
-                      rows={3}
-                      value={typeDescription}
-                      onChange={(e) => setTypeDescription(e.target.value)}
-                    />
-                  </label>
-                  <div className="flex gap-seek-2 pt-seek-1">
-                    <Button type="submit" className="flex-1">
-                      {isTypeEdit ? "Засах" : "Хадгалах"}
-                    </Button>
-                    {isTypeEdit && (
-                      <Button type="button" variant="outline" onClick={resetTypeForm}>
-                        Болих
-                      </Button>
+              {!types.some((x) =>
+                `${x.name} ${x.code}`
+                  .toLowerCase()
+                  .includes(query.toLowerCase()),
+              ) && <p className="text-sm">{t("audience.noResults")}</p>}
+            </div>
+          )}
+        </aside>
+        <section className="min-w-0 p-4">
+          {chosen ? (
+            <>
+              <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold">
+                    {chosen.name} — {t("audience.hierarchy")}
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("audience.allTypes")} / {chosen.name}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setCollapsed(
+                        collapsed.size
+                          ? new Set()
+                          : new Set(levels.map((x) => x.id)),
+                      )
+                    }
+                  >
+                    {t(
+                      collapsed.size ? "audience.expand" : "audience.collapse",
                     )}
-                  </div>
-                </Stack>
-              </form>
-            )}
-
-            {/* LEVEL FORM */}
-            {selectedType && (
-              <form onSubmit={handleSaveLevel}>
-                <Stack gap={5} className="border-t border-border pt-seek-5">
-                  <Heading level={3}>
-                    {isLevelEdit ? "Түвшин засах" : levelParentId ? "Дэд түвшин нэмэх" : "Түвшин нэмэх"}
-                  </Heading>
-
-                  {levelParentId && (
-                    <div className="rounded-seek-md border border-info-border bg-info-background px-seek-3 py-seek-2 flex items-center justify-between">
-                      <Text className="text-xs font-semibold text-info-foreground">
-                        Эцэг: {selectedLevel?.name}
-                      </Text>
-                      <button
-                        type="button"
-                        onClick={() => setLevelParentId(null)}
-                        className="text-xs underline text-info-foreground"
-                      >
-                        Цэвэрлэх
-                      </button>
-                    </div>
-                  )}
-
-                  <label className="space-y-seek-2">
-                    <span className="font-sans text-sm font-medium text-foreground">Түвшний нэр</span>
-                    <Input
-                      required
-                      placeholder="Жишээ: 1-р анги, Junior"
-                      value={levelName}
-                      onChange={(e) => setLevelName(e.target.value)}
-                    />
-                  </label>
-
-                  <label className="space-y-seek-2">
-                    <span className="font-sans text-sm font-medium text-foreground">Код</span>
-                    <Input
-                      required
-                      placeholder="Жишээ: GRADE-01, JUNIOR"
-                      disabled={isLevelEdit}
-                      value={levelCode}
-                      onChange={(e) => setLevelCode(e.target.value)}
-                    />
-                  </label>
-
-                  <label className="space-y-seek-2">
-                    <span className="font-sans text-sm font-medium text-foreground">Дараалал (orderIndex)</span>
-                    <Input
-                      type="number"
-                      required
-                      value={levelOrder}
-                      onChange={(e) => setLevelOrder(Number(e.target.value))}
-                    />
-                  </label>
-
-                  <div className="flex gap-seek-2 pt-seek-1">
-                    <Button type="submit" className="flex-1">
-                      {isLevelEdit ? "Засах" : "Түвшин нэмэх"}
-                    </Button>
-                    {(isLevelEdit || levelParentId) && (
-                      <Button type="button" variant="outline" onClick={resetLevelForm}>
-                        Болих
-                      </Button>
-                    )}
-                  </div>
-                </Stack>
-              </form>
-            )}
-          </Stack>
-        </Card>
+                  </Button>
+                  <Button size="sm" onClick={() => open("level")}>
+                    + {t("audience.rootAdd")}
+                  </Button>
+                </div>
+              </header>
+              {loadingLevels ? (
+                skeleton
+              ) : levelError ? (
+                failure(levelError, () => void loadLevels(selected))
+              ) : levels.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                  {t("audience.emptyLevels")}
+                </div>
+              ) : (
+                <LevelTree
+                  levels={levels}
+                  collapsed={collapsed}
+                  toggle={(id) =>
+                    setCollapsed((old) => {
+                      const n = new Set(old);
+                      n.has(id) ? n.delete(id) : n.add(id);
+                      return n;
+                    })
+                  }
+                  add={(id) => open("level", undefined, id)}
+                  edit={(l) => open("level", l)}
+                  remove={(l) => void remove("level", l.id)}
+                />
+              )}
+            </>
+          ) : (
+            <p className="p-8 text-center text-muted-foreground">
+              {t("audience.emptyTypes")}
+            </p>
+          )}
+        </section>
       </div>
+      {editor && (
+        <FormModal
+          title={t(
+            editor.kind === "type"
+              ? editor.id
+                ? "audience.editType"
+                : "audience.newType"
+              : editor.id
+                ? "audience.editLevel"
+                : "audience.newLevel",
+          )}
+          dirty={JSON.stringify(form) !== JSON.stringify(editor.initial)}
+          busy={busy}
+          close={() => setEditor(null)}
+          submit={save}
+          error={formError}
+        >
+          {editor.kind === "level" &&
+            field(
+              t("audience.parent"),
+              <Select
+                value={form.parentId}
+                onChange={(e) => change("parentId", e.target.value)}
+              >
+                <option value="">{t("audience.root")}</option>
+                {levels
+                  .filter((l) => !excluded.has(l.id))
+                  .map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} ({l.code})
+                    </option>
+                  ))}
+              </Select>,
+            )}
+          {field(
+            t("audience.name"),
+            <Input
+              required
+              value={form.name}
+              onChange={(e) => change("name", e.target.value)}
+            />,
+          )}
+          {field(
+            t("audience.code"),
+            <Input
+              required
+              readOnly={!!editor.id}
+              pattern={editor.id ? undefined : "[A-Z0-9_-]+"}
+              value={form.code}
+              onChange={(e) => change("code", e.target.value)}
+            />,
+          )}
+          <p className="text-xs text-muted-foreground">
+            {t("audience.codeHelp")}
+          </p>
+          {editor.kind === "type" ? (
+            field(
+              t("audience.description"),
+              <Textarea
+                value={form.description}
+                onChange={(e) => change("description", e.target.value)}
+              />,
+            )
+          ) : (
+            <>
+              {field(
+                t("audience.kind"),
+                <Select
+                  value={form.levelKind}
+                  onChange={(e) => change("levelKind", e.target.value)}
+                >
+                  <option value="">{t("audience.unspecified")}</option>
+                  {(["GROUP", "GRADE_LEVEL", "LEVEL"] as const).map((k) => (
+                    <option key={k} value={k}>
+                      {t(`audience.${k}`)}
+                    </option>
+                  ))}
+                  {form.levelKind &&
+                    !["GROUP", "GRADE_LEVEL", "LEVEL"].includes(
+                      form.levelKind,
+                    ) && (
+                      <option value={form.levelKind}>
+                        {t("audience.legacy")} ({form.levelKind})
+                      </option>
+                    )}
+                </Select>,
+              )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {field(
+                  t("audience.order"),
+                  <Input
+                    type="number"
+                    min={0}
+                    max={2147483647}
+                    step={1}
+                    required
+                    value={form.orderIndex}
+                    onChange={(e) =>
+                      change("orderIndex", e.target.valueAsNumber)
+                    }
+                  />,
+                )}
+                {field(
+                  t("audience.external"),
+                  <Input
+                    value={form.externalCode}
+                    onChange={(e) => change("externalCode", e.target.value)}
+                  />,
+                )}
+              </div>
+            </>
+          )}
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <span className="text-sm font-medium">{t("audience.active")}</span>
+            <Switch
+              aria-label={t("audience.active")}
+              checked={form.isActive}
+              onChange={(e) => change("isActive", e.target.checked)}
+            />
+          </div>
+        </FormModal>
+      )}
     </PageContainer>
   );
 }

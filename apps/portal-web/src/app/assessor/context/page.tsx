@@ -1,28 +1,30 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useI18n } from "@/i18n/use-t";
 import {
   Card,
+  Button,
   Checkbox,
   Icons,
   PageTitle,
   Text,
-  useToast,
 } from "@seek/ui";
 import { fetchAssessmentContexts, fetchAudienceTypes } from "@/features/assessor-workspace/api";
 
 export default function AssessorContextPage() {
-  const { showToast } = useToast();
+  const { t } = useI18n();
   const [contexts, setContexts] = useState<any[]>([]);
   const [audienceTypes, setAudienceTypes] = useState<any[]>([]);
   const [selectedAudienceTypeIds, setSelectedAudienceTypeIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
+  const [error, setError] = useState("");
+  const load = useCallback(async () => {
       try {
         setLoading(true);
+        setError("");
         const [contextData, audienceData] = await Promise.all([
           fetchAssessmentContexts(),
           fetchAudienceTypes(),
@@ -30,14 +32,13 @@ export default function AssessorContextPage() {
         setContexts(contextData || []);
         setAudienceTypes(audienceData || []);
       } catch (err) {
-        console.error(err);
-        showToast("Мэдээллийг татаж чадсангүй.", "danger");
+        const status = (err as {status?: number}).status;
+        setError(t(status === 401 ? "context.signIn" : status === 403 ? "context.denied" : "context.failed"));
       } finally {
         setLoading(false);
       }
-    }
-    load();
-  }, [showToast]);
+  }, [t]);
+  useEffect(() => { void load(); }, []);
 
   const handleToggleAudienceType = (id: string) => {
     setSelectedAudienceTypeIds((prev) =>
@@ -63,10 +64,15 @@ export default function AssessorContextPage() {
             <div className="flex h-48 items-center justify-center">
               <Text variant="muted">Уншиж байна...</Text>
             </div>
+          ) : error ? (
+            <Card role="alert" className="p-seek-6 space-y-seek-3">
+              <Text>{error}</Text>
+              <Button onClick={() => void load()}>{t("context.retry")}</Button>
+            </Card>
           ) : filteredContexts.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center rounded-seek-lg border border-dashed border-border bg-muted-background p-seek-8 text-center">
               <Icons.Warning size={40} className="text-muted-foreground" />
-              <Text className="font-semibold mt-seek-3">Үнэлгээний контекст олдсонгүй</Text>
+              <Text className="font-semibold mt-seek-3">{t(contexts.length ? "context.noMatches" : "context.noneAssigned")}</Text>
               <Text variant="muted" className="mt-1 text-sm">
                 Сонгосон шүүлтүүрт тохирох үнэлгээний контекст байхгүй байна.
               </Text>

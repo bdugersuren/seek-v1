@@ -285,6 +285,9 @@ enum ResultPublicationEventType {
 // ============================================================
 
 model Question {
+  assessmentContextId String?
+  assessmentContext AssessmentContext? @relation(fields: [assessmentContextId], references: [id], onDelete: Restrict)
+  @@index([assessmentContextId, ownerUserId])
   id                        String                  @id @default(cuid())
   tenantId                  String?
   code                      String                  @unique
@@ -620,6 +623,7 @@ model CompetenceType {
 }
 
 model AssessmentContext {
+  questions Question[]
   id                      String                        @id @default(cuid())
   tenantId                String?
   code                    String                        @unique
@@ -658,6 +662,8 @@ model AssessmentContext {
   @@index([audienceTypeId, audienceLevelId])
   @@index([curriculumId, subjectId])
   @@map("assessment_context")
+  assessorGrants AssessorContextGrant[]
+
 }
 
 // ============================================================
@@ -1706,3 +1712,15 @@ model AssessmentWorkflowEvent {
   @@map("assessment_workflow_event")
 }
 
+
+model AssessorContextGrant {
+  id String @id @default(cuid())
+  contextId String
+  userId String
+  assignedBy String
+  createdAt DateTime @default(now())
+  context AssessmentContext @relation(fields: [contextId], references: [id], onDelete: Restrict)
+  @@unique([contextId, userId])
+  @@index([userId])
+  @@map("assessor_context_grant")
+}

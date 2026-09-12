@@ -115,20 +115,16 @@ const navItems: Array<{
     href: "/admin/metadata",
     labelKey: "nav.metadata",
     icon: Icons.Menu,
-    roles: ["super_admin", "organisation_admin", "assessor"],
+    roles: ["super_admin"],
     items: [
       { href: "/admin/metadata/topics", labelKey: "nav.metadata.topics" },
       { href: "/admin/metadata/competencies", labelKey: "nav.metadata.competencies" },
       { href: "/admin/metadata/difficulty-scales", labelKey: "nav.metadata.difficultyScales" },
+      { href: "/admin/metadata/cognitive-frameworks", labelKey: "nav.metadata.cognitiveFrameworks" },
       { href: "/admin/metadata/audience-types", labelKey: "nav.metadata.audienceTypes" },
     ]
   },
-  {
-    href: "/db-management",
-    labelKey: "nav.dbManagement" as any,
-    icon: Icons.Shield,
-    roles: ["assessor"],
-  },
+
   {
     href: "/catalog",
     labelKey: "nav.catalog",

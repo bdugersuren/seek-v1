@@ -218,46 +218,12 @@ export default function MetadataManagementPage() {
           }
         }
       } else if (activeTab === 'AUDIENCE') {
-        // Type vs Level
-        if (selectedRefId === 'LEVEL') {
-          if (isCreating) {
-            await createAudienceLevel({
-              name: name.trim(),
-              code: code.trim() || undefined,
-              rank,
-            });
-            showToast('Зорилтот бүлгийн түвшин үүслээ.', 'success');
-          } else {
-            await updateAudienceLevel(selectedItem.id, { name: name.trim(), rank });
-            showToast('Зорилтот бүлгийн түвшин шинэчлэгдлээ.', 'success');
-          }
-        } else {
-          if (isCreating) {
-            await createAudienceType({
-              name: name.trim(),
-              code: code.trim() || undefined,
-            });
-            showToast('Зорилтот бүлгийн төрөл үүслээ.', 'success');
-          } else {
-            await updateAudienceType(selectedItem.id, { name: name.trim() });
-            showToast('Зорилтот бүлгийн төрөл шинэчлэгдлээ.', 'success');
-          }
-        }
+        // Audience hierarchy editing requires an explicit type; use the canonical editor.
+        window.location.assign('/admin/metadata/audience-types');
+        return;
       } else if (activeTab === 'COGNITIVE') {
-        if (isCreating) {
-          await createCognitiveLevel({
-            name: name.trim(),
-            code: code.trim() || undefined,
-            rank,
-          });
-          showToast('Bloom түвшин амжилттай үүслээ.', 'success');
-        } else {
-          await updateCognitiveLevel(selectedItem.id, {
-            name: name.trim(),
-            rank,
-          });
-          showToast('Bloom түвшин шинэчлэгдлээ.', 'success');
-        }
+        window.location.assign('/admin/metadata/cognitive-frameworks');
+        return;
       }
 
       setIsCreating(false);
