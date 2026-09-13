@@ -1,3 +1,5 @@
+import { questionBank } from "./question-bank";
+import { PrismaService } from "./prisma.service";
 import { CognitiveService } from "./cognitive.service";
 import { CognitiveFrameworkInput, CognitiveLevelInput } from "./dto/cognitive.dto";
 import { AudienceService } from "./audience.service";
@@ -11,7 +13,10 @@ import {
   Post,
   Put,
   Query,
+  Req,
+  ForbiddenException,
 } from "@nestjs/common";
+import { actorFrom, decorateQuestion } from "./question-workflow";
 import { QuestionService } from "./question.service";
 import { CreateQuestionDto, UpdateQuestionDto } from "./dto/question.dto";
 
@@ -19,30 +24,50 @@ import { CreateQuestionDto, UpdateQuestionDto } from "./dto/question.dto";
 export class QuestionController {
   constructor(
     private readonly questionService: QuestionService,
+    private readonly db: PrismaService,
     private readonly audienceService: AudienceService,
     private readonly cognitiveService: CognitiveService,
   ) {}
 
   @Post()
-  async create(@Body() dto: CreateQuestionDto) {
-    return await this.questionService.create(dto);
+  async create(@Body() dto: CreateQuestionDto, @Req() req: any) {
+    return await this.questionService.create({...dto,ownerUserId:actorFrom(req).id});
   }
 
   @Get()
   async findAll(
+    @Req() req: any,
     @Query("status") status?: string,
     @Query("type") type?: string,
     @Query("search") search?: string,
     @Query("ownerUserId") ownerUserId?: string,
     @Query("assessmentContextId") assessmentContextId?: string,
   ) {
-    return await this.questionService.findAll({
+    if(req.query.bank==='true') {
+      const result=await questionBank(this.db,req.query,req.assessmentAllowedIds);
+      let statistics:any=null;
+      try {
+        const secret=process.env.CANDIDATE_INTERNAL_SECRET;
+        if(secret && result.items.length){
+          const response=await fetch(`${process.env.EXECUTION_SERVICE_URL || 'http://execution:3090'}/execution/internal/question-statistics`,{method:'POST',headers:{'Content-Type':'application/json','x-candidate-internal-secret':secret},body:JSON.stringify({versionIds:result.items.map(q=>q.activeVersion.id)}),signal:AbortSignal.timeout(2000)});
+          if(response.ok){const value=await response.json();if(value.schemaVersion===1)statistics=value;}
+        }
+      }catch { /* Unavailable statistics must not block the question bank. */ }
+      return {...result,items:result.items.map(q=>({...decorateQuestion(q,actorFrom(req)),statistics:statistics?{...statistics.items.find((x:any)=>x.versionId===q.activeVersion.id),asOf:statistics.asOf}:null}))};
+    }
+    if(req.query.review==='true') {
+      if(!actorFrom(req).roles.includes('SUPER_ADMIN'))throw new ForbiddenException();
+      const result=await this.questionService.reviewQueue(req.query);
+      return {...result,items:result.items.map(q=>decorateQuestion(q,actorFrom(req)))};
+    }
+    const rows = await this.questionService.findAll({
       status,
       type,
       search,
       ownerUserId,
       assessmentContextId,
     });
+    return rows.map(q=>decorateQuestion(q,actorFrom(req)));
   }
 
   @Get("metadata/topics")
@@ -287,13 +312,13 @@ export class QuestionController {
   }
 
   @Get(":id")
-  async findOne(@Param("id") id: string) {
-    return await this.questionService.findOne(id);
+  async findOne(@Param("id") id: string, @Req() req:any) {
+    return decorateQuestion(await this.questionService.findOne(id),actorFrom(req));
   }
 
   @Put(":id")
-  async update(@Param("id") id: string, @Body() dto: UpdateQuestionDto) {
-    return await this.questionService.update(id, dto);
+  async update(@Param("id") id: string, @Body() dto: UpdateQuestionDto, @Req() req:any) {
+    return await this.questionService.update(id, {...dto,ownerUserId:actorFrom(req).id});
   }
 
   @Delete(":id")

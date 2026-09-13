@@ -1,6 +1,9 @@
 "use client";
+import { structuredAnswerErrors } from "./structured-answer-validation";
+import { optionLabel, defaultMatrixColumns } from "./option-label";
 
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { Button, Icons, Text, useToast } from "@seek/ui";
@@ -24,6 +27,7 @@ import type {
 } from "./types";
 import {
   createQuestion,
+  deleteQuestion,
   updateQuestion,
   fetchTopics,
   fetchDifficultyLevels,
@@ -61,12 +65,14 @@ export function QuestionEditor({
   const router = useRouter();
   const params = useParams();
   const { showToast } = useToast();
-  
+
   // Өгөгдсөн source асуултыг тодорхойлох
   const sourceQuestion = useMemo(() => {
     if (question) return question;
   }, [question, questionCode]);
 
+  const revisionRef=useRef(sourceQuestion?.revision);
+  const savingRef=useRef(false);
   const [step, setStep] = useState<WizardStep>(1);
   const [previewQuestion, setPreviewQuestion] = useState<QuestionBankItem | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -124,7 +130,7 @@ export function QuestionEditor({
         setAudienceLevels(audLvs || []);
         setCognitiveFrameworks(cogFws || []);
 
-        const existingContextId = sourceQuestion?.topicMappings?.[0]?.assessmentContextId || 
+        const existingContextId = sourceQuestion?.topicMappings?.[0]?.assessmentContextId ||
                                  (sourceQuestion as any)?.assessmentContextId;
         if (existingContextId) {
           setSelectedContextId(existingContextId);
@@ -208,7 +214,7 @@ export function QuestionEditor({
         maxScore = state.options.reduce((sum, o) => sum + o.score, 0);
         minScore = 0;
         break;
-      case "NUMERIC":      
+      case "NUMERIC":
         maxScore = Math.max(...state.options.map(o => o.score), 0);
         minScore = 0;
         break;
@@ -234,10 +240,10 @@ export function QuestionEditor({
 
   // Асуултын шаардлагыг хангаж буй эсэхийг шалгах (checklist)
   const validation = validateWizard(stateWithPoints);
-  
+
   // Урьдчилан харах модалыг бэлтгэх функц
   const preview = () => setPreviewQuestion(buildQuestionFromState(stateWithPoints, sourceQuestion));
-  
+
   const setPartial = (patch: Partial<QuestionWizardState>) =>
     setState((current: QuestionWizardState) => ({ ...current, ...patch }));
 
@@ -255,10 +261,13 @@ export function QuestionEditor({
 
   // Ноорог хадгалах үйлдэл
   const saveDraft = async () => {
+    if(savingRef.current)return;
+    savingRef.current=true;
     try {
       const qData = buildQuestionFromState({ ...stateWithPoints, mappings: stateWithPoints.mappings.filter(m => m.topicId && !["unmapped", "general"].includes(m.topicId)), status: "draft" }, sourceQuestion);
       if (mode === "edit" && sourceQuestion?.id) {
-        await updateQuestion(sourceQuestion.id, qData);
+        const saved=await updateQuestion(sourceQuestion.id, {...qData,revision:revisionRef.current});
+        revisionRef.current=saved.revision;
         showToast("Ноорогийг амжилттай шинэчиллээ.", "success");
       } else {
         await createQuestion({ ...qData, assessmentContextId: params?.contextId });
@@ -267,7 +276,7 @@ export function QuestionEditor({
       }
     } catch (err: any) {
       showToast(err?.message || "Хадгалахад алдаа гарлаа.", "danger");
-    }
+    } finally {savingRef.current=false;}
   };
 
   // Ctrl+S / Cmd+S-ээр ноорог хадгалах
@@ -289,20 +298,23 @@ export function QuestionEditor({
       showToast("Батлуулахын өмнө checklist дээрх дутуу хэсгүүдийг гүйцээнэ үү.", "warning");
       return;
     }
+    if(savingRef.current)return;
+    savingRef.current=true;
     try {
       setSubmitted(true);
-      const nextStatus = mode === "edit" ? "resubmitted" : "approval_requested";
+      const nextStatus = sourceQuestion?.status === "changes_requested" ? "resubmitted" : "approval_requested";
       const qData = buildQuestionFromState({ ...stateWithPoints, status: nextStatus }, sourceQuestion);
       const saved = mode === "edit" && sourceQuestion?.id
-        ? await updateQuestion(sourceQuestion.id, qData)
+        ? await updateQuestion(sourceQuestion.id, {...qData,revision:revisionRef.current})
         : await createQuestion({ ...qData, assessmentContextId: params?.contextId });
-      await sendQuestionWorkflow(saved.id, nextStatus, state.workflowComment);
+      revisionRef.current=saved.revision;
+      await sendQuestionWorkflow(saved.id, nextStatus, state.workflowComment, saved);
       showToast("Хадгалагдаж батлуулахаар илгээгдлээ.", "success");
       router.push(backUrl);
     } catch (err: any) {
       showToast(err?.message || "Илгээхэд алдаа гарлаа.", "danger");
       setSubmitted(false);
-    }
+    } finally {savingRef.current=false;}
   };
 
   return (
@@ -361,7 +373,7 @@ export function QuestionEditor({
                 const nextOptions = [
                   ...current.options,
                   {
-                    id: Math.random().toString(36).substring(2, 9),
+                    id: crypto.randomUUID(),
                     optionKey: "",
                     label: "",
                     value: "",
@@ -371,7 +383,7 @@ export function QuestionEditor({
                 ];
                 const updatedOptions = nextOptions.map((opt, idx) => ({
                   ...opt,
-                  label: String.fromCharCode(65 + idx),
+                  label: optionLabel(current.type, idx, opt.label),
                 }));
                 return {
                   ...current,
@@ -385,7 +397,7 @@ export function QuestionEditor({
                 const nextOptions = current.options.filter((_, optionIndex) => optionIndex !== index);
                 const updatedOptions = nextOptions.map((opt, idx) => ({
                   ...opt,
-                  label: String.fromCharCode(65 + idx),
+                  label: optionLabel(current.type, idx, opt.label),
                 }));
                 return {
                   ...current,
@@ -401,8 +413,8 @@ export function QuestionEditor({
                 options: [
                   ...current.options,
                   {
-                    id: `L${current.options.length + 1}`,
-                    optionKey: `L${current.options.length + 1}`,
+                    id: `L${crypto.randomUUID()}`,
+                    optionKey: "",
                     label: `L${current.options.length + 1}`,
                     value: "",
                     isCorrect: true,
@@ -415,7 +427,7 @@ export function QuestionEditor({
             addRightMatchingOption={() => {
               const nextRightOptions = [...(state.scoringConfig?.rightOptions || [])];
               nextRightOptions.push({
-                id: `R${nextRightOptions.length + 1}`,
+                id: `R${crypto.randomUUID()}`,
                 value: "",
               });
               setState((current: QuestionWizardState) => ({
@@ -489,11 +501,11 @@ export function QuestionEditor({
         )}
       </div>
 
-      <ActionRail 
-        onBack={() => setStep((current: WizardStep) => Math.max(1, current - 1) as WizardStep)} 
-        onPreview={preview} 
-        onSave={saveDraft} 
-        onDelete={() => showToast("Mock editor дээр soft delete action тэмдэглэгдлээ.", "info")} 
+      <ActionRail
+        onBack={() => setStep((current: WizardStep) => Math.max(1, current - 1) as WizardStep)}
+        onPreview={preview}
+        onSave={saveDraft}
+        onDelete={async () => {if(sourceQuestion?.id&&window.confirm("Нооргийг устгах уу?")){try{await deleteQuestion(sourceQuestion.id);router.push(backUrl);}catch(e){showToast((e as Error).message,"danger");}}}}
       />
 
       <footer className="fixed inset-x-0 bottom-0 z-dropdown border-t border-border bg-surface/95 px-seek-4 py-seek-3 backdrop-blur">
@@ -512,7 +524,7 @@ export function QuestionEditor({
               <Icons.PrevIcon className="h-4 w-4 stroke-[1.8]" />
               <span>Буцах</span>
             </Button>
-            
+
             <Button
               type="button"
               variant="outline"
@@ -535,10 +547,11 @@ export function QuestionEditor({
               <Button
                 type="button"
                 onClick={requestApproval}
+                disabled={submitted}
                 className="flex items-center gap-seek-2 active:scale-95 transition-all"
               >
                 <Icons.CircleArrowRight className="h-4 w-4 stroke-[1.8]" />
-                <span>{mode === "edit" ? "Дахин батлуулах" : "Батлуулах хүсэлт илгээх"}</span>
+                <span>{sourceQuestion?.status === "changes_requested" ? "Дахин батлуулах" : "Батлуулах хүсэлт илгээх"}</span>
               </Button>
             )}
           </div>
@@ -668,7 +681,7 @@ function RailButton({
 function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, contextId?: string): QuestionWizardState {
   const question = mode === "edit" ? source ?? mockQuestionBank.find((item) => item.code === "MX-58") : undefined;
   const qType = question?.type ?? "MULTIPLE_CHOICE";
-  
+
   const options: QuestionOption[] = question?.options && question.options.length > 0
     ? question.options.map((option) => ({
         id: option.id,
@@ -753,6 +766,7 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, cont
       const raw = rawScoringConfig;
       return {
         ...raw,
+        ...(qType === "MATRIX" ? {matrixColumns: raw.matrixColumns || defaultMatrixColumns} : {}),
         scoringMode,
         rightOptions: raw.rightOptions || (
           qType === "MATCHING"
@@ -814,7 +828,7 @@ function buildInitialState(mode: "new" | "edit", source?: QuestionBankItem, cont
 }
 
 /**
- * buildQuestionFromState - Wizard-ийн дотоод state-ийг API-рүү илгээх болон урьдчилан харахад 
+ * buildQuestionFromState - Wizard-ийн дотоод state-ийг API-рүү илгээх болон урьдчилан харахад
  * зориулсан QuestionBankItem формат руу хөрвүүлэх туслах функц.
  *
  * @param state - Одоогийн Wizard-ийн дотоод state
@@ -869,10 +883,10 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
       }
       const name = m.name || m.metadata?.name || m.storageKey?.split("/").pop() || "media_file";
       const url = m.url || `/api/v1/file/objects?storageKey=${encodeURIComponent(m.storageKey)}`;
-      return { 
-        type, 
-        name, 
-        url, 
+      return {
+        type,
+        name,
+        url,
         storageKey: m.storageKey,
         mediaType: m.mediaType || type.toUpperCase(),
         mimeType: m.mimeType || null,
@@ -908,13 +922,14 @@ function buildQuestionFromState(state: QuestionWizardState, source?: QuestionBan
 }
 
 /**
- * validateWizard - Асуултын өгөгдөл шаардлага хангасан эсэхийг баталгаажуулж 
+ * validateWizard - Асуултын өгөгдөл шаардлага хангасан эсэхийг баталгаажуулж
  * чанарын checklist-ийн үр дүнг буцаах туслах функц.
  *
  * @param state - Одоогийн Wizard-ийн дотоод state (онооны хамт)
  * @returns ready (бэлэн эсэх) болон checklist-ийн мөрүүд
  */
 function validateWizard(state: QuestionWizardState) {
+  const answerErrors=structuredAnswerErrors(state);
   const hasOptionsOrRubric = (() => {
     if (state.type === "ESSAY") {
       return Array.isArray(state.rubric) && state.rubric.length > 0;
@@ -936,14 +951,13 @@ function validateWizard(state: QuestionWizardState) {
     { label: "Асуултын агуулга бөглөгдсөн", ok: state.body.trim().length > 0 },
     {
       label: "Зөв хариулт болон оноо тохирсон",
-      ok: Boolean(hasOptionsOrRubric),
+      ok: Boolean(hasOptionsOrRubric) && answerErrors.length===0,
     },
-    { 
-      label: "Сэдвийн mapping сонгосон", 
-      ok: state.mappings.length > 0 && state.mappings.every((m) => m.topicId && m.topicId !== "unmapped" && m.topicId !== "general") 
+    {
+      label: "Сэдвийн mapping сонгосон",
+      ok: state.mappings.length > 0 && state.mappings.every((m) => m.topicId && m.topicId !== "unmapped" && m.topicId !== "general")
     },
-    { label: "Feedback/тайлбар бөглөгдсөн", ok: state.explanation.trim().length > 0 || state.feedbackCorrect.trim().length > 0 || state.feedbackIncorrect.trim().length > 0 },
-    { label: "Workflow comment бичсэн", ok: state.workflowComment.trim().length > 0 },
+    ...answerErrors.map(label=>({label,ok:false})),
   ];
   return { items, ready: items.every((item) => item.ok) };
 }

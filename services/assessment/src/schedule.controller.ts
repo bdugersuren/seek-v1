@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Req } from "@nestjs/common";
 import { ScheduleService } from "./schedule.service";
 import { CreateScheduleDto, UpdateScheduleDto } from "./dto/schedule.dto";
 
@@ -27,8 +27,8 @@ export class ScheduleController {
   }
 
   @Post(":id/publish")
-  async publish(@Param("id") id: string, @Body() body: { actorUserId: string }) {
-    return await this.scheduleService.publish(id, body.actorUserId);
+  async publish(@Param("id") id: string, @Req() req: any) {
+    return await this.scheduleService.publish(id, req.headers["x-user-id"]);
   }
 
   @Delete(":id")

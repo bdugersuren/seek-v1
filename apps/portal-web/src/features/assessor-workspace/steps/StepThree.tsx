@@ -76,14 +76,9 @@ export function StepThree({
             <Button type="button" variant="outline" onClick={onSave}>
               Ноорог хадгалах
             </Button>
-            <Button type="button" onClick={onSubmit}>
-              {mode === "edit" ? "Дахин батлуулах хүсэлт" : "Батлуулах хүсэлт илгээх"}
+            <Button type="button" disabled={submitted} onClick={onSubmit}>
+              {state.status === "changes_requested" ? "Дахин батлуулах хүсэлт" : "Батлуулах хүсэлт илгээх"}
             </Button>
-            {mode === "edit" && (
-              <Button type="button" variant="secondary">
-                Архивлах
-              </Button>
-            )}
           </div>
         </CollapsibleCard>
       </main>
@@ -95,11 +90,11 @@ export function StepThree({
             <Text className="font-bold">Workflow төлөв</Text>
           </div>
           <Text className="mt-2 text-3xl font-bold">
-            {submitted ? "Илгээгдсэн" : statusLabels[state.status]}
+            {submitted ? "Илгээж байна…" : statusLabels[state.status]}
           </Text>
           <Text className="mt-2 text-sm opacity-90">
             {submitted
-              ? "Mock workflow history-д хүсэлт бүртгэгдсэн."
+              ? "Батлуулах хүсэлтийг серверт илгээж байна."
               : "Checklist бүрэн бол батлуулах хүсэлт илгээж болно."}
           </Text>
         </Card>

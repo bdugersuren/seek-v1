@@ -1,3 +1,8 @@
+import { QuestionStatisticsController } from "./question-statistics";
+import { ResultsController } from "./results.controller";
+import { GradingService } from "./grading.service";
+import { CandidateAttemptService } from "./candidate-attempt.service";
+import { OutboxWorker } from "./infrastructure/outbox-worker";
 import { AttemptOwnerGuard } from "./attempt-owner.guard";
 import { Module } from "@nestjs/common";
 import Redis from "ioredis";
@@ -14,9 +19,12 @@ import { CryptoKMSService } from "./infrastructure/crypto-kms.service";
 import { SignatureGuard } from "./infrastructure/guards/signature.guard";
 
 @Module({
-  controllers: [ExecutionController],
+  controllers: [ExecutionController, ResultsController, QuestionStatisticsController],
   providers: [
     ExecutionService,
+    OutboxWorker,
+    CandidateAttemptService,
+    GradingService,
     AttemptOwnerGuard,
     SseService,
     RabbitMQConsumerService,

@@ -37,6 +37,7 @@ export class CreateQuestionDto {
 }
 
 export class UpdateQuestionDto {
+  expectedRevision?: number;
   lifecycleStatus?: "ACTIVE" | "ARCHIVED";
   visibilityScope?: "PRIVATE" | "TENANT" | "PUBLIC";
   title?: string;

@@ -85,40 +85,20 @@ describe("AssessmentWorkflowService", () => {
     expect(list).toHaveLength(2);
   });
 
-  it("publishes schedules and requests eligibility materialization", async () => {
-    mockPrisma.quizSchedule.update.mockResolvedValueOnce({});
-    mockPrisma.assessmentWorkflowEvent.findFirst.mockResolvedValueOnce(null);
-    mockPrisma.assessmentWorkflowEvent.create.mockResolvedValueOnce({
-      id: "event-1",
-      aggregateType: "schedule",
-      aggregateId: "schedule-1",
-      previousStatus: null,
-      newStatus: "PUBLISHED",
-      action: "publish",
-      actorUserId: "admin-1",
-      occurredAt: new Date(),
-      metadata: { publishedRevisionHash: "sha256:revision" },
-    });
+  it("reads an OPEN schedule publication using its persisted timestamp", async () => {
+    const publishedAt = new Date("2026-09-13T00:00:00Z");
+    mockPrisma.quizSchedule.findUnique.mockResolvedValue({id:"schedule-1",status:"OPEN",publishedAt});
+    mockPrisma.assessmentWorkflowEvent.findFirst.mockResolvedValue({id:"event-1"});
+    const result = await service.getSchedulePublication("schedule-1");
+    expect(result.status).toBe("PUBLISHED");
+    expect(result.publishedAt).toBe(publishedAt.toISOString());
+  });
 
-    const publication = await service.publishSchedule("schedule-1", {
-      actorUserId: "admin-1",
-      publishedRevisionHash: "sha256:revision",
-    });
-
-    expect(publication.status).toBe("PUBLISHED");
-    expect(publication.eligibilityMaterializationRequested).toBe(true);
-
-    mockPrisma.quizSchedule.findUnique.mockResolvedValueOnce({
-      id: "schedule-1",
-      status: "PUBLISHED",
-      updatedAt: new Date(),
-    });
-    mockPrisma.assessmentWorkflowEvent.findFirst.mockResolvedValueOnce({
-      id: "event-1",
-      occurredAt: new Date(),
-    });
-    const retrieved = await service.getSchedulePublication("schedule-1");
-    expect(retrieved.status).toBe("PUBLISHED");
+  it("does not report a draft or cancelled schedule as published", async () => {
+    for (const status of ["DRAFT", "CANCELLED"]) {
+      mockPrisma.quizSchedule.findUnique.mockResolvedValue({status,publishedAt:new Date()});
+      await expect(service.getSchedulePublication("schedule-1")).rejects.toThrow();
+    }
   });
 
   it("requires an actor for workflow transitions", async () => {

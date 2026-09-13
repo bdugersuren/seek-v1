@@ -9,6 +9,7 @@ export class ContextAccessGuard implements CanActivate {
     const req = execution.switchToHttp().getRequest();
     const path = req.path.replace(/\/$/, '');
     if (!path.startsWith('/assessment/') || path === '/assessment/catalog' || path.startsWith('/assessment/catalog/')) return true;
+    if (path.startsWith('/assessment/candidate/')) return true; // CandidateController enforces its own candidate/admin/internal guards.
     const userId = req.headers['x-user-id'];
     const roles = String(req.headers['x-user-roles'] || '').split(',');
     if (!userId || typeof userId !== 'string') throw new UnauthorizedException();
@@ -43,16 +44,25 @@ export class ContextAccessGuard implements CanActivate {
       req.assessmentAllowedIds = new Set(rows.map(r=>r.id));
       return true;
     }
-    const resource = path.match(/^\/assessment\/(questions|blueprints|quizzes)(?:\/([^/]+))?(?:\/(workflow))?$/);
+    const candidates = path === '/assessment/blueprints/candidates';
+    if(candidates){if(req.method!=='GET'||!contextId)return deny();return true;}
+    const preview = path === '/assessment/blueprints/preview';
+    const duplicate = path.match(/^\/assessment\/blueprints\/([^/]+)\/duplicate$/);
+    const quizSub = path.match(/^\/assessment\/quizzes\/([^/]+)\/(revisions|preview)$/);
+    const resourcePath = quizSub ? '/assessment/quizzes/'+quizSub[1] : preview ? '/assessment/blueprints' : duplicate ? '/assessment/blueprints/'+duplicate[1] : path;
+    const resource = resourcePath.match(/^\/assessment\/(questions|blueprints|quizzes)(?:\/([^/]+))?(?:\/(workflow))?$/);
     if (!resource || !['GET','POST','PUT','DELETE'].includes(req.method)) return deny();
     const [,kind,id,workflow]=resource;
     const questions = await this.db.question.findMany({where:{ownerUserId:userId,deletedAt:null,AND:[{OR:[{assessmentContextId:{in:scope}},{assessmentContextId:null,classifications:{some:{assessmentContextId:{in:scope}}}}]},{classifications:{every:{assessmentContextId:{in:ids}}}}]},select:{id:true}});
     const qids=questions.map(q=>q.id);
-    const templates=await this.db.quizTemplate.findMany({where:{createdBy:userId,assessmentContextId:{in:scope},sections:{every:{questions:{every:{questionId:{in:qids}}}}}},select:{id:true,assessmentContextId:true}});
+    const templates=await this.db.quizTemplate.findMany({where:{createdBy:userId,assessmentContextId:{in:scope}},select:{id:true,assessmentContextId:true}});
     const tids=templates.map(t=>t.id);
     const quizzes=await this.db.quiz.findMany({where:{createdBy:userId,templateId:{in:tids},revisions:{every:{assessmentContextId:{in:ids}}}},select:{id:true}});
     const allowed=kind==='questions'?qids:kind==='blueprints'?tids:quizzes.map(q=>q.id);
     if (id && !allowed.includes(id)) return deny();
+    if ((preview || duplicate) && req.method !== 'POST') return deny();
+    if (duplicate) return true;
+    if (quizSub && req.method!=='POST') return deny();
     if (req.method==='GET') {
       if(kind==='questions') req.query.ownerUserId=userId;
       if (!id) req.assessmentAllowedIds=new Set(allowed);
@@ -63,11 +73,12 @@ export class ContextAccessGuard implements CanActivate {
     if (!body || typeof body!=='object' || Array.isArray(body)) throw new BadRequestException();
     body.ownerUserId=userId;body.createdBy=userId;body.actorUserId=userId;
     if (workflow) {
-      if (req.method!=='POST' || !['approval_requested','resubmitted'].includes(body.action) || body.newStatus!=='pending') return deny();
-      if(kind==='questions' && !await this.db.topicQuestionClassification.count({where:{questionId:id}})) throw new BadRequestException('Батлуулахын өмнө сэдэв, хүндрэлийн болон танин мэдэхүйн түвшнийг сонгоно уу.');
+      if (req.method!=='POST' || !(kind==='quizzes'?['approval_requested','withdraw','reopen']:['approval_requested','resubmitted','withdraw']).includes(body.action)) return deny();
+      if(kind==='blueprints') throw new BadRequestException('Blueprint нь автомат бэлэн эсэхийн шалгалттай.');
+      if(kind==='questions' && body.action!=='withdraw' && !await this.db.topicQuestionClassification.count({where:{questionId:id}})) throw new BadRequestException('Батлуулахын өмнө сэдэв, хүндрэлийн болон танин мэдэхүйн түвшнийг сонгоно уу.');
       return true;
     }
-    if ((!id && req.method!=='POST') || (id && req.method!=='PUT')) return deny();
+    if ((!id && req.method!=='POST') || (id && req.method!==(quizSub?'POST':'PUT'))) return deny();
     if (kind==='questions') {
       body.visibilityScope='PRIVATE';
       if (body.parentId && !qids.includes(body.parentId)) return deny();
@@ -109,9 +120,11 @@ export class ContextAccessGuard implements CanActivate {
       body.assessmentContextId=c;
       if(body.sections!==undefined) {
         if(!Array.isArray(body.sections)) throw new BadRequestException('Invalid sections');
+        const oldLinks=id?await this.db.sectionQuestion.findMany({where:{section:{templateId:id}},select:{questionId:true}}):[];
         for(const section of body.sections) {
+          if(!section || typeof section!=='object' || Array.isArray(section)) throw new BadRequestException('Invalid section');
           if(!Array.isArray(section.selectedQuestionIds)) throw new BadRequestException('Question selection required');
-          for(const qid of section.selectedQuestionIds) if(!qids.includes(qid)||!await this.db.topicQuestionClassification.findFirst({where:{questionId:qid,assessmentContextId:c}})) return deny();
+          for(const qid of section.selectedQuestionIds) if(!oldLinks.some(x=>x.questionId===qid)&&(!qids.includes(qid)||!await this.db.topicQuestionClassification.findFirst({where:{questionId:qid,assessmentContextId:c}}))) return deny();
         }
       }
     } else {
@@ -119,7 +132,7 @@ export class ContextAccessGuard implements CanActivate {
       const templateId=id?(await this.db.quiz.findUnique({where:{id},select:{templateId:true}}))?.templateId:body.blueprintId;
       const selected=await this.db.sectionQuestion.findMany({where:{section:{templateId}},select:{questionId:true}});
       if(body.questionOverrides!==undefined&&!Array.isArray(body.questionOverrides)) throw new BadRequestException('Invalid overrides');
-      for(const o of body.questionOverrides||[]) if(!selected.some(q=>q.questionId===o.questionId)) return deny();
+      for(const o of body.questionOverrides||[]) { if(!o || typeof o!=='object') throw new BadRequestException('Invalid override'); if(!qids.includes(o.questionId)) return deny(); } // Shared resolver validates fixed/rule membership.
     }
     return true;
   }

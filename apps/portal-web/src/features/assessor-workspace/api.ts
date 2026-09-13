@@ -1,3 +1,4 @@
+import { optionLabel } from "./option-label";
 import type { CognitiveFramework, CognitiveLevel, CognitiveFrameworkInput, CognitiveLevelInput } from "@/features/cognitive-management/types";
 import type { AudienceType, AudienceLevel } from "@/features/assessments/types";
 export type AudienceTypeInput = Pick<AudienceType,"name"|"code"> & Partial<Pick<AudienceType,"description"|"isActive">>;
@@ -16,7 +17,7 @@ import type {
   QuizQuestionOverride,
 } from "./types";
 
-async function requestAssessmentJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+export async function requestAssessmentJson<T>(url: string, options: RequestInit = {}): Promise<T> {
   const res = await authFetch(url, {
     ...options,
     headers: {
@@ -27,7 +28,7 @@ async function requestAssessmentJson<T>(url: string, options: RequestInit = {}):
 
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw Object.assign(new Error(payload.message || "Request failed"), {status: res.status, code: payload.code});
+    throw Object.assign(new Error(payload.message || "Request failed"), {status: res.status, code: payload.code, field:payload.field, issues:payload.issues});
   }
   return payload as T;
 }
@@ -78,7 +79,7 @@ export function getBlueprintSummary(blueprint: Blueprint) {
     pickedQuestions,
     pooledQuestions,
     totalPoints,
-    ready: blueprint.sections.every(isBlueprintSectionValid),
+    ready: blueprint.readiness ? blueprint.readiness.status === "READY" : blueprint.sections.length>0 && blueprint.sections.every(isBlueprintSectionValid),
   };
 }
 
@@ -99,8 +100,8 @@ export function getBlueprintById(id: string): Blueprint | null {
   return mockBlueprints.find((blueprint) => blueprint.id === id) || null;
 }
 
-function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
-  const primaryClassification = q.classifications?.[0];
+export function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
+  const primaryClassification = q.classifications?.find((c:any)=>c.assessmentContextId===q.assessmentContextId) || q.classifications?.[0];
   const topicId = primaryClassification?.topicId || actV.topicId || (primaryClassification?.topic?.code) || "general";
   const topicName = primaryClassification?.topic?.title || primaryClassification?.topic?.name || actV.topicName || (primaryClassification ? "Сэдэв" : "Ерөнхий");
 
@@ -141,15 +142,9 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     ? actV.options
     : (Array.isArray(actV.payload?.options) ? actV.payload.options : []);
 
-  const options: QuestionOption[] = rawOptions.map((o: any, idx: number) => ({
+  const options: QuestionOption[] = [...rawOptions].sort((a:any,b:any)=>(a.orderIndex ?? 0)-(b.orderIndex ?? 0)).map((o: any, idx: number) => ({
     id: o.optionKey || o.id || o.code || `opt_${idx + 1}`,
-    label: (() => {
-      if (actV.type === "ORDERING") {
-        const cleanL = (o.label || "").trim();
-        return (cleanL.startsWith("O") || /^\d+$/.test(cleanL)) ? cleanL : `O${idx + 1}`;
-      }
-      return o.label || o.optionKey || o.code || String.fromCharCode(65 + idx);
-    })(),
+    label: optionLabel(actV.type, idx, o.metadata?.displayLabel || o.label),
     optionKey: o.optionKey || o.code || o.id || `opt_${idx + 1}`,
     value: o.value || o.body || "",
     isCorrect: Boolean(o.isCorrect),
@@ -163,6 +158,10 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
 
   return {
     id: q.id,
+    revision:q.revision,
+    statistics:q.statistics,
+    questionVersionId:actV.id,
+    allowedActions:q.allowedActions,
     code: q.code,
     title: actV.title || "No Title",
     body: actV.body || "",
@@ -172,18 +171,24 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     defaultMaxScore: Number(actV.defaultMaxScore !== undefined && actV.defaultMaxScore !== null ? actV.defaultMaxScore : 1),
     defaultMinScore: Number(actV.defaultMinScore !== undefined && actV.defaultMinScore !== null ? actV.defaultMinScore : 0),
     defaultTimeSeconds: actV.defaultTimeSeconds || 60,
-    bloomLevel: (primaryClassification?.bloomLevel?.toLowerCase() || "apply") as any,
+    bloomLevel: primaryClassification?.cognitiveLevels?.[0]?.cognitiveLevel?.code?.toLowerCase() as any,
     competencyType: (primaryClassification?.competencyType?.toLowerCase() || "knowledge") as any,
     topicId,
     topicName,
     topicMappings,
-    difficulty: (primaryClassification?.difficulty?.toLowerCase() || "medium") as any,
+    difficulty: primaryClassification?.difficultyLevel?.code || undefined,
+    difficultyName: primaryClassification?.difficultyLevel?.name,
+    difficultyColor: primaryClassification?.difficultyLevel?.color,
+    difficultyRank: primaryClassification?.difficultyLevel?.rank,
+    difficultyLevelId: primaryClassification?.difficultyLevelId,
+    publishedVersionId: q.currentPublishedVersion?.id || q.currentPublishedVersionId,
     options,
     answerKey: (() => {
       const type = actV.type || "SINGLE_CHOICE";
+      if (type === "SHORT_TEXT") return actV.answerConfig?.answerKey || "-";
       if (type === "MATCHING") {
         return options
-          .map((o: any) => `${o.value} ➔ ${o.matchValue || ""}`)
+          .map((o: any) => `${o.value} ➔ ${scoringConfig.rightOptions?.find((r:any)=>r.id===o.matchValue)?.value || o.matchValue || ""}`)
           .join(", ");
       }
       if (type === "NUMERIC") {
@@ -228,11 +233,11 @@ function mapVersionToQuestionBankItem(actV: any, q: any): QuestionBankItem {
     updatedAt: actV.updatedAt || q.updatedAt || "",
     versionNumber: actV.versionNumber !== undefined ? actV.versionNumber : q.version,
     versionStatus: actV.versionStatus || q.lifecycleStatus,
-    workflowHistory: [],
+    workflowHistory: (q.workflowEvents||[]).map((e:any)=>({id:e.id,status:e.newStatus.toLowerCase(),comment:e.comment||"",actorId:e.actorUserId,actorName:e.actorUserId,actorRole:e.actorRole||"",createdAt:e.occurredAt})),
   };
 }
 
-function mapToQuestionBankItem(q: any): QuestionBankItem {
+export function mapToQuestionBankItem(q: any): QuestionBankItem {
   const actV = q.activeVersion || q.versions?.[0] || q.currentPublishedVersion || {};
   const mainItem = mapVersionToQuestionBankItem(actV, q);
 
@@ -245,55 +250,22 @@ function mapToQuestionBankItem(q: any): QuestionBankItem {
   return mainItem;
 }
 
-function mapToBlueprint(b: any): Blueprint {
-  return {
-    id: b.id,
-    title: b.name || "No Title",
-    description: b.description || "",
-    topicId: "fractions",
-    topicName: "Fractions",
-    assessmentContextId: b.assessmentContextId,
-    passScore: 70.0,
-    totalDurationMinutes: 60,
-    status: "ready",
-    updatedAt: b.updatedAt || "",
-    sections: (b.sections || []).map((s: any) => ({
-      id: s.id,
-      name: s.title,
-      description: "",
-      randomPickCount: s.questionCount || 0,
-      pointsPerQuestion: Number(s.maxScorePerQuestion || 1),
-      selectedQuestionIds: (s.questions || []).map((q: any) => q.questionId),
-      durationMinutes: 10,
-      strategy: "random",
-    })),
-  };
+export function mapToBlueprint(b:any):Blueprint {
+ return {id:b.id,code:b.code,version:b.version,createdBy:b.createdBy,title:b.name||'',description:b.description||'',topicId:b.topicId||'',topicName:b.topicName||'Тохируулаагүй',assessmentContextId:b.assessmentContextId,passScore:Number(b.defaultPassingScore),totalDurationMinutes:b.defaultDurationMinutes,status:b.lifecycleStatus==='ARCHIVED'?'archived':'draft',updatedAt:b.updatedAt,usageCount:b.usageCount??b._count?.quizzes??0,readiness:b.readiness,linkedQuizzes:b.linkedQuizzes,allowedActions:b.allowedActions,sections:(b.sections||[]).map((s:any)=>({id:s.id,name:s.title,description:s.description||'',randomPickCount:s.questionCount,pointsPerQuestion:Number(s.maxScorePerQuestion),selectedQuestionIds:(s.questions||[]).map((q:any)=>q.questionId),sectionMode:s.sectionMode,selectionRules:{schemaVersion:1,...s.selectionRules},durationMinutes:0,strategy:'random'}))};
 }
+export function blueprintPayload(data:any){return {name:data.title??data.name,code:data.code||undefined,version:data.version,description:data.description,topicId:data.topicId||null,assessmentContextId:data.assessmentContextId,defaultDurationMinutes:data.totalDurationMinutes??data.defaultDurationMinutes??60,defaultPassingScore:data.passScore??data.defaultPassingScore??70,lifecycleStatus:data.status==='archived'?'ARCHIVED':'DRAFT',sections:(data.sections||[]).map((s:any)=>({...(s.id&&!s.id.startsWith('new-')?{id:s.id}:{}),name:s.name,description:s.description||'',sectionMode:s.sectionMode||'FIXED',selectionRules:{schemaVersion:1,...s.selectionRules},randomPickCount:Number(s.randomPickCount),pointsPerQuestion:Number(s.pointsPerQuestion),selectedQuestionIds:s.sectionMode==='RULE_BASED'?[]:s.selectedQuestionIds}))};}
+export async function fetchBlueprintPage(filters:Record<string,string>){const r=await requestAssessmentJson<any>('/api/v1/assessment/blueprints?'+new URLSearchParams({...filters,paged:'true'}));return {...r,items:r.items.map(mapToBlueprint)};}
+export async function previewBlueprint(data:any){return requestAssessmentJson<any>('/api/v1/assessment/blueprints/preview',{method:'POST',body:JSON.stringify(blueprintPayload(data))});}
+export async function duplicateBlueprint(id:string){return mapToBlueprint(await requestAssessmentJson<any>(`/api/v1/assessment/blueprints/${encodeURIComponent(id)}/duplicate`,{method:'POST',body:'{}'}));}
 
-function mapToQuiz(q: any): Quiz {
-  const rev = q.revisions?.[0] || q.currentPublishedRevision || {};
-  return {
-    id: q.id,
-    blueprintId: q.templateId,
-    title: q.title || "No Title",
-    priceMnt: Number(rev.defaultPrice || 0),
-    accessMode: "public",
-    startAt: q.createdAt || "",
-    endAt: q.createdAt || "",
-    durationMinutes: rev.durationMinutes || 60,
-    maxAttempts: rev.maxAttempts || 1,
-    shuffleSections: false,
-    shuffleAnswers: false,
-    hideSolutions: false,
-    showLeaderboard: false,
-    showScore: true,
-    showCorrectness: true,
-    showCorrectAnswers: true,
-    showExplanations: true,
-    resultReleaseMode: "immediate",
-    status: "draft",
-    questionOverrides: (rev.runtimePolicy as any)?.questionOverrides || [],
-  };
+export function mapToQuiz(q: any): Quiz {
+  const rev=q.selectedRevision||q.revisions?.[0]||q.currentPublishedRevision;
+  return {...q,blueprintId:q.templateId,title:rev?.title||q.title,description:rev?.description,
+    durationMinutes:rev?.durationMinutes,maxAttempts:rev?.maxAttempts,passingScore:rev?.passingScore==null?null:Number(rev.passingScore),
+    status:rev?.revisionStatus?.toLowerCase(),revisionStatus:rev?.revisionStatus,
+    priceMnt:rev?.defaultPrice==null?null:Number(rev.defaultPrice),
+    questionOverrides:rev?.runtimePolicy?.questionOverrides||[],
+    selectedRevision:rev} as Quiz;
 }
 
 // -------------------------------------------------------------
@@ -306,7 +278,10 @@ export async function fetchQuestions(filters?: any): Promise<QuestionBankItem[]>
   return questions.map(mapToQuestionBankItem);
 }
 
-function mapToCreateQuestionDto(data: any) {
+export function mapToCreateQuestionDto(data: any) {
+  let rubric=data.rubric||[];
+  if(typeof rubric==='string'){try{rubric=JSON.parse(rubric);}catch{throw Error('Rubric тохиргооны формат буруу байна.');}}
+
   const payloadOptions = (data.options || []).map((o: any, index: number) => {
     const finalVal = o.value || "";
     return {
@@ -322,6 +297,7 @@ function mapToCreateQuestionDto(data: any) {
         matchValue: o.matchValue || "",
       },
       metadata: {
+        displayLabel: o.label || "",
         acceptedValues: o.acceptedValues || [],
         ...(o.metadata || {})
       }
@@ -338,6 +314,7 @@ function mapToCreateQuestionDto(data: any) {
   };
 
   return {
+    expectedRevision:data.revision,
     assessmentContextId: data.assessmentContextId,
     code: data.code,
     lifecycleStatus: "ACTIVE",
@@ -364,7 +341,7 @@ function mapToCreateQuestionDto(data: any) {
       answerKey: data.answerKey || "",
     },
     scoringConfig,
-    rubric: data.rubric || [],
+    rubric,
     presentationConfig: data.presentationConfig || {},
     media: (data.media || []).map((m: any, index: number) => ({
       mediaType: (m.mediaType || m.type || "IMAGE").toUpperCase(),
@@ -422,30 +399,10 @@ export async function deleteQuestion(id: string): Promise<void> {
   });
 }
 
-export async function sendQuestionWorkflow(id: string, action: string, comment?: string): Promise<void> {
-  let newStatus = "draft";
-  if (action === "approval_requested" || action === "resubmitted") newStatus = "pending";
-  if (action === "approve") newStatus = "approved";
-  if (action === "publish") newStatus = "published";
-  if (action === "changes_requested") newStatus = "changes_requested";
-  if (action === "reject") newStatus = "rejected";
-  if (action === "deleted") newStatus = "deleted";
-  if (action === "archived") newStatus = "archived";
-
-  // Superadmin bypass statuses
-  if (action.startsWith("bypass_")) {
-    newStatus = action.replace("bypass_", "");
-  }
-
-  await requestAssessmentJson<void>(`/api/v1/assessment/questions/${id}/workflow`, {
-    method: "POST",
-    body: JSON.stringify({
-      action,
-      newStatus,
-      comment,
-      actorUserId: "mock-assessor",
-    }),
-  });
+export async function sendQuestionWorkflow(id: string, action: string, comment?: string, version?: {questionVersionId?:string;revision?:number}): Promise<void> {
+  const current=version || await getQuestionByIdAsync(id);
+  if(!current)throw Error("Даалгавар олдсонгүй.");
+  await requestAssessmentJson(`/api/v1/assessment/questions/${id}/workflow`,{method:'POST',body:JSON.stringify({action,comment,questionVersionId:current.questionVersionId,expectedRevision:current.revision,requestId:crypto.randomUUID()})});
 }
 
 export async function fetchQuestionWorkflowEvents(id: string): Promise<any[]> {
@@ -474,50 +431,16 @@ export async function fetchBlueprints(contextId?: string): Promise<Blueprint[]> 
   return blueprints.map(mapToBlueprint);
 }
 
-export async function createBlueprint(data: any): Promise<Blueprint> {
-  const b = await requestAssessmentJson<any>("/api/v1/assessment/blueprints", {
-    method: "POST",
-    body: JSON.stringify({
-      name: data.name,
-      description: data.description,
-      assessmentContextId: data.assessmentContextId,
-      sections: (data.sections || []).map((s: any) => ({
-        name: s.name,
-        randomPickCount: Number(s.randomPickCount),
-        pointsPerQuestion: Number(s.pointsPerQuestion),
-        selectedQuestionIds: s.selectedQuestionIds,
-      })),
-    }),
+export async function createBlueprint(data:any):Promise<Blueprint>{return mapToBlueprint(await requestAssessmentJson<any>('/api/v1/assessment/blueprints',{method:'POST',body:JSON.stringify(blueprintPayload(data))}));}
+
+export async function deleteBlueprint(id: string): Promise<void> {
+  await requestAssessmentJson(`/api/v1/assessment/blueprints/${encodeURIComponent(id)}`, {
+    method: "DELETE",
   });
-  return mapToBlueprint(b);
 }
 
-export async function updateBlueprint(id: string, data: any): Promise<Blueprint> {
-  const b = await requestAssessmentJson<any>(`/api/v1/assessment/blueprints/${id}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      name: data.name,
-      description: data.description,
-      assessmentContextId: data.assessmentContextId,
-      sections: (data.sections || []).map((s: any) => ({
-        name: s.name,
-        randomPickCount: Number(s.randomPickCount),
-        pointsPerQuestion: Number(s.pointsPerQuestion),
-        selectedQuestionIds: s.selectedQuestionIds,
-      })),
-    }),
-  });
-  return mapToBlueprint(b);
-}
-
-export async function getBlueprintByIdAsync(id: string): Promise<Blueprint | null> {
-  try {
-    const b = await requestAssessmentJson<any>(`/api/v1/assessment/blueprints/${id}`);
-    return mapToBlueprint(b);
-  } catch {
-    return null;
-  }
-}
+export async function updateBlueprint(id:string,data:any):Promise<Blueprint>{return mapToBlueprint(await requestAssessmentJson<any>(`/api/v1/assessment/blueprints/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(blueprintPayload(data))}));}
+export async function getBlueprintByIdAsync(id:string):Promise<Blueprint|null>{try{return mapToBlueprint(await requestAssessmentJson<any>(`/api/v1/assessment/blueprints/${encodeURIComponent(id)}`));}catch(e){if((e as any).status===404)return null;throw e;}}
 
 export async function fetchQuizzes(contextId?: string): Promise<Quiz[]> {
   const url = contextId
@@ -547,8 +470,9 @@ export async function getQuizByIdAsync(id: string): Promise<Quiz | null> {
   try {
     const q = await requestAssessmentJson<any>(`/api/v1/assessment/quizzes/${id}`);
     return mapToQuiz(q);
-  } catch {
-    return null;
+  } catch (e) {
+    if ((e as any).status===404) return null;
+    throw e;
   }
 }
 
@@ -915,3 +839,9 @@ export async function deleteDbData(modelName: string, id: string): Promise<void>
 
 
 
+
+export async function fetchQuestionBank(filters:Record<string,string>):Promise<{items:QuestionBankItem[];total:number;page:number;facets:any[]}> {
+ const data=await requestAssessmentJson<any>(`/api/v1/assessment/questions?${new URLSearchParams({...filters,bank:"true"})}`);
+ return {...data,items:data.items.map(mapToQuestionBankItem)};
+}
+export async function fetchBlueprintCandidates(filters:Record<string,string>){return requestAssessmentJson<any>('/api/v1/assessment/blueprints/candidates?'+new URLSearchParams(filters));}

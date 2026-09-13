@@ -29,6 +29,8 @@ export type QuestionType =
 export type ScoringMode = "per_option" | "combination" | "manual";
 
 export interface CombinationEntry {
+  /** Stable option keys, or leftKey:rightKey for matching. */
+  ids?: string[];
   id?: string;
   selected?: string[];
   pairs?: Record<string, string>; // for MATCHING: { "L1": "R2", "L2": "R1" }
@@ -41,6 +43,7 @@ export interface ScoringConfig {
   scoringMode: ScoringMode;
   combinations?: CombinationEntry[];
   rightOptions?: Array<{ id: string; value: string }>;
+  matrixColumns?: Array<{id:string;label:string}>;
   negativeMarkingConfig?: {
     allowNegativeTotal?: boolean;
     penaltyPerWrongOption?: number;

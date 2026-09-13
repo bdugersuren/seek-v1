@@ -14,7 +14,10 @@ export interface RuntimeQuestion {
   code: string;
   prompt: string;
   instruction: string;
-  type: "single_choice" | "multiple_choice" | "fill_blank" | "essay";
+  type: "single_choice" | "multiple_choice" | "true_false" | "short_text" | "numeric" | "fill_blank" | "essay" | "matching" | "matrix";
+  media?: Array<{id:string;mediaType:string;altText:string;url:string}>;
+  rightOptions?:Array<{id:string;value:string}>;
+  matrixColumns?:Array<{id:string;label:string}>;
   points: number;
   options?: RuntimeQuestionOption[];
 }

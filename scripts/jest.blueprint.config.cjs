@@ -1,0 +1,1 @@
+const base=require('./jest.question-bank.config.cjs');module.exports={...base,testMatch:['<rootDir>/services/assessment/src/blueprint*.spec.ts','<rootDir>/tests/blueprint-mapping.spec.ts','<rootDir>/services/gateway/src/**/*.spec.ts']};

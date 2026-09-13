@@ -34,7 +34,7 @@ describe("ExecutionService attempt creation", () => {
     const runtime = await service.getSession(result.attemptId);
     expect(runtime.session.status).toBe("waiting");
     expect(runtime.session.userId).toBe("candidate-001");
-    expect(runtime.questions).toHaveLength(3);
+    expect(runtime.questions).toHaveLength(0);
     expect(runtime.snapshot.attemptId).toBe(result.attemptId);
   });
 
@@ -255,4 +255,23 @@ describe("ExecutionService attempt creation", () => {
     expect(second.accepted).toBe(true);
     expect(second.receiptId).toBe(first.receiptId);
   });
+  it("keeps the same deadline on repeated start", async()=>{
+    const {attemptId}=await service.createAttempt({assessmentId:"english-basic",idempotencyKey:"repeat"});
+    await service.startAttempt(attemptId);const before=(await service.getSession(attemptId)).session.endsAt;
+    await service.startAttempt(attemptId);expect((await service.getSession(attemptId)).session.endsAt).toBe(before);
+  });
+  it("does not replace a newer client sequence with an older save",async()=>{
+    const {attemptId}=await service.createAttempt({assessmentId:"english-basic",idempotencyKey:"sequence"});await service.startAttempt(attemptId);
+    await service.autosave({attemptId,idempotencyKey:"s10",localVersion:10,changedAnswers:{q1:"new"},clientSavedAt:new Date().toISOString()});
+    await expect(service.autosave({attemptId,idempotencyKey:"s9",localVersion:9,changedAnswers:{q1:"old"},clientSavedAt:new Date().toISOString()})).rejects.toMatchObject({status:409});
+    expect((await store.getAnswers(attemptId))?.answers.q1).toBe("new");
+  });
+  it("expired finalization preserves server answers instead of accepting late edits",async()=>{
+    const {attemptId}=await service.createAttempt({assessmentId:"english-basic",idempotencyKey:"late"});await service.startAttempt(attemptId);
+    await service.autosave({attemptId,idempotencyKey:"saved",localVersion:1,changedAnswers:{q1:"saved"},clientSavedAt:new Date().toISOString()});
+    const session=(await service.getSession(attemptId)).session;session.endsAt=new Date(Date.now()-86400000).toISOString();session.status="expired";await store.saveSession(session);
+    await service.submit({attemptId,idempotencyKey:"late-submit",reason:"offline_expired",submittedAt:new Date().toISOString(),finalSnapshot:{attemptId,answers:{q1:"late"},markedForReview:{},localVersion:2,serverVersion:1,pendingSubmit:true}});
+    expect((await store.getAnswers(attemptId))?.answers.q1).toBe("saved");
+  });
+
 });

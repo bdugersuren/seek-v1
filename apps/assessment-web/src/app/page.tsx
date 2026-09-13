@@ -1,5 +1,2 @@
 import { redirect } from "next/navigation";
-
-export default function HomePage() {
-  redirect("/waiting/mock-attempt-001");
-}
+export default function Page() { redirect("https://seek.mn/my-assessments"); }

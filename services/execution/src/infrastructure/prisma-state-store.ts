@@ -13,6 +13,23 @@ import { PrismaService } from "../prisma.service";
 export class PrismaAttemptStateStore implements AttemptStateStore {
   constructor(private readonly prisma: PrismaService) {}
 
+  async withAttemptLock<T>(attemptId: string, action: (store: AttemptStateStore) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async tx => {
+      const rows = await tx.$queryRaw<Array<{id: string}>>`SELECT id FROM quiz_attempt WHERE id = ${attemptId} FOR UPDATE`;
+      if (!rows.length) throw new NotFoundException("Attempt not found");
+      return action(new PrismaAttemptStateStore(tx as unknown as PrismaService));
+    }, { timeout: 15000 });
+  }
+
+  async enqueueEvent(method: string, payload: Record<string, any>): Promise<void> {
+    const eventId = `${method}:${payload.attemptId}:${payload.idempotencyKey || payload.submittedAt || payload.occurredAt || payload.localVersion}`;
+    await this.prisma.outboxEvent.upsert({where: {eventId}, update: {}, create: {
+      eventId, aggregateType: "Attempt", aggregateId: payload.attemptId,
+      eventType: method, payload,
+    }});
+  }
+
+
   private mapStatusToPrisma(status: string): any {
     switch (status) {
       case "waiting":
@@ -74,34 +91,24 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
     return {
       attemptId: attempt.id,
       quizId: attempt.quizId,
+      scheduleId: attempt.scheduleId,
       assessmentTitle: scheduleSnapshot.title || "Шалгалт",
       userId: attempt.candidateId,
       userDisplayName: scheduleSnapshot.candidateDisplayName || "Сургуулагч",
       serverNow: new Date().toISOString(),
-      startsAt: attempt.startedAt?.toISOString() || attempt.createdAt.toISOString(),
+      startsAt: attempt.startedAt?.toISOString() || scheduleSnapshot.availableFrom || attempt.createdAt.toISOString(),
       endsAt: attempt.expiresAt?.toISOString() || new Date(attempt.createdAt.getTime() + attempt.durationLimitSeconds * 1000).toISOString(),
       durationSeconds: attempt.durationLimitSeconds,
       status: this.mapPrismaToStatus(attempt.status) as any,
       autosaveIntervalSeconds: scheduleSnapshot.autosaveIntervalSeconds || 10,
       heartbeatIntervalSeconds: scheduleSnapshot.heartbeatIntervalSeconds || 15,
-      scheduledStartsAt: attempt.startedAt?.toISOString() || attempt.createdAt.toISOString(),
-      scheduledEndsAt: attempt.expiresAt?.toISOString() || new Date(attempt.createdAt.getTime() + attempt.durationLimitSeconds * 1000).toISOString(),
-      waitingRoomOpensAt: attempt.startedAt ? new Date(attempt.startedAt.getTime() - 15 * 60 * 1000).toISOString() : undefined,
+      scheduledStartsAt: scheduleSnapshot.availableFrom || attempt.createdAt.toISOString(),
+      scheduledEndsAt: scheduleSnapshot.availableUntil || attempt.expiresAt?.toISOString(),
+      waitingRoomOpensAt: scheduleSnapshot.waitingRoomOpensAt || scheduleSnapshot.availableFrom,
       requiredEarlyJoinMinutes: 15,
       questionCount: attempt.questions.length,
       totalPoints: attempt.questions.reduce((sum, q) => sum + Number(q.maxScoreSnapshot || 0), 0),
-      passingPercent: 70,
-      encryptedPayload: {
-        payloadId: `payload-${attempt.id}`,
-        quizId: attempt.quizId,
-        attemptId: attempt.id,
-        algorithm: "AES-GCM",
-        keyDelivery: "start_unlock_event",
-        encryptedContent: "mock.encrypted.payload",
-        iv: "mock-iv",
-        checksum: "sha256:mock-checksum",
-        createdAt: attempt.createdAt.toISOString(),
-      },
+      passingPercent: Number(scheduleSnapshot.passingScore || 0),
       manifest: attempt.questions.map((q) => ({
         id: q.questionId,
         code: q.questionCodeSnapshot || `Q-${q.orderIndex}`,
@@ -164,9 +171,12 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
     };
 
     if (existing) {
+      // Preserve materialized schedule/revision/assignment identity and policy snapshots.
       await this.prisma.quizAttempt.update({
         where: { id: session.attemptId },
-        data: dataPayload,
+        data: {status: prismaStatus, startedAt: new Date(session.startsAt), expiresAt: new Date(session.endsAt),
+          submittedAt: session.status === "submitted" ? new Date() : existing.submittedAt,
+          deviceFingerprintHash: (session as any).deviceFingerprintHash || existing.deviceFingerprintHash},
       });
     } else {
       await this.prisma.quizAttempt.create({
@@ -336,6 +346,9 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
         type: q.questionTypeCodeSnapshot,
         points: Number(q.maxScoreSnapshot),
         options: q.optionsSnapshot || [],
+        rightOptions: content.rightOptions || [],
+        matrixColumns: content.matrixColumns || [],
+        media: q.mediaSnapshot || [],
       };
     });
   }
@@ -355,10 +368,17 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
           remainingSeconds: event.payload.remainingSeconds as number,
           status: event.payload.status as string,
           warning: event.payload.warning as string,
-          metadata: event.payload as any,
+          metadata: {...event.payload, eventType:event.type} as any,
         },
       });
     } else if (["AttemptCreated", "AttemptStarted", "AttemptSubmitted"].includes(event.type)) {
+      if(event.type === "AttemptSubmitted") {
+        await this.prisma.attemptSubmission.create({data:{attemptId:event.attemptId,submissionVersion:1,
+          idempotencyKey:event.idempotencyKey!,source:event.payload.reason==='user_submit'?'USER':'AUTO_EXPIRE',
+          submitReason:String(event.payload.reason),submissionChecksum:String(event.payload.finalSnapshotHash),
+          receiptNumber:String(event.payload.receiptId),acceptedAt:occurredAtDate,resultStatus:'ACCEPTED',
+          finalAnswerCount:Number(event.payload.answeredCount),serverReceivedAt:occurredAtDate}});
+      }
       await this.prisma.attemptLifecycleEvent.create({
         data: {
           attemptId: event.attemptId,
@@ -367,7 +387,7 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
           reason: (event.payload.reason || "system") as string | null,
           actorType: "CANDIDATE",
           idempotencyKey: event.idempotencyKey,
-          metadata: event.payload as any,
+          metadata: {...event.payload, eventType:event.type} as any,
           occurredAt: occurredAtDate,
         },
       });
@@ -427,7 +447,7 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
           newStatus: event.payload.status as string || "UNKNOWN",
           actorType: "SYSTEM",
           idempotencyKey: event.idempotencyKey || `evt-${event.id}`,
-          metadata: event.payload as any,
+          metadata: {...event.payload, eventType:event.type} as any,
           occurredAt: occurredAtDate,
         },
       });
@@ -449,7 +469,7 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
       ...lifecycles.map((l) => ({
         id: l.id,
         attemptId: l.attemptId,
-        type: l.newStatus === "IN_PROGRESS" ? "AttemptStarted" : (l.newStatus === "SUBMITTED" ? "AttemptSubmitted" : "AttemptLifecycle"),
+        type: (l.metadata as any)?.eventType || (['IN_PROGRESS','active'].includes(l.newStatus) ? "AttemptStarted" : (['SUBMITTED','submitted'].includes(l.newStatus) ? "AttemptSubmitted" : "AttemptLifecycle")),
         idempotencyKey: l.idempotencyKey || undefined,
         payload: (l.metadata as any) || {},
         occurredAt: l.occurredAt.toISOString(),
@@ -471,6 +491,8 @@ export class PrismaAttemptStateStore implements AttemptStateStore {
       }))
     );
 
+    const acknowledgements = await this.prisma.attemptInstructionAcknowledgement.findMany({where:{attemptId}});
+    results.push(...acknowledgements.map(a=>({id:a.id,attemptId,type:"InstructionsAcknowledged",payload:{instructionHash:a.instructionHash},occurredAt:a.acceptedAt.toISOString()})));
     // Filter by type if provided
     return type ? results.filter((event) => event.type === type) : results;
   }

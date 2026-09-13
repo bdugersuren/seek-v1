@@ -9,6 +9,8 @@ export class CatalogService {
     // 1. Fetch published/upcoming schedules
     const schedules = await this.prisma.quizSchedule.findMany({
       where: {
+        OR: [{accessMode:"PUBLIC_REGISTRATION"}, ...(userId ? [{assignments:{some:{userId,status:{not:"REVOKED" as const}}}}] : [])],
+        quizRevision:{revisionStatus:"PUBLISHED"},
         status: {
           in: ["OPEN", "ACTIVE", "SCHEDULED"],
         },
@@ -17,6 +19,7 @@ export class CatalogService {
         quizRevision: {
           include: {
             quiz: true,
+            assessmentContext: {include:{audienceType:true}},
             sections: {
               include: {
                 questions: true,
@@ -88,6 +91,9 @@ export class CatalogService {
       } else if (assignment && attemptsUsed >= maxAttempts) {
         allowed = false;
         requiredAction = "VIEW_RESULT";
+      } else if (!assignment || assignment.status === "REVOKED") {
+        allowed = false;
+        requiredAction = "WAIT";
       } else {
         allowed = true;
         requiredAction = "START";
@@ -95,6 +101,7 @@ export class CatalogService {
 
       return {
         id: schedule.id,
+        audienceTypeId: revision.assessmentContext.audienceTypeId,
         title: schedule.name,
         description: revision.description || "",
         category: (quiz.assessmentType || "other") as any,
@@ -112,8 +119,8 @@ export class CatalogService {
         scheduledEndsAt: schedule.availableUntil.toISOString(),
         waitingRoomOpensAt: schedule.waitingRoomOpensAt?.toISOString(),
         requiredEarlyJoinMinutes: schedule.requiredEarlyJoinMinutes,
-        totalPoints: Number(revision.passingScore) * 10, // Mock calculation for total score
-        passingPercent: 60, // Standard passing gate
+        totalPoints: Number(revision.totalMaxScore || 0),
+        passingPercent: Number(revision.passingScore),
         allowed,
         requiredAction,
         attemptsUsed,

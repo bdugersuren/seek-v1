@@ -1,4 +1,9 @@
 "use client";
+import {
+  QuestionTypeBadge,
+  QuestionStatistics,
+  QuestionDifficulty,
+} from "@/features/assessor-workspace/question-presentation";
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
@@ -37,6 +42,10 @@ import {
   canEditQuestion,
   getQuestionStats,
   fetchQuestions,
+  fetchQuestionBank,
+  createQuestion,
+  deleteQuestion,
+  fetchDifficultyLevels,
   getQuestionByIdAsync,
   sendQuestionWorkflow,
   fetchTopics,
@@ -51,7 +60,8 @@ import type {
   QuestionWorkflowStatus,
 } from "@/features/assessor-workspace/types";
 
-type ChecklistSectionId = "topics" | "audience" | "types" | "difficulties" | "statuses";
+type ChecklistSectionId =
+  "topics" | "audience" | "types" | "difficulties" | "statuses";
 
 // nestedTopics dynamically computed inside QuestionBankPage
 
@@ -68,6 +78,7 @@ const statusVariant: Record<
   published: "primary",
   archived: "secondary",
   rejected: "danger",
+  retired: "secondary",
   deleted: "danger",
 };
 
@@ -97,10 +108,18 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   const [view, setView] = useState<"cards" | "table">("cards");
   const [query, setQuery] = useState("");
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
-  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<QuestionType[]>([]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<DifficultyLevel[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<QuestionWorkflowStatus[]>([]);
-  const [openSections, setOpenSections] = useState<Record<ChecklistSectionId, boolean>>({
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<
+    QuestionType[]
+  >([]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<
+    DifficultyLevel[]
+  >([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<
+    QuestionWorkflowStatus[]
+  >([]);
+  const [openSections, setOpenSections] = useState<
+    Record<ChecklistSectionId, boolean>
+  >({
     topics: false,
     audience: false,
     types: true,
@@ -109,13 +128,17 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   });
   const [rawTopics, setRawTopics] = useState<any[]>([]); // DB dynamic topics state
   const [openTopicIds, setOpenTopicIds] = useState<string[]>([]); // Collapse by default
-  
+
   // Audience filter states
   const [audienceTypes, setAudienceTypes] = useState<any[]>([]);
   const [audienceLevels, setAudienceLevels] = useState<any[]>([]);
   const [selectedAudienceType, setSelectedAudienceType] = useState<string>("");
-  const [selectedAudienceLevelIds, setSelectedAudienceLevelIds] = useState<string[]>([]);
-  const [openAudienceLevelIds, setOpenAudienceLevelIds] = useState<string[]>([]);
+  const [selectedAudienceLevelIds, setSelectedAudienceLevelIds] = useState<
+    string[]
+  >([]);
+  const [openAudienceLevelIds, setOpenAudienceLevelIds] = useState<string[]>(
+    [],
+  );
 
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
@@ -126,16 +149,23 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   useEffect(() => {
     if (typeof window === "undefined" || !params.contextId) return;
     try {
-      const saved = localStorage.getItem(`seek_assessor_qb_filter_${params.contextId}`);
+      const saved = localStorage.getItem(
+        `seek_assessor_qb_filter_${params.contextId}`,
+      );
       if (saved) {
         const filters = JSON.parse(saved);
         if (filters.view) setView(filters.view);
         if (filters.query !== undefined) setQuery(filters.query);
-        if (Array.isArray(filters.selectedTopicIds)) setSelectedTopicIds(filters.selectedTopicIds);
-        if (Array.isArray(filters.selectedQuestionTypes)) setSelectedQuestionTypes(filters.selectedQuestionTypes);
-        if (Array.isArray(filters.selectedDifficulties)) setSelectedDifficulties(filters.selectedDifficulties);
-        if (Array.isArray(filters.selectedStatuses)) setSelectedStatuses(filters.selectedStatuses);
-        if (Array.isArray(filters.selectedAudienceLevelIds)) setSelectedAudienceLevelIds(filters.selectedAudienceLevelIds);
+        if (Array.isArray(filters.selectedTopicIds))
+          setSelectedTopicIds(filters.selectedTopicIds);
+        if (Array.isArray(filters.selectedQuestionTypes))
+          setSelectedQuestionTypes(filters.selectedQuestionTypes);
+        if (Array.isArray(filters.selectedDifficulties))
+          setSelectedDifficulties(filters.selectedDifficulties);
+        if (Array.isArray(filters.selectedStatuses))
+          setSelectedStatuses(filters.selectedStatuses);
+        if (Array.isArray(filters.selectedAudienceLevelIds))
+          setSelectedAudienceLevelIds(filters.selectedAudienceLevelIds);
         if (filters.page) setPage(filters.page);
         if (filters.pageSize) setPageSize(filters.pageSize);
       }
@@ -148,7 +178,8 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
 
   // 2. Save filters only after they have been loaded from localStorage
   useEffect(() => {
-    if (!isFiltersLoaded || typeof window === "undefined" || !params.contextId) return;
+    if (!isFiltersLoaded || typeof window === "undefined" || !params.contextId)
+      return;
     try {
       const filters = {
         view,
@@ -161,7 +192,10 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
         page,
         pageSize,
       };
-      localStorage.setItem(`seek_assessor_qb_filter_${params.contextId}`, JSON.stringify(filters));
+      localStorage.setItem(
+        `seek_assessor_qb_filter_${params.contextId}`,
+        JSON.stringify(filters),
+      );
     } catch (e) {
       console.error("Failed to save filters to localStorage", e);
     }
@@ -184,6 +218,12 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   const { showToast } = useToast();
   const { showDialog } = useDialog();
 
+  const [total, setTotal] = useState(0);
+  const [facets, setFacets] = useState<any[]>([]);
+  const [metadataError, setMetadataError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [difficultyLevels, setDifficultyLevels] = useState<any[]>([]);
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [context, setContext] = useState<any>(null);
@@ -192,45 +232,55 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     let active = true;
     async function load() {
       try {
-        setLoading(true);
-        const [qData, tData, audTypes, audLvs, contextsData] = await Promise.all([
-          fetchQuestions({ assessmentContextId: contextId }),
-          fetchTopics(contextId),
-          fetchAudienceTypes(),
-          fetchAudienceLevels(),
-          fetchAssessmentContexts(),
-        ]);
+        setMetadataError("");
+        const [tData, audTypes, audLvs, contextsData, levels] =
+          await Promise.all([
+            fetchTopics(contextId),
+            fetchAudienceTypes(),
+            fetchAudienceLevels(),
+            fetchAssessmentContexts(),
+            fetchDifficultyLevels(),
+          ]);
         if (active) {
-          setQuestions(qData);
           setRawTopics(tData || []);
           setAudienceTypes(audTypes || []);
           setAudienceLevels(audLvs || []);
-          
-          const currentContext = contextsData?.find((c: any) => c.id === contextId);
+
+          const currentContext = contextsData?.find(
+            (c: any) => c.id === contextId,
+          );
           setContext(currentContext || null);
-          
+          setDifficultyLevels(
+            levels
+              .filter(
+                (level: any) =>
+                  level.difficultyScaleId === currentContext?.difficultyScaleId,
+              )
+              .sort((a: any, b: any) => a.rank - b.rank),
+          );
+
           if (currentContext && currentContext.audienceTypeId) {
             setSelectedAudienceType(currentContext.audienceTypeId);
           } else if (audTypes && audTypes.length > 0) {
             setSelectedAudienceType(audTypes[0].id);
           }
-          
+
           // Keep topics collapsed by default (empty openTopicIds)
           setOpenTopicIds([]);
         }
       } catch (err) {
-        console.error("Failed to load questions, topics and audiences", err);
-      } finally {
-        if (active) setLoading(false);
+        if (active) setMetadataError("Шүүлтүүрийн тохиргоог ачаалж чадсангүй.");
       }
     }
     load();
-    return () => { active = false; };
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [contextId, reload]);
 
   const nestedTopics = useMemo(() => {
     if (!rawTopics || rawTopics.length === 0) return [];
-    
+
     const nodesMap: Record<string, ExplorerTopicNode> = {};
     const roots: ExplorerTopicNode[] = [];
 
@@ -238,7 +288,9 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       nodesMap[t.id] = {
         id: t.id,
         label: t.title || t.name,
-        count: questions.filter(q => q.topicId === t.id).length,
+        count: facets
+          .filter((f) => f.topicId === t.id)
+          .reduce((sum, f) => sum + f.count, 0),
         children: [],
       };
     });
@@ -248,23 +300,27 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       if (t.parentId && nodesMap[t.parentId]) {
         nodesMap[t.parentId].children = nodesMap[t.parentId].children || [];
         nodesMap[t.parentId].children!.push(node);
-        nodesMap[t.parentId].count = (nodesMap[t.parentId].count || 0) + (node.count || 0);
+        nodesMap[t.parentId].count =
+          (nodesMap[t.parentId].count || 0) + (node.count || 0);
       } else {
         roots.push(node);
       }
     });
 
     return roots;
-  }, [rawTopics, questions]);
+  }, [rawTopics, facets]);
 
   const topicDescendantMap = useMemo(() => {
     return buildTopicDescendantMap(nestedTopics);
   }, [nestedTopics]);
 
   const nestedAudienceLevels = useMemo(() => {
-    if (!selectedAudienceType || !audienceLevels || audienceLevels.length === 0) return [];
-    
-    const filteredLevels = audienceLevels.filter(al => al.audienceTypeId === selectedAudienceType);
+    if (!selectedAudienceType || !audienceLevels || audienceLevels.length === 0)
+      return [];
+
+    const filteredLevels = audienceLevels.filter(
+      (al) => al.audienceTypeId === selectedAudienceType,
+    );
     const nodesMap: Record<string, ExplorerTopicNode> = {};
     const roots: ExplorerTopicNode[] = [];
 
@@ -272,7 +328,9 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       nodesMap[l.id] = {
         id: l.id,
         label: l.name || l.code,
-        count: questions.filter(q => q.topicMappings?.some(m => m.audienceLevelId === l.id)).length,
+        count: questions.filter((q) =>
+          q.topicMappings?.some((m) => m.audienceLevelId === l.id),
+        ).length,
         children: [],
       };
     });
@@ -282,7 +340,8 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       if (l.parentId && nodesMap[l.parentId]) {
         nodesMap[l.parentId].children = nodesMap[l.parentId].children || [];
         nodesMap[l.parentId].children!.push(node);
-        nodesMap[l.parentId].count = (nodesMap[l.parentId].count || 0) + (node.count || 0);
+        nodesMap[l.parentId].count =
+          (nodesMap[l.parentId].count || 0) + (node.count || 0);
       } else {
         roots.push(node);
       }
@@ -307,54 +366,70 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     }
   };
 
-  const filteredQuestions = useMemo(
+  const expandedTopics = useMemo(
     () =>
-      questions.filter((question) => {
-        const matchQuery = [question.code, question.title, question.body || (question as any).stem]
-          .join(" ")
-          .toLowerCase()
-          .includes(query.toLowerCase());
-        const topicMatches =
-          selectedTopicIds.length === 0 ||
-          selectedTopicIds.some(
-            (topicId) =>
-              question.topicId === topicId ||
-              topicDescendantMap[topicId]?.includes(question.topicId),
-          );
-
-        const audienceMatches =
-          selectedAudienceLevelIds.length === 0 ||
-          selectedAudienceLevelIds.some(
-            (lvlId) =>
-              question.topicMappings?.some(m => m.audienceLevelId === lvlId) ||
-              audienceDescendantMap[lvlId]?.some((childId: string) => 
-                question.topicMappings?.some(m => m.audienceLevelId === childId)
-              )
-          );
-
-        return (
-          question.status !== "deleted" &&
-          matchQuery &&
-          topicMatches &&
-          audienceMatches &&
-          (selectedQuestionTypes.length === 0 ||
-            selectedQuestionTypes.includes(question.type)) &&
-          (selectedDifficulties.length === 0 ||
-            selectedDifficulties.includes(question.difficulty as any)) &&
-          (selectedStatuses.length === 0 || selectedStatuses.includes(question.status))
-        );
-      }),
-    [
-      questions,
-      query,
-      selectedDifficulties,
-      selectedQuestionTypes,
-      selectedStatuses,
-      selectedTopicIds,
-      selectedAudienceLevelIds,
-      audienceDescendantMap,
-    ],
+      Array.from(
+        new Set(
+          selectedTopicIds.flatMap((id) => [
+            id,
+            ...(topicDescendantMap[id] || []),
+          ]),
+        ),
+      ),
+    [selectedTopicIds, topicDescendantMap],
   );
+  const expandedAudiences = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          selectedAudienceLevelIds.flatMap((id) => [
+            id,
+            ...(audienceDescendantMap[id] || []),
+          ]),
+        ),
+      ),
+    [selectedAudienceLevelIds, audienceDescendantMap],
+  );
+  const bankQuery = JSON.stringify({
+    assessmentContextId: contextId,
+    search: query,
+    types: selectedQuestionTypes.join(","),
+    statuses: selectedStatuses.join(","),
+    difficulties: selectedDifficulties.join(","),
+    topics: expandedTopics.join(","),
+    audiences: expandedAudiences.join(","),
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setLoadError("");
+      fetchQuestionBank(JSON.parse(bankQuery))
+        .then((data) => {
+          if (active) {
+            setQuestions(data.items);
+            setTotal(data.total);
+            setFacets(data.facets);
+            if (data.page !== page) setPage(data.page);
+          }
+        })
+        .catch(() => {
+          if (active)
+            setLoadError("Асуултын санг ачаалж чадсангүй. Дахин оролдоно уу.");
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [bankQuery, reload]);
+  useEffect(() => setSelectedQuestionIds([]), [bankQuery]);
+  const filteredQuestions = questions;
 
   const hasActiveFilters = useMemo(() => {
     return (
@@ -374,20 +449,31 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     selectedAudienceLevelIds,
   ]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pageCount);
-  const visibleQuestions = filteredQuestions.slice(
-    (safePage - 1) * pageSize,
-    safePage * pageSize,
-  );
+  const visibleQuestions = questions;
   const visibleQuestionIds = visibleQuestions.map((question) => question.id);
   const allVisibleSelected =
     visibleQuestionIds.length > 0 &&
     visibleQuestionIds.every((id) => selectedQuestionIds.includes(id));
-  const stats = getQuestionStats(questions);
-  const typeCounts = countBy(questions, (question) => question.type as string);
-  const difficultyCounts = countBy(questions, (question) => question.difficulty as string || "unknown");
-  const statusCounts = countBy(questions, (question) => question.status as string);
+  const facetCounts = (key: string) =>
+    facets.reduce((acc: Record<string, number>, row: any) => {
+      if (row[key]) acc[row[key]] = (acc[row[key]] || 0) + row.count;
+      return acc;
+    }, {});
+  const typeCounts = facetCounts("type"),
+    difficultyCounts = facetCounts("difficulty"),
+    statusCounts = facetCounts("status");
+  const stats = {
+    total: facets.reduce((sum, row) => sum + row.count, 0),
+    active: (statusCounts.approved || 0) + (statusCounts.published || 0),
+    inactive:
+      (statusCounts.draft || 0) +
+      (statusCounts.changes_requested || 0) +
+      (statusCounts.rejected || 0) +
+      (statusCounts.archived || 0),
+    selectedTopics: new Set(facets.map((f) => f.topicId).filter(Boolean)).size,
+  };
 
   const resetFilters = () => {
     setQuery("");
@@ -401,7 +487,10 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   };
 
   const toggleSection = (section: ChecklistSectionId) => {
-    setOpenSections((current) => ({ ...current, [section]: !current[section] }));
+    setOpenSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
   };
 
   const toggleTopicOpen = (topicId: string) => {
@@ -416,7 +505,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     setOpenAudienceLevelIds((current) =>
       current.includes(lvlId)
         ? current.filter((id) => id !== lvlId)
-        : [...current, lvlId]
+        : [...current, lvlId],
     );
   };
 
@@ -445,10 +534,16 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       cancelLabel: "Болих",
       onConfirm: async () => {
         try {
-          await sendQuestionWorkflow(question.id, "approval_requested");
+          await sendQuestionWorkflow(
+            question.id,
+            question.status === "changes_requested"
+              ? "resubmitted"
+              : "approval_requested",
+            undefined,
+            question,
+          );
           showToast("Батлуулах хүсэлт амжилттай илгээгдлээ.", "success");
-          const data = await fetchQuestions({ assessmentContextId: params.contextId });
-          setQuestions(data);
+          setReload((x) => x + 1);
         } catch (err: any) {
           showToast(err.message || "Хүсэлт илгээхэд алдаа гарлаа.", "danger");
         }
@@ -457,11 +552,6 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
   };
 
   const runBulkAction = (label: string) => {
-    let action = "approval_requested";
-    if (label === "Нийтлэх") action = "publish";
-    if (label === "Архивлах") action = "archived";
-    if (label === "Устгах") action = "deleted";
-
     showDialog({
       title: `${selectedQuestionIds.length} даалгаврыг "${label}" төлөв рүү шилжүүлэх үү?`,
       description: "Сонгосон даалгавруудын төлөвийг шинэчилж байна.",
@@ -469,13 +559,49 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       cancelLabel: "Болих",
       onConfirm: async () => {
         try {
-          await Promise.all(
-            selectedQuestionIds.map((id) => sendQuestionWorkflow(id, action))
+          const eligible = selectedQuestionIds.filter((id) =>
+            questions
+              .find((q) => q.id === id)
+              ?.allowedActions?.some(
+                (a) => a === "approval_requested" || a === "resubmitted",
+              ),
           );
-          showToast("Төлөв амжилттай шинэчлэгдлээ.", "success");
-          setSelectedQuestionIds([]);
-          const data = await fetchQuestions({ assessmentContextId: params.contextId });
-          setQuestions(data);
+          const results = await Promise.allSettled(
+            eligible.map((id) => {
+              const q = questions.find((x) => x.id === id)!;
+              return sendQuestionWorkflow(
+                id,
+                q.status === "changes_requested"
+                  ? "resubmitted"
+                  : "approval_requested",
+                undefined,
+                q,
+              );
+            }),
+          );
+          const failed = results.filter((x) => x.status === "rejected").length;
+          showToast(
+            `${results.length - failed} хүсэлт илгээгдсэн. ${failed} амжилтгүй. ${selectedQuestionIds.length - eligible.length} боломжгүй төлөвтэй.`,
+            failed ? "warning" : "success",
+          );
+          const failures = results.flatMap((result, index) =>
+            result.status === "rejected"
+              ? [
+                  `${questions.find((q) => q.id === eligible[index])?.code}: ${result.reason?.message || "Алдаа"}`,
+                ]
+              : [],
+          );
+          if (failures.length)
+            showDialog({
+              title: "Амжилтгүй хүсэлтүүд",
+              description: failures.join("\n"),
+              confirmLabel: "Хаах",
+              onConfirm: () => {},
+            });
+          setSelectedQuestionIds(
+            eligible.filter((_, index) => results[index].status === "rejected"),
+          );
+          setReload((x) => x + 1);
         } catch (err: any) {
           showToast("Төлөв шинэчлэхэд алдаа гарлаа.", "danger");
         }
@@ -491,14 +617,13 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
       cancelLabel: "Болих",
       onConfirm: async () => {
         try {
-          await sendQuestionWorkflow(id, "deleted");
+          await deleteQuestion(id);
           showToast("Даалгавар амжилттай устгагдлаа.", "success");
-          const data = await fetchQuestions({ assessmentContextId: params.contextId });
-          setQuestions(data);
+          setReload((x) => x + 1);
         } catch (err: any) {
           showToast("Устгахад алдаа гарлаа.", "danger");
         }
-      }
+      },
     });
   };
 
@@ -506,23 +631,70 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
     const target = questions.find((q) => q.id === id);
     if (!target) return;
     try {
-      showToast("Даалгаврыг хуулбарлалаа.", "success");
-      // mock local state copy
-      const copied: QuestionBankItem = {
-        ...target,
-        id: `q-copy-${Date.now()}`,
-        code: `${target.code}-copy`,
+      const full = await getQuestionByIdAsync(id);
+      if (!full) throw Error("Асуултыг уншиж чадсангүй");
+      await createQuestion({
+        ...full,
+        assessmentContextId: contextId,
+        code: `Q-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
         title: `${target.title} (Хуулбар)`,
-        status: "draft" as any,
-      };
-      setQuestions(current => [copied, ...current]);
+      });
+      setReload((x) => x + 1);
+      showToast("Даалгаврыг хуулбарлалаа.", "success");
     } catch (err) {
       showToast("Хуулбарлахад алдаа гарлаа.", "danger");
     }
   };
 
+  const decisions=questions.filter(q=>q.workflowHistory?.[0] && ["approved","changes_requested","rejected","published"].includes(q.workflowHistory[0].status)).sort((a,b)=>Date.parse(b.workflowHistory[0].createdAt)-Date.parse(a.workflowHistory[0].createdAt)).slice(0,5);
   return (
-    <div className="grid gap-seek-4 lg:grid-cols-[18rem_1fr]">
+    <div className="min-w-0 grid gap-seek-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
+      {metadataError && (
+        <div
+          role="alert"
+          className="lg:col-span-2 rounded border border-danger p-4"
+        >
+          {metadataError}{" "}
+          <Button onClick={() => setReload((x) => x + 1)}>
+            Тохиргоог дахин ачаалах
+          </Button>
+        </div>
+      )}
+      {loadError && (
+        <div
+          role="alert"
+          className="lg:col-span-2 rounded border border-danger p-4"
+        >
+          {loadError}{" "}
+          <Button onClick={() => setReload((x) => x + 1)}>Дахин оролдох</Button>
+        </div>
+      )}
+      {!loading && !loadError && visibleQuestions.length === 0 && (
+        <p role="status" className="lg:col-span-2">
+          Сонгосон шүүлтүүрт тохирох асуулт алга.
+        </p>
+      )}
+      {decisions.length > 0 && (
+        <section className="lg:col-span-2 rounded border border-border bg-surface p-4">
+          <h2 className="font-semibold">Шийдвэрийн мэдэгдэл</h2>
+          <ul>
+            {decisions.map((q) => (
+                <li key={q.id} className="mt-2">
+                  <Link
+                    className="text-primary"
+                    href={`/assessor/context/${contextId}/question-bank/${q.id}`}
+                  >
+                    {q.code} — {statusLabels[q.status] || q.status}
+                  </Link>
+                  <p className="whitespace-pre-wrap">
+                    {q.workflowHistory[0].comment}
+                  </p>
+                </li>
+              ))}
+          </ul>
+        </section>
+      )}
+
       <aside className="rounded-seek-lg border border-border bg-surface p-seek-4">
         <div className="mb-seek-4 flex items-center justify-between min-h-[1.5rem]">
           <Text className="font-semibold">Шүүлтүүрүүд</Text>
@@ -542,7 +714,6 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           selectedCount={selectedTopicIds.length}
           open={openSections.topics}
           onToggle={() => toggleSection("topics")}
-          
         >
           <ExplorerTopicTree
             nodes={nestedTopics}
@@ -569,7 +740,11 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
                   selectedIds={selectedAudienceLevelIds}
                   openIds={openAudienceLevelIds}
                   onToggle={(lvlId) =>
-                    toggleArrayValue(selectedAudienceLevelIds, lvlId, setSelectedAudienceLevelIds)
+                    toggleArrayValue(
+                      selectedAudienceLevelIds,
+                      lvlId,
+                      setSelectedAudienceLevelIds,
+                    )
                   }
                   onToggleOpen={toggleAudienceLevelOpen}
                 />
@@ -608,10 +783,10 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           onToggle={() => toggleSection("difficulties")}
         >
           <Checklist
-            items={Object.entries(difficultyLabels).map(([value, label]) => ({
-              value,
-              label,
-              count: difficultyCounts[value as DifficultyLevel] ?? 0,
+            items={difficultyLevels.map((level) => ({
+              value: level.code,
+              label: level.name,
+              count: difficultyCounts[level.code] ?? 0,
             }))}
             selected={selectedDifficulties}
             onToggle={(value) =>
@@ -631,11 +806,18 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           onToggle={() => toggleSection("statuses")}
         >
           <Checklist
-            items={Object.entries(statusLabels).map(([value, label]) => ({
-              value,
-              label,
-              count: statusCounts[value as QuestionWorkflowStatus] ?? 0,
-            }))}
+            items={Object.entries(statusLabels)
+              .filter(
+                ([value]) =>
+                  !["approval_requested", "resubmitted", "deleted"].includes(
+                    value,
+                  ),
+              )
+              .map(([value, label]) => ({
+                value,
+                label,
+                count: statusCounts[value as QuestionWorkflowStatus] ?? 0,
+              }))}
             selected={selectedStatuses}
             onToggle={(value) =>
               toggleArrayValue(
@@ -648,7 +830,7 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
         </WorkspaceFilterSection>
       </aside>
 
-      <main className="space-y-seek-4">
+      <main className="min-w-0 space-y-seek-4">
         <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-seek-4">
           <div className="flex items-center gap-seek-3">
             <Link href={`/assessor/context/${params.contextId}`} passHref>
@@ -665,14 +847,32 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
               subtitle={context?.name || "Ачаалж байна..."}
             />
           </div>
-          <Button type="button" onClick={() => setCreateModalIsOpen(true)}>+ Даалгавар нэмэх</Button>
+          <Button type="button" onClick={() => setCreateModalIsOpen(true)}>
+            + Даалгавар нэмэх
+          </Button>
         </div>
 
         <div className="grid gap-seek-3 md:grid-cols-4">
-          <MetricCard label="Нийт даалгавар" value={stats.total} accent="bg-primary" />
-          <MetricCard label="Батлагдсан/нийтлэгдсэн" value={stats.active} accent="bg-success" />
-          <MetricCard label="Ноорог/засвар" value={stats.inactive} accent="bg-warning" />
-          <MetricCard label="Сэдвийн сан" value={stats.selectedTopics} accent="bg-info" />
+          <MetricCard
+            label="Нийт даалгавар"
+            value={stats.total}
+            accent="bg-primary"
+          />
+          <MetricCard
+            label="Батлагдсан/нийтлэгдсэн"
+            value={stats.active}
+            accent="bg-success"
+          />
+          <MetricCard
+            label="Ноорог/засвар"
+            value={stats.inactive}
+            accent="bg-warning"
+          />
+          <MetricCard
+            label="Сэдвийн сан"
+            value={stats.selectedTopics}
+            accent="bg-info"
+          />
         </div>
 
         <Card className="p-seek-4">
@@ -736,11 +936,12 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
             handlePreview={handlePreview}
             handleDelete={handleDeleteQuestion}
             handleCopy={handleCopyQuestion}
+            handleRequestApproval={requestApproval}
           />
         )}
 
         <PaginationBar
-          total={filteredQuestions.length}
+          total={total}
           page={safePage}
           pageCount={pageCount}
           pageSize={pageSize}
@@ -775,7 +976,9 @@ export default function QuestionBankPage({ params: routeParams }: PageProps) {
           onClose={() => setCreateModalIsOpen(false)}
           onSuccess={(questionId) => {
             setCreateModalIsOpen(false);
-            router.push(`/assessor/context/${params.contextId}/question-bank/${questionId}`);
+            router.push(
+              `/assessor/context/${params.contextId}/question-bank/${questionId}`,
+            );
           }}
         />
       )}
@@ -831,35 +1034,25 @@ function QuestionCard({
   onDelete?: () => void;
 }) {
   const params = useParams();
-  
-  // Icon and Color by Question Type
-  const typeConfig = useMemo(() => {
-    switch (question.type as string) {
-      case "multiple_choice":
-        return { label: "Multiple Choice", icon: <Icons.MultiChoose className="h-3 w-3 text-primary" /> };
-      case "essay":
-        return { label: "Essay", icon: <Icons.Essay className="h-3 w-3 text-secondary" /> };
-      case "true_false":
-        return { label: "True/False", icon: <Icons.TrueFalse className="h-3 w-3 text-success" /> };
-      case "fill_in_blank":
-        return { label: "Fill-in-Blank", icon: <Icons.FillBlank className="h-3 w-3 text-warning" /> };
-      default:
-        return { label: "Short Answer", icon: <Icons.ShortText className="h-3 w-3 text-muted-foreground" /> };
-    }
-  }, [question.type]);
 
   return (
-    <Card className={`p-seek-5 hover:shadow-seek-md transition-all rounded-seek-lg border border-border bg-surface ${selected ? "ring-2 ring-primary border-primary bg-primary/5" : ""}`}>
+    <Card
+      className={`p-seek-5 hover:shadow-seek-md transition-all rounded-seek-lg border border-border bg-surface ${selected ? "ring-2 ring-primary border-primary bg-primary/5" : ""}`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <Checkbox checked={selected} onChange={onSelect} aria-label="Сонгох" />
-          <Badge variant="secondary" className="flex items-center gap-1 bg-muted-background/40 border-none text-[10px] font-bold py-0.5 px-2">
-            {typeConfig.icon}
-            <span>{typeConfig.label}</span>
+          <Checkbox
+            checked={selected}
+            onChange={onSelect}
+            aria-label="Сонгох"
+          />
+          <Badge
+            variant="secondary"
+            className="flex items-center gap-1 bg-muted-background/40 border-none text-[10px] font-bold py-0.5 px-2"
+          >
+            <QuestionTypeBadge type={question.type} />
           </Badge>
-          <Badge variant={(question.difficulty as string) === "easy" ? "success" : (question.difficulty as string) === "hard" ? "danger" : "warning"} className="text-[10px] font-bold py-0.5 px-2">
-            {question.difficulty ? difficultyLabels[question.difficulty as DifficultyLevel] : "Medium"}
-          </Badge>
+          <QuestionDifficulty question={question} />
         </div>
       </div>
 
@@ -867,21 +1060,34 @@ function QuestionCard({
         <Text className="font-bold text-foreground text-sm leading-normal">
           {question.title}
         </Text>
-        
+
         {/* Code/Formula snippet */}
         {question.body && (
-          <div className="rounded-seek-md bg-muted-background p-seek-3 font-mono text-[11px] text-foreground/80 leading-normal border border-border/20">
-            {question.body}
+          <div className="rounded-seek-md bg-muted-background p-seek-3 line-clamp-3 break-words text-[11px] text-foreground/80 leading-normal border border-border/20">
+            {question.body.replace(/<[^>]*>/g, " ")}
           </div>
         )}
 
+        <Badge variant={statusVariant[question.status] || "secondary"}>
+          {statusLabels[question.status] || question.status}
+        </Badge>
+        {question.publishedVersionId &&
+          question.publishedVersionId !== question.questionVersionId && (
+            <p className="text-xs">Өмнөх хувилбар нийтлэгдсэн</p>
+          )}
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5 pt-1">
-          <Badge variant="secondary" className="bg-muted-background border-none text-[9px] font-semibold text-muted-foreground px-2 py-0.5 rounded">
-            {question.topicName || "General"}
+          <Badge
+            variant="secondary"
+            className="bg-muted-background border-none text-[9px] font-semibold text-muted-foreground px-2 py-0.5 rounded"
+          >
+            {question.topicName || "Ерөнхий"}
           </Badge>
           {question.bloomLevel && (
-            <Badge variant="secondary" className="bg-muted-background border-none text-[9px] font-semibold text-muted-foreground px-2 py-0.5 rounded">
+            <Badge
+              variant="secondary"
+              className="bg-muted-background border-none text-[9px] font-semibold text-muted-foreground px-2 py-0.5 rounded"
+            >
               {bloomLabels[question.bloomLevel]}
             </Badge>
           )}
@@ -890,32 +1096,64 @@ function QuestionCard({
 
       {/* Footer block */}
       <div className="mt-seek-5 flex items-center justify-between border-t border-border/40 pt-seek-4 text-[10px] font-bold text-muted-foreground">
-        <span className="flex items-center gap-1 text-emerald-600">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          78% success rate
+        <span className="flex items-center gap-1 text-muted-foreground">
+          <QuestionStatistics question={question} />
         </span>
 
         {/* Actions icons block */}
         <div className="flex items-center gap-1">
-          <button type="button" onClick={onPreview} className="p-1 hover:bg-surface-hover rounded transition-colors" title="Харах">
+          {question.allowedActions?.some(
+            (a) => a === "approval_requested" || a === "resubmitted",
+          ) && (
+            <button
+              type="button"
+              onClick={onRequestApproval}
+              title="Батлуулах хүсэлт"
+              className="p-1"
+            >
+              <Icons.ListCheck className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onPreview}
+            className="p-1 hover:bg-surface-hover rounded transition-colors"
+            title="Харах"
+          >
             <Icons.Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
           </button>
-          <Link href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}>
-            <button type="button" className="p-1 hover:bg-surface-hover rounded transition-colors" title="Засах">
+          <Link
+            href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}
+          >
+            <button
+              type="button"
+              className="p-1 hover:bg-surface-hover rounded transition-colors"
+              title={canEditQuestion(question.status) ? "Засах" : "Дэлгэрэнгүй"}
+            >
               <Icons.SavePen className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
             </button>
           </Link>
-          <button type="button" onClick={onCopy} className="p-1 hover:bg-surface-hover rounded transition-colors" title="Хуулах">
+          <button
+            type="button"
+            onClick={onCopy}
+            className="p-1 hover:bg-surface-hover rounded transition-colors"
+            title="Хуулах"
+          >
             <Icons.UndoDot className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
           </button>
-          <button type="button" onClick={onDelete} className="p-1 hover:bg-danger/5 rounded transition-colors" title="Устгах">
+          <button
+            type="button"
+            disabled={
+              Boolean(question.publishedVersionId) ||
+              question.status === "in_review"
+            }
+            onClick={onDelete}
+            className="p-1 hover:bg-danger/5 rounded transition-colors"
+            title="Устгах"
+          >
             <Icons.Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-danger" />
           </button>
         </div>
-
-        <span className="text-[10px] text-muted-foreground">
-          Used 24 times
-        </span>
       </div>
     </Card>
   );
@@ -928,6 +1166,7 @@ function QuestionTable({
   handlePreview,
   handleDelete,
   handleCopy,
+  handleRequestApproval,
 }: {
   questions: QuestionBankItem[];
   selectedQuestionIds: string[];
@@ -935,17 +1174,20 @@ function QuestionTable({
   handlePreview: (question: QuestionBankItem) => void;
   handleDelete?: (id: string) => void;
   handleCopy?: (id: string) => void;
+  handleRequestApproval: (question: QuestionBankItem) => void;
 }) {
   const params = useParams();
-  const isAllSelected = questions.length > 0 && questions.every(q => selectedQuestionIds.includes(q.id));
+  const isAllSelected =
+    questions.length > 0 &&
+    questions.every((q) => selectedQuestionIds.includes(q.id));
 
   const handleSelectAll = () => {
     if (isAllSelected) {
-      questions.forEach(q => {
+      questions.forEach((q) => {
         if (selectedQuestionIds.includes(q.id)) toggleSelection(q.id);
       });
     } else {
-      questions.forEach(q => {
+      questions.forEach((q) => {
         if (!selectedQuestionIds.includes(q.id)) toggleSelection(q.id);
       });
     }
@@ -959,88 +1201,106 @@ function QuestionTable({
             <th className="p-seek-3 w-10 text-center">
               <Checkbox checked={isAllSelected} onChange={handleSelectAll} />
             </th>
-            <th className="p-seek-3">Question</th>
-            <th className="p-seek-3 w-36">Subject / Topic</th>
-            <th className="p-seek-3 w-28">Type</th>
-            <th className="p-seek-3 w-28">Difficulty</th>
-            <th className="p-seek-3 w-28">Success Rate</th>
-            <th className="p-seek-3 w-28">Created</th>
-            <th className="p-seek-3 w-24 text-center">Actions</th>
+            <th className="p-seek-3">Асуулт</th>
+            <th className="p-seek-3 w-36">Сэдэв</th>
+            <th className="p-seek-3 w-28">Төрөл</th>
+            <th className="p-seek-3 w-28">Хүндрэлийн түвшин</th>
+            <th className="p-seek-3 w-28">Төлөв</th>
+            <th className="p-seek-3 w-28">Амжилтын хувь</th>
+            <th className="p-seek-3 w-28">Үүсгэсэн</th>
+            <th className="p-seek-3 w-24 text-center">Үйлдэл</th>
           </tr>
         </thead>
         <tbody>
           {questions.map((question) => {
             const isChecked = selectedQuestionIds.includes(question.id);
-            const successRate = 78; // mock success rate
-            
-            // Icon and Color by Question Type
-            const typeConfig = (() => {
-              switch (question.type as string) {
-                case "multiple_choice":
-                  return { label: "Multiple Choice", color: "text-primary bg-primary/5 border-primary/10" };
-                case "essay":
-                  return { label: "Essay", color: "text-secondary bg-secondary/5 border-secondary/10" };
-                case "true_false":
-                  return { label: "True/False", color: "text-success bg-success/5 border-success/10" };
-                case "fill_in_blank":
-                  return { label: "Fill-in-Blank", color: "text-warning bg-warning/5 border-warning/10" };
-                default:
-                  return { label: "Short Answer", color: "text-muted-foreground bg-muted-background border-none" };
-              }
-            })();
-
-            const difficultyConfig = (() => {
-              if (question.difficulty?.includes("easy")) return { label: "Easy", dot: "bg-emerald-500", text: "text-emerald-700" };
-              if (question.difficulty?.includes("hard")) return { label: "Hard", dot: "bg-rose-500", text: "text-rose-700" };
-              return { label: "Medium", dot: "bg-amber-500", text: "text-amber-700" };
-            })();
 
             return (
-              <tr key={question.id} className="border-b border-border/40 hover:bg-muted-background/5 transition-colors">
+              <tr
+                key={question.id}
+                className="border-b border-border/40 hover:bg-muted-background/5 transition-colors"
+              >
                 <td className="p-seek-3 text-center">
-                  <Checkbox checked={isChecked} onChange={() => toggleSelection(question.id)} />
+                  <Checkbox
+                    checked={isChecked}
+                    onChange={() => toggleSelection(question.id)}
+                  />
                 </td>
                 <td className="p-seek-3">
                   <Text className="font-bold text-foreground line-clamp-1 hover:text-primary transition-colors">
                     {question.title}
                   </Text>
-                  <Text variant="muted" className="text-[10px] mt-0.5 font-medium">
-                    ID: {question.code} · Used 24 times
+                  <Text
+                    variant="muted"
+                    className="text-[10px] mt-0.5 font-medium"
+                  >
+                    Код: {question.code}
                   </Text>
                 </td>
                 <td className="p-seek-3">
                   <div className="flex flex-wrap gap-1">
-                    <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-bold py-0.5 px-2 rounded">
-                      {question.topicName || "General"}
+                    <Badge
+                      variant="secondary"
+                      className="bg-primary/5 text-primary border-primary/10 text-[9px] font-bold py-0.5 px-2 rounded"
+                    >
+                      {question.topicName || "Ерөнхий"}
                     </Badge>
                   </div>
                 </td>
                 <td className="p-seek-3">
-                  <Badge variant="secondary" className={`${typeConfig.color} text-[9px] font-bold py-0.5 px-2 rounded`}>
-                    {typeConfig.label}
+                  <Badge variant="secondary" className="text-xs py-1 px-2">
+                    <QuestionTypeBadge type={question.type} />
                   </Badge>
                 </td>
                 <td className="p-seek-3 font-semibold">
-                  <span className={`inline-flex items-center gap-1.5 ${difficultyConfig.text} text-[10px] font-bold`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${difficultyConfig.dot}`} />
-                    {difficultyConfig.label}
-                  </span>
+                  <QuestionDifficulty question={question} />
                 </td>
                 <td className="p-seek-3">
-                  <div className="space-y-1 w-20">
-                    <span className="font-bold text-foreground text-[10px]">{successRate}%</span>
-                    <div className="h-1 w-full bg-border rounded-full overflow-hidden">
-                      <div style={{ width: `${successRate}%` }} className="h-full bg-emerald-500 rounded-full" />
-                    </div>
-                  </div>
+                  <Badge
+                    variant={statusVariant[question.status] || "secondary"}
+                  >
+                    {statusLabels[question.status] || question.status}
+                  </Badge>
+                  {question.publishedVersionId &&
+                    question.publishedVersionId !==
+                      question.questionVersionId && (
+                      <p className="mt-1 text-xs">Өмнөх хувилбар нийтлэгдсэн</p>
+                    )}
+                </td>
+                <td className="p-seek-3">
+                  <QuestionStatistics question={question} />
                 </td>
                 <td className="p-seek-3 font-semibold text-muted-foreground">
-                  2 days ago
+                  {question.createdAt
+                    ? new Date(question.createdAt).toLocaleDateString("mn-MN")
+                    : "—"}
                 </td>
                 <td className="p-seek-3 text-center">
                   <div className="flex justify-center gap-1">
-                    <Link href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}>
-                      <button type="button" className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded" title="Засах">
+                    {question.allowedActions?.some(
+                      (a) => a === "approval_requested" || a === "resubmitted",
+                    ) && (
+                      <button
+                        type="button"
+                        onClick={() => handleRequestApproval(question)}
+                        title="Батлуулах хүсэлт"
+                        className="p-1"
+                      >
+                        <Icons.ListCheck className="h-4 w-4" />
+                      </button>
+                    )}
+                    <Link
+                      href={`/assessor/context/${params.contextId}/question-bank/${question.id}`}
+                    >
+                      <button
+                        type="button"
+                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded"
+                        title={
+                          canEditQuestion(question.status)
+                            ? "Засах"
+                            : "Дэлгэрэнгүй"
+                        }
+                      >
                         <Icons.SavePen className="h-3.5 w-3.5" />
                       </button>
                     </Link>
@@ -1062,6 +1322,10 @@ function QuestionTable({
                     </button>
                     <button
                       type="button"
+                      disabled={
+                        Boolean(question.publishedVersionId) ||
+                        question.status === "in_review"
+                      }
                       onClick={() => handleDelete?.(question.id)}
                       className="p-1 text-muted-foreground hover:text-danger hover:bg-danger/5 rounded"
                       title="Устгах"
@@ -1160,24 +1424,21 @@ function BulkActionBar({
   return (
     <div className="fixed bottom-5 left-1/2 z-dropdown w-[min(58rem,calc(100vw-2rem))] -translate-x-1/2 rounded-seek-lg border border-border bg-surface p-seek-3 shadow-seek-lg">
       <div className="flex flex-col gap-seek-3 md:flex-row md:items-center md:justify-between">
-        <Text className="text-sm font-semibold">{count} даалгавар сонгосон</Text>
+        <Text className="text-sm font-semibold">
+          {count} даалгавар сонгосон
+        </Text>
         <div className="flex flex-wrap gap-2">
-          {["Батлуулах хүсэлт", "Хянагдаж байна", "Нийтлэх", "Архивлах"].map(
-            (label) => (
-              <Button
-                key={label}
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => onAction(label)}
-              >
-                {label}
-              </Button>
-            ),
-          )}
-          <Button type="button" size="sm" variant="danger" onClick={() => onAction("Устгах")}>
-            Устгах
-          </Button>
+          {["Батлуулах хүсэлт"].map((label) => (
+            <Button
+              key={label}
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => onAction(label)}
+            >
+              {label}
+            </Button>
+          ))}
           <Button type="button" size="sm" variant="outline" onClick={onClear}>
             Цэвэрлэх
           </Button>

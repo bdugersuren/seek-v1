@@ -14,26 +14,29 @@ export default function EditBlueprintPage({
   const contextId = decodeURIComponent(params.contextId);
   
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
+  const [error,setError]=useState('');
+  const [retry,setRetry]=useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        setLoading(true);
+        setLoading(true);setError('');
         const data = await getBlueprintByIdAsync(id);
         if (active) {
+          if(data?.assessmentContextId!==contextId&&data)throw new Error('Blueprint энэ контекстэд хамаарахгүй.');
           setBlueprint(data);
         }
       } catch (err) {
-        console.error("Failed to load blueprint", err);
+        if(active)setError((err as any).status===403?'Хандах эрхгүй.':(err as Error).message);
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, [id]);
+  }, [id,contextId,retry]);
 
   if (loading) {
     return (
@@ -45,6 +48,7 @@ export default function EditBlueprintPage({
     );
   }
 
+  if(error)return <div role="alert" className="p-6">{error}<button className="ml-4 underline" onClick={()=>setRetry(n=>n+1)}>Дахин оролдох</button></div>;
   if (!blueprint) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted-background">

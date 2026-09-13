@@ -26,7 +26,7 @@ export const roleHomePaths: Record<PortalRole, string> = {
   super_admin: "/superadmin/dashboard",
   organisation_admin: "/admin/dashboard",
   assessor: "/assessor/dashboard",
-  candidate: "/catalog",
+  candidate: "/my-assessments",
   reviewer_hr: "/results",
 };
 

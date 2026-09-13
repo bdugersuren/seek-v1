@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Checkbox, Radio, Text, Textarea } from "@seek/ui";
 import { RuntimeNotice, RuntimeShell } from "@/features/runtime/RuntimeShell";
 import { useAssessmentRuntime } from "@/features/runtime/useAssessmentRuntime";
+import { QuestionContent } from "@/features/runtime/QuestionContent";
 import type { RuntimeQuestion } from "@/features/runtime/types";
 
 export default function TakeRuntimePage() {
@@ -14,9 +15,33 @@ export default function TakeRuntimePage() {
   const attempt = runtime.attempt;
   const question = runtime.currentQuestion;
 
-  if (!runtime.isKnownAttempt || !attempt || !question) {
+  if (runtime.recovering)
     return (
-      <RuntimeShell title="Attempt олдсонгүй" subtitle="Runtime session шалгаж байна.">
+      <RuntimeShell
+        title="Ачаалж байна…"
+        subtitle="Шалгалтын мэдээллийг шалгаж байна"
+      >
+        <p role="status">Түр хүлээнэ үү.</p>
+      </RuntimeShell>
+    );
+  if (runtime.loadError)
+    return (
+      <RuntimeShell title="Шалгалтад холбогдож чадсангүй" subtitle="">
+        <p role="alert">{runtime.loadError}</p>
+        <a href="https://seek.mn/my-assessments">Миний үнэлгээ рүү буцах</a>
+        <Button onClick={() => window.location.reload()}>Дахин оролдох</Button>
+      </RuntimeShell>
+    );
+  if (
+    !runtime.isKnownAttempt ||
+    !attempt ||
+    (!question && attempt.session.status === "active")
+  ) {
+    return (
+      <RuntimeShell
+        title="Attempt олдсонгүй"
+        subtitle="Runtime session шалгаж байна."
+      >
         <RuntimeNotice tone="danger" title="Буруу attempt">
           Portal-оос дахин шалгалтад орох холбоос нээнэ үү.
         </RuntimeNotice>
@@ -26,7 +51,10 @@ export default function TakeRuntimePage() {
 
   if (runtime.submitted) {
     return (
-      <RuntimeShell title="Шалгалт илгээгдсэн" subtitle="Submit receipt үүссэн.">
+      <RuntimeShell
+        title="Шалгалт илгээгдсэн"
+        subtitle="Submit receipt үүссэн."
+      >
         <Link href={`/submitted/${attempt.session.attemptId}`}>
           <Button type="button">Receipt харах</Button>
         </Link>
@@ -34,6 +62,20 @@ export default function TakeRuntimePage() {
     );
   }
 
+  if (
+    ["locked", "expired", "cancelled", "invalidated"].includes(
+      attempt.session.status,
+    )
+  )
+    return (
+      <RuntimeShell title="Шалгалтыг үргэлжлүүлэх боломжгүй" subtitle="">
+        <p>
+          Шалгалтын төлөв: {attempt.session.status}. Илгээсэн баримтыг Миний
+          үнэлгээ хэсгээс шалгана уу.
+        </p>
+        <a href="https://seek.mn/my-assessments">Миний үнэлгээ</a>
+      </RuntimeShell>
+    );
   if (!runtime.recovering && attempt.session.status !== "active") {
     return (
       <RuntimeShell
@@ -46,7 +88,9 @@ export default function TakeRuntimePage() {
         <div className="mt-seek-4">
           <Button
             type="button"
-            onClick={() => router.replace(`/waiting/${attempt.session.attemptId}`)}
+            onClick={() =>
+              router.replace(`/waiting/${attempt.session.attemptId}`)
+            }
           >
             Waiting room рүү буцах
           </Button>
@@ -62,8 +106,9 @@ export default function TakeRuntimePage() {
         subtitle="Proctoring violation threshold reached."
       >
         <RuntimeNotice tone="danger" title="Шалгалт түгжих нөхцөл бүрдлээ">
-          Browser-only prototype дээр {runtime.maxWarningsBeforeLock} warning хүрсэн тул
-          production policy бол attempt lock эсвэл assessor review flag үүсгэнэ.
+          Browser-only prototype дээр {runtime.maxWarningsBeforeLock} warning
+          хүрсэн тул production policy бол attempt lock эсвэл assessor review
+          flag үүсгэнэ.
         </RuntimeNotice>
         <div className="mt-seek-4">
           <Link href="/locked">
@@ -76,6 +121,13 @@ export default function TakeRuntimePage() {
     );
   }
 
+  if (!question)
+    return (
+      <RuntimeShell title="Асуулт бэлтгэгдээгүй" subtitle="">
+        <p>Миний үнэлгээ хэсгээс дахин орно уу.</p>
+      </RuntimeShell>
+    );
+
   return (
     <RuntimeShell
       title={attempt.session.assessmentTitle}
@@ -86,7 +138,8 @@ export default function TakeRuntimePage() {
           <div>
             <Text className="font-bold">{attempt.session.userDisplayName}</Text>
             <Text variant="muted" className="mt-1 text-sm">
-              {runtime.answeredCount}/{attempt.questions.length} хариулсан · {runtime.statusLabel}
+              {runtime.answeredCount}/{attempt.questions.length} хариулсан ·{" "}
+              {runtime.statusLabel}
             </Text>
           </div>
           <div className="flex flex-wrap items-center gap-seek-2">
@@ -107,10 +160,20 @@ export default function TakeRuntimePage() {
           </div>
         </Card>
 
-        {(runtime.saveError || runtime.hasUnsavedAnswers || runtime.submitting) && (
+        {(runtime.saveError ||
+          runtime.hasUnsavedAnswers ||
+          runtime.submitting) && (
           <RuntimeNotice
-            tone={runtime.saveError ? "danger" : runtime.submitting ? "warning" : "info"}
-            title={runtime.saveError ? "Хадгалалт амжилтгүй" : "Question policy"}
+            tone={
+              runtime.saveError
+                ? "danger"
+                : runtime.submitting
+                  ? "warning"
+                  : "info"
+            }
+            title={
+              runtime.saveError ? "Хадгалалт амжилтгүй" : "Question policy"
+            }
           >
             {runtime.saveError ||
               (runtime.submitting
@@ -135,15 +198,15 @@ export default function TakeRuntimePage() {
 
         {!runtime.online && (
           <RuntimeNotice tone="warning" title="Offline local buffer">
-            Сүлжээ тасарсан ч хугацаа сунгагдахгүй. Хариулт local buffer-т хадгалагдаж,
-            online болох үед autosave/submit retry хийнэ.
+            Сүлжээ тасарсан ч хугацаа сунгагдахгүй. Хариулт local buffer-т
+            хадгалагдаж, online болох үед autosave/submit retry хийнэ.
           </RuntimeNotice>
         )}
 
         {runtime.pendingSubmit && (
           <RuntimeNotice tone="warning" title="Pending submit">
-            Submit snapshot local-д хадгалагдсан. Online болмогц idempotent submit retry
-            ажиллана.
+            Submit snapshot local-д хадгалагдсан. Online болмогц idempotent
+            submit retry ажиллана.
           </RuntimeNotice>
         )}
 
@@ -155,7 +218,8 @@ export default function TakeRuntimePage() {
                   {question.code} · {question.type}
                 </Text>
                 <Text className="mt-1 font-bold">
-                  {question.points} оноо · {saveStatusText(runtime.currentSaveStatus)}
+                  {question.points} оноо ·{" "}
+                  {saveStatusText(runtime.currentSaveStatus)}
                 </Text>
               </div>
               <div className="flex flex-wrap gap-seek-2">
@@ -166,14 +230,37 @@ export default function TakeRuntimePage() {
                 >
                   {runtime.markedForReview[question.id] ? "Flag авсан" : "Flag"}
                 </Button>
-                <Button type="button" variant="secondary" onClick={runtime.requestFullscreen}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={runtime.requestFullscreen}
+                >
                   Fullscreen
                 </Button>
               </div>
             </div>
 
             <div className="py-seek-6">
-              <Text className="text-xl font-semibold">{question.prompt}</Text>
+              <QuestionContent html={question.prompt} />
+              {question.media?.map((m) => (
+                <div key={m.id} className="my-3">
+                  {m.mediaType === "IMAGE" ? (
+                    <img
+                      src={m.url}
+                      alt={m.altText}
+                      className="max-w-full max-h-96 object-contain"
+                    />
+                  ) : m.mediaType === "AUDIO" ? (
+                    <audio src={m.url} controls className="max-w-full" />
+                  ) : m.mediaType === "VIDEO" ? (
+                    <video src={m.url} controls className="max-w-full" />
+                  ) : (
+                    <a href={m.url} target="_blank" rel="noopener noreferrer">
+                      {m.altText}
+                    </a>
+                  )}
+                </div>
+              ))}
               <Text variant="muted" className="mt-seek-2">
                 {question.instruction}
               </Text>
@@ -189,8 +276,13 @@ export default function TakeRuntimePage() {
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={runtime.currentIndex === 0 || Boolean(runtime.savingQuestionId)}
-                  onClick={() => void runtime.goToQuestion(runtime.currentIndex - 1)}
+                  disabled={
+                    runtime.currentIndex === 0 ||
+                    Boolean(runtime.savingQuestionId)
+                  }
+                  onClick={() =>
+                    void runtime.goToQuestion(runtime.currentIndex - 1)
+                  }
                 >
                   Өмнөх
                 </Button>
@@ -215,14 +307,25 @@ export default function TakeRuntimePage() {
               </div>
               <Button
                 type="button"
-                variant={runtime.hasUnsavedAnswers || runtime.hasSaveErrors ? "secondary" : "primary"}
-                disabled={Boolean(runtime.savingQuestionId) || runtime.submitting}
+                variant={
+                  runtime.hasUnsavedAnswers || runtime.hasSaveErrors
+                    ? "secondary"
+                    : "primary"
+                }
+                disabled={
+                  Boolean(runtime.savingQuestionId) || runtime.submitting
+                }
                 onClick={() => {
                   if (runtime.hasUnsavedAnswers || runtime.hasSaveErrors) {
                     void runtime.saveQuestion(question.id);
                     return;
                   }
-                  void runtime.submitAttempt("user_submit");
+                  if (
+                    window.confirm(
+                      `Шалгалтыг дуусгах уу? ${runtime.answeredCount}/${attempt.session.manifest.length} асуултад хариулсан. Илгээсний дараа өөрчлөх боломжгүй.`,
+                    )
+                  )
+                    void runtime.submitAttempt("user_submit");
                 }}
               >
                 {runtime.hasUnsavedAnswers || runtime.hasSaveErrors
@@ -246,7 +349,9 @@ export default function TakeRuntimePage() {
                     aria-label={`Асуулт ${index + 1}: ${questionStateLabel(state)}`}
                     title={questionStateLabel(state)}
                     className={`h-10 rounded-seek-md border text-sm font-bold ${questionStateClass(state)}`}
-                    disabled={Boolean(runtime.savingQuestionId) || runtime.submitting}
+                    disabled={
+                      Boolean(runtime.savingQuestionId) || runtime.submitting
+                    }
                     onClick={() => void runtime.goToQuestion(index)}
                   >
                     {index + 1}
@@ -255,8 +360,13 @@ export default function TakeRuntimePage() {
               })}
             </div>
             <div className="mt-seek-5 space-y-seek-2 text-sm text-muted-foreground">
-              <p>Хадгалаагүй: {runtime.hasUnsavedAnswers ? "байна" : "байхгүй"}</p>
-              <p>Алдаа: {runtime.hasSaveErrors ? "шалгах шаардлагатай" : "байхгүй"}</p>
+              <p>
+                Хадгалаагүй: {runtime.hasUnsavedAnswers ? "байна" : "байхгүй"}
+              </p>
+              <p>
+                Алдаа:{" "}
+                {runtime.hasSaveErrors ? "шалгах шаардлагатай" : "байхгүй"}
+              </p>
               <p>Autosubmit: хугацаа дуусахад server submit хийнэ</p>
             </div>
           </Card>
@@ -273,12 +383,84 @@ function QuestionAnswer({
 }: {
   question: RuntimeQuestion;
   value: unknown;
-  onChange: (value: string | string[]) => void;
+  onChange: (value: string | string[] | Record<string, string>) => void;
 }) {
-  if (question.type === "single_choice") {
+  if (question.type === "matching" || question.type === "matrix") {
+    const pairs = (
+      value && typeof value === "object" && !Array.isArray(value) ? value : {}
+    ) as Record<string, string>;
+    const update = (id: string, right: string) =>
+      onChange({ ...pairs, [id]: right });
+    if (question.type === "matrix")
+      return (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full border">
+            <caption className="sr-only">Матрицын хариулт</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="p-3">
+                  Өгүүлбэр
+                </th>
+                {question.matrixColumns?.map((c) => (
+                  <th scope="col" key={c.id} className="p-3">
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {question.options?.map((row, i) => (
+                <tr key={row.id}>
+                  <th scope="row" className="p-3 text-left">
+                    <QuestionContent html={row.label} />
+                  </th>
+                  {question.matrixColumns?.map((c) => (
+                    <td className="p-3 text-center" key={c.id}>
+                      <input
+                        type="radio"
+                        name={`${question.id}-${row.id}`}
+                        aria-label={`Мөр ${i + 1}: ${c.label}`}
+                        checked={pairs[row.id] === c.id}
+                        onChange={() => update(row.id, c.id)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    return (
+      <div className="mt-4 space-y-3">
+        {question.options?.map((row, i) => (
+          <div key={row.id} className="rounded border p-3">
+            <QuestionContent html={row.label} />
+            <select
+              aria-label={`Мөр ${i + 1} харгалзуулах хариулт`}
+              value={pairs[row.id] || ""}
+              onChange={(e) => update(row.id, e.target.value)}
+              className="mt-2 w-full rounded border p-2"
+            >
+              <option value="">Сонгоно уу</option>
+              {question.rightOptions?.map((right, ri) => (
+                <option key={right.id} value={right.id}>
+                  {ri + 1}. {right.value.replace(/<[^>]*>/g, "")}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (
+    question.type === "single_choice" ||
+    String(question.type) === "true_false"
+  ) {
     return (
       <div className="mt-seek-5 space-y-seek-3">
-        {question.options?.map((option) => (
+        {question.options?.map((option, index) => (
           <label
             key={option.id}
             className="flex items-center gap-seek-3 rounded-seek-md border border-border p-seek-3"
@@ -288,7 +470,10 @@ function QuestionAnswer({
               checked={value === option.id}
               onChange={() => onChange(option.id)}
             />
-            <span>{option.label}</span>
+            <span className="flex gap-2">
+              <span>{String.fromCharCode(65 + index)}.</span>
+              <QuestionContent html={option.label} />
+            </span>
           </label>
         ))}
       </div>
@@ -299,7 +484,7 @@ function QuestionAnswer({
     const selected = Array.isArray(value) ? value : [];
     return (
       <div className="mt-seek-5 space-y-seek-3">
-        {question.options?.map((option) => (
+        {question.options?.map((option, index) => (
           <label
             key={option.id}
             className="flex items-center gap-seek-3 rounded-seek-md border border-border p-seek-3"
@@ -314,7 +499,10 @@ function QuestionAnswer({
                 )
               }
             />
-            <span>{option.label}</span>
+            <span className="flex gap-2">
+              <span>{String.fromCharCode(65 + index)}.</span>
+              <QuestionContent html={option.label} />
+            </span>
           </label>
         ))}
       </div>
@@ -326,6 +514,7 @@ function QuestionAnswer({
       className="mt-seek-5 min-h-40"
       value={typeof value === "string" ? value : ""}
       onChange={(event) => onChange(event.target.value)}
+      aria-label="Асуултын хариулт"
       placeholder="Хариултаа бичнэ үү..."
     />
   );

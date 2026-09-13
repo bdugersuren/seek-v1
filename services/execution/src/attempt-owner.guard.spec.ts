@@ -3,7 +3,7 @@ import { ExecutionContext, ForbiddenException, UnauthorizedException } from '@ne
 
 describe('AttemptOwnerGuard', () => {
   const execution = { getSession: jest.fn() };
-  const guard = new AttemptOwnerGuard(execution as any);
+  const guard = new AttemptOwnerGuard(execution as any, {prepare: jest.fn()} as any);
   const context = (user: string | undefined, attemptId = 'attempt-1') => ({
     switchToHttp: () => ({getRequest: () => ({headers: {'x-user-id':user}, params:{attemptId}, body:{}, path:'/execution/session/attempt-1'})}),
   }) as ExecutionContext;

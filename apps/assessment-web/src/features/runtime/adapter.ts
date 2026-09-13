@@ -84,29 +84,57 @@ export const mockRuntimeAdapter: RuntimeAdapter = {
 
 const executionUrl = process.env.NEXT_PUBLIC_EXECUTION_URL || "http://127.0.0.1:3010/api/v1/execution";
 
+let token: string | null = null;
+let refreshing: Promise<string> | null = null;
+async function refreshToken(): Promise<string> {
+  if (!refreshing) refreshing = fetch(`${executionUrl.replace(/\/execution$/, "")}/auth/refresh`, {method:"POST",credentials:"include"})
+    .then(async response => { if (!response.ok) throw new Error("Нэвтрэх хугацаа дууссан. seek.mn дээр дахин нэвтэрнэ үү."); const data=await response.json(); token=data.accessToken; return token!; })
+    .finally(()=>{refreshing=null;});
+  return refreshing;
+}
+export async function runtimeFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const send=async()=>fetch(url,{...init,credentials:"include",headers:{...Object.fromEntries(new Headers(init.headers)),Authorization:`Bearer ${token || await refreshToken()}`}});
+  let response=await send();if(response.status===401){await refreshToken();response=await send();}
+  return response;
+}
+export async function runtimeJson<T>(path:string,init:RequestInit={}):Promise<T>{
+  const response=await runtimeFetch(`${executionUrl}${path}`,init);
+  const data=await response.json();if(!response.ok)throw new Error(data.message || "Шалгалтын мэдээлэл татаж чадсангүй.");return data;
+}
+export function subscribeUnlock(attemptId:string, onUnlock:(key:string)=>void):()=>void {
+  const controller=new AbortController();
+  void (async()=>{const response=await runtimeFetch(`${executionUrl}/sse/${encodeURIComponent(attemptId)}`,{signal:controller.signal});
+    if(!response.ok || !response.body)return;const reader=response.body.getReader();const decoder=new TextDecoder();let buffer="";
+    while(!controller.signal.aborted){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});let end:number;
+      while((end=buffer.indexOf("\n\n"))>=0){const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);if(frame.includes("event: unlock")){const line=frame.split("\n").find(x=>x.startsWith("data:"));if(line){const data=JSON.parse(line.slice(5));if(data.unlockKey)onUnlock(data.unlockKey);}}}
+    }
+  })().catch(()=>{});return ()=>controller.abort();
+}
+
 export const httpRuntimeAdapter: RuntimeAdapter = {
   async getSession(attemptId) {
-    const res = await fetch(`${executionUrl}/session/${attemptId}`);
+    const res = await runtimeFetch(`${executionUrl}/session/${attemptId}`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error("Failed to load attempt session");
     return res.json();
   },
   async preloadPayload(attemptId) {
-    const res = await fetch(`${executionUrl}/preload/${attemptId}`, {
+    const res = await runtimeFetch(`${executionUrl}/preload/${attemptId}`, {
       method: "POST",
     });
     if (!res.ok) throw new Error("Failed to preload payload");
     return res.json();
   },
   async startAttempt(attemptId) {
-    const res = await fetch(`${executionUrl}/start/${attemptId}`, {
+    await runtimeJson(`/runtime/attempts/${attemptId}/acknowledgements`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instructionHash:"candidate-instructions-v1",policyVersion:"v1"})});
+    const res = await runtimeFetch(`${executionUrl}/start/${attemptId}`, {
       method: "POST",
     });
     if (!res.ok) throw new Error("Failed to start attempt");
     return res.json();
   },
   async heartbeat(request) {
-    const res = await fetch(`${executionUrl}/heartbeat`, {
+    const res = await runtimeFetch(`${executionUrl}/heartbeat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -115,7 +143,7 @@ export const httpRuntimeAdapter: RuntimeAdapter = {
     return res.json();
   },
   async autosave(request) {
-    const res = await fetch(`${executionUrl}/autosave`, {
+    const res = await runtimeFetch(`${executionUrl}/autosave`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -124,7 +152,7 @@ export const httpRuntimeAdapter: RuntimeAdapter = {
     return res.json();
   },
   async submit(request) {
-    const res = await fetch(`${executionUrl}/submit`, {
+    const res = await runtimeFetch(`${executionUrl}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -133,7 +161,7 @@ export const httpRuntimeAdapter: RuntimeAdapter = {
     return res.json();
   },
   async recordViolation(violation) {
-    const res = await fetch(`${executionUrl}/violation`, {
+    const res = await runtimeFetch(`${executionUrl}/violation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(violation),
@@ -142,7 +170,7 @@ export const httpRuntimeAdapter: RuntimeAdapter = {
     return res.json();
   },
   async recoverSession(attemptId) {
-    const res = await fetch(`${executionUrl}/recover/${attemptId}`);
+    const res = await runtimeFetch(`${executionUrl}/recover/${attemptId}`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error("Failed to recover session");
     return res.json();

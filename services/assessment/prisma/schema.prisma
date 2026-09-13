@@ -285,6 +285,7 @@ enum ResultPublicationEventType {
 // ============================================================
 
 model Question {
+  revision Int @default(0)
   assessmentContextId String?
   assessmentContext AssessmentContext? @relation(fields: [assessmentContextId], references: [id], onDelete: Restrict)
   @@index([assessmentContextId, ownerUserId])
@@ -346,6 +347,7 @@ enum QuestionType {
 }
 
 model QuestionVersion {
+  classificationSnapshot Json @default("[]")
   id                     String                @id @default(cuid())
   questionId             String
   versionNumber          Int
@@ -761,6 +763,7 @@ model TopicQuestionCompetence {
 // ============================================================
 
 model QuizTemplate {
+  topicId                 String?
   id                      String              @id @default(cuid())
   assessmentContextId     String
   code                    String              @unique
@@ -795,6 +798,7 @@ model QuizTemplate {
 }
 
 model QuizSection {
+  selectionRules          Json                     @default("{}")
   id                      String                   @id @default(cuid())
   templateId              String
   title                   String
@@ -1608,6 +1612,8 @@ model ResultAiAnalysis {
 }
 
 model QuestionWorkflowEvent {
+  requestId String?
+  @@unique([questionId, requestId])
   id                String   @id @default(cuid())
   questionId        String
   questionVersionId String?
@@ -1723,4 +1729,14 @@ model AssessorContextGrant {
   @@unique([contextId, userId])
   @@index([userId])
   @@map("assessor_context_grant")
+}
+
+model QuizMutationRequest {
+  key         String   @id
+  fingerprint String
+  quizId      String
+  createdAt   DateTime @default(now())
+
+  @@index([quizId])
+  @@map("quiz_mutation_request")
 }

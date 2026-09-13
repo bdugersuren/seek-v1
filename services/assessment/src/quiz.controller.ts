@@ -1,33 +1,70 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { QuizService } from "./quiz.service";
 import { CreateQuizDto, UpdateQuizDto } from "./dto/quiz.dto";
-
+import { actorFrom } from "./question-workflow";
 @Controller("assessment/quizzes")
 export class QuizController {
-  constructor(private readonly quizService: QuizService) {}
-
-  @Post()
-  async create(@Body() dto: CreateQuizDto) {
-    return await this.quizService.create(dto);
+  constructor(private readonly service: QuizService) {}
+  @Post() create(@Body() dto: CreateQuizDto, @Req() req: any) {
+    return this.service.create({ ...dto, createdBy: actorFrom(req).id });
   }
-
-  @Get()
-  async findAll(@Query("assessmentContextId") contextId?: string) {
-    return await this.quizService.findAll(contextId);
+  @Get() list(@Query() query: any, @Req() req: any) {
+    return this.service.findAll(
+      query.assessmentContextId,
+      req.assessmentAllowedIds,
+      query,
+      actorFrom(req),
+    );
   }
-
-  @Get(":id")
-  async findOne(@Param("id") id: string) {
-    return await this.quizService.findOne(id);
+  @Get(":id") get(
+    @Param("id") id: string,
+    @Query("revisionId") revisionId: string,
+    @Req() req: any,
+  ) {
+    return this.service.findOne(id, actorFrom(req), revisionId);
   }
-
-  @Put(":id")
-  async update(@Param("id") id: string, @Body() dto: UpdateQuizDto) {
-    return await this.quizService.update(id, dto);
+  @Put(":id") update(
+    @Param("id") id: string,
+    @Body() dto: UpdateQuizDto,
+    @Req() req: any,
+  ) {
+    return this.service.update(id, dto, actorFrom(req));
   }
-
-  @Delete(":id")
-  async remove(@Param("id") id: string) {
-    return await this.quizService.remove(id);
+  @Post(":id/revisions") revision(
+    @Param("id") id: string,
+    @Body() dto: any,
+    @Req() req: any,
+  ) {
+    return this.service.newRevision(id, dto, actorFrom(req));
+  }
+  @Post(":id/preview") preview(
+    @Param("id") id: string,
+    @Body() dto: any,
+    @Req() req: any,
+  ) {
+    return this.service.preview(id, dto, actorFrom(req));
+  }
+  @Post(":id/workflow") workflow(
+    @Param("id") id: string,
+    @Body() dto: any,
+    @Req() req: any,
+  ) {
+    return this.service.transition(id, dto, actorFrom(req));
+  }
+  @Get(":id/workflow") async events(@Param("id") id: string, @Req() req: any) {
+    return (await this.service.findOne(id, actorFrom(req))).workflow;
+  }
+  @Delete(":id") remove(@Param("id") id: string) {
+    return this.service.remove(id);
   }
 }

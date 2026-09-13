@@ -1,4 +1,7 @@
 "use client";
+import { questionTypeIcons } from "../question-presentation";
+import { defaultMatrixColumns } from "../option-label";
+
 
 import React, { useState, useEffect, useRef } from "react";
 import { Badge, Button, Icons, Input, Text, useToast } from "@seek/ui";
@@ -22,21 +25,7 @@ import { FillInBlankOptions } from "../builders/FillInBlankOptions";
 import { CombinationMCBuilder, CombinationMatchingBuilder, CombinationOrderingBuilder } from "../builders/CombinationBuilders";
 import { Plus } from "lucide-react";
 
-const questionTypeIcons: Record<QuestionType, React.ComponentType<any>> = {
-  SINGLE_CHOICE: Icons.SingleChoose,
-  MULTIPLE_CHOICE: Icons.MultiChoose,
-  TRUE_FALSE: Icons.TrueFalse,
-  ORDERING: Icons.Ordering,
-  MATCHING: Icons.Matching,
-  SHORT_TEXT: Icons.ShortText,
-  FILL_BLANK: Icons.FillBlank,
-  MATRIX: Icons.Matrix,
-  NUMERIC: Icons.Numeric,
-  LIKERT: Icons.Likert,
-  SJT: Icons.Sjt,
-  CASE_BUNDLE: Icons.CaseBundle,
-  ESSAY: Icons.Essay,
-};
+
 
 const scoringModeIcons: Record<string, React.ComponentType<any>> = {
   per_option: Icons.CorrectOne,
@@ -88,13 +77,13 @@ export function StepOne({
       case "SJT":
       case "LIKERT":
       case "NUMERIC":
+      case "MATRIX":
         return [{ value: "per_option", label: "Харгалзах оноо" }];
 
       case "MULTIPLE_CHOICE":
       case "ORDERING":
       case "MATCHING":
       case "FILL_BLANK":
-      case "MATRIX":
         return [          
           { value: "per_option", label: "Харгалзах оноо" },
           { value: "combination", label: "Хослолын оноо" }
@@ -189,6 +178,7 @@ export function StepOne({
         ];
         break;
       case "MATRIX":
+        nextScoringConfig = {...nextScoringConfig, matrixColumns: defaultMatrixColumns};
         nextScoringMode = "per_option";
         nextOptions = [
           { id: "mx1", label: "Мөр 1", value: "", isCorrect: true, score: 1, matchValue: "" },
@@ -685,6 +675,12 @@ export function StepOne({
                                 </div>
                               </div>
                               
+                              {state.scoringMode === "per_option" && <label className="text-xs">Харгалзах хариулт
+                                <select aria-label={`Мөр ${index+1} харгалзах хариулт`} value={option.matchValue || ""} onChange={e=>updateOption(index,{matchValue:e.target.value})} className="block rounded border p-2">
+                                  <option value="">Сонгоно уу</option>
+                                  {(state.scoringConfig?.rightOptions || []).map((right:any,ri:number)=><option key={right.id} value={right.id}>{ri+1}. {right.value.replace(/<[^>]*>/g, "").slice(0,80)}</option>)}
+                                </select>
+                              </label>}
                               {/* Устгах товчийг баруун талд нь шахах */}
                               <Button 
                                 type="button" 

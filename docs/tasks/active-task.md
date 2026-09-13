@@ -62,3 +62,47 @@ SUPER_ADMIN/ASSESSOR үүсгэх interactive хэрэгсэл ба тест д�
 
 ## 2026-09-12 ASSESSOR draft creation
 Completed: initial modal 400 fixed with explicit draft context ownership, metadata loader and approval submission corrected. Isolated API/browser verification passed; assessment and portal deployed, all 14 production services healthy. See docs/audits/2026-09-12-question-draft.md.
+
+## 2026-09-12 Question review workflow implementation
+1. Complete: version/revision locks, canonical transitions, authenticated audit and submit validation.
+2. Complete: immutable published classification snapshots and quiz publication gate.
+3. Complete: reviewer queue/detail, author read-only/rework/new-version UI and in-app decision notifications.
+4. Complete: 15 workflow unit tests, 29 gateway tests, 2 compose tests, real API/browser lifecycle/concurrency/permission/mobile checks; production backup, tested restore/migration and deployment. All 14 production services healthy. See docs/audits/2026-09-12-question-review-implementation.md.
+Reference: docs/audits/2026-09-12-question-review-workflow-analysis.md.
+
+
+## 2026-09-12 — Blueprint deletion completed
+- General and context blueprint card/table deletion with confirmation and duplicate-submit protection.
+- Quiz/revision-linked templates return 409; question bank content remains intact.
+- Assessment/portal typechecks, 5 service tests, isolated API and browser regression passed.
+- Production deployed: assessment `seek-backend:blueprint-delete-20260912`, portal `seek-portal-web:blueprint-delete-complete-20260912`. Only these two services replaced; all 14 healthy.
+- Backup/evidence: `.production/evidence/blueprint-deletion/`; no migration or production test data.
+- Instructions: `docs/runbooks/blueprint-deletion.md`.
+
+
+## 2026-09-12 — Candidate production workflow (complete)
+Objective: implement audit C01–C17 for assigned assessments.
+Stages: [x] transactional runtime and regression; [x] assignment/materialization/auth; [x] candidate UI and honest states; [x] grading/release; [x] integration/accessibility; [x] backup and targeted production rollout.
+Policies: server-owned deadlines; no late offline answer replacement; immutable published question snapshots; disabled ancillary providers show unavailable, never demo success. Preserve all previous review/blueprint changes.
+Validation: 24 execution tests, 39 gateway tests, production builds/typechecks, PostgreSQL concurrency/integrity workflow and browser assignment/start/save/reload/submit/release/mobile flow passed. Production backup: `.production/evidence/candidate-workflow/production-before-20260912-0655`; five targeted services deployed and healthy. Production test data was not inserted.
+
+## 2026-09-12 — Question bank сайжруулалт — дууссан
+Зөвшөөрсөн өөрчлөлтүүд хэрэгжиж, 82 тест болон API/browser шалгалт давсан. Нөөцөөс сэргээхийг шалгаж дөрвөн сервисийг production-д шинэчилсэн; 14 сервис healthy.
+Архив: docs/tasks/backup/2026-09-12-question-bank.md.
+Тайлан: docs/audits/2026-09-12-question-bank.md.
+
+## 2026-09-12 — Results интерактив жишиг тайлан — дууссан
+13 төрөл, хоёр өнцөг, гурван таб, нэгдсэн тооцоолол, URL/print хэрэгжив. 8 regression тест, typecheck/build, final browser шалгалт давсан. Portal-only production rollout дууссан; 14 сервис healthy. Архив: docs/tasks/backup/2026-09-12-results-demo.md. Тайлан/screenshot: docs/audits/2026-09-12-results-demo.md.
+
+## 2026-09-13 — Blueprint бүрэн урсгал — дууссан
+Хадгалалт, хоёр горимын сан, readiness, давхардалгүй Quiz snapshot, UI хэрэгжив. 55 тест, typecheck/build, PostgreSQL/browser, runtime regression тэнцсэн. Нөөцөөс сэргээх migration шалгаж assessment/gateway/portal production rollout дууссан; 14 сервис healthy.
+Архив: docs/tasks/backup/2026-09-13-blueprint-pools.md. Тайлан/screenshot: docs/audits/2026-09-13-blueprint-pools.md.
+
+## 2026-09-13 — Quiz бэлтгэх, батлах, нийтлэх — дууссан
+Бодит editor, snapshot/version lock, тусдаа SUPER_ADMIN workflow хэрэгжив. 77 тест, PostgreSQL/browser, typecheck/build, нөөцөөс сэргээх migration болон production rollout тэнцсэн; бүх 14 сервис healthy.
+Архив: docs/tasks/backup/2026-09-13-quiz-workflow.md. Тайлан/screenshot: docs/audits/2026-09-13-quiz-workflow.md.
+
+Идэвхтэй үлдсэн ажилгүй.
+
+## 2026-09-13 — Хуваарь нийтлэх алдаа (зөвшөөрсөн)
+Давхардсан publish маршрут, буруу enum-ийг арилгах; HTTP/browser regression; assessment-only rollout.

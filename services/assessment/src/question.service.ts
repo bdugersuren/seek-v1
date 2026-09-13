@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
 import { CreateQuestionDto, UpdateQuestionDto } from "./dto/question.dto";
+import { lockQuestion } from "./question-workflow";
 import { Prisma } from "../generated/prisma-client";
 
 @Injectable()
@@ -16,9 +17,11 @@ export class QuestionService {
       return;
     }
 
+    const latest = await tx.questionVersion.findFirst({where:{questionId},orderBy:{versionNumber:'desc'}});
+    const editable = {questionId, OR:[{validatedQuestionVersionId:null}, ...(['DRAFT','CHANGES_REQUESTED'].includes(latest?.versionStatus||'') ? [{validatedQuestionVersionId:latest!.id}] : [])]};
     // 1. Cascade-оор хуучин хамаарлуудыг устгана (Foreign key зөрчигдөхөөс сэргийлнэ)
     const existingClassifications = await tx.topicQuestionClassification.findMany({
-      where: { questionId },
+      where: editable,
       select: { id: true },
     });
     const classificationIds = existingClassifications.map(c => c.id);
@@ -33,7 +36,7 @@ export class QuestionService {
     }
 
     await tx.topicQuestionClassification.deleteMany({
-      where: { questionId },
+      where: { id: {in:classificationIds} },
     });
 
     if (!topicMappings.length) return;
@@ -236,7 +239,7 @@ export class QuestionService {
           scoringConfig: (dto.scoringConfig as any) || {},
           rubric: (dto.rubric as any) || {},
           presentationConfig: (dto.presentationConfig as any) || {},
-          createdBy: "system_author",
+          createdBy: dto.ownerUserId || "system_author",
         },
       });
 
@@ -288,6 +291,25 @@ export class QuestionService {
     });
   }
 
+  async reviewQueue(filters:{status?:string;search?:string;assessmentContextId?:string;ownerUserId?:string;page?:string;type?:string;from?:string;to?:string}) {
+    const page=Math.max(1,Math.min(100000,Number(filters.page)||1)), take=20;
+    const status=filters.status||'IN_REVIEW';
+    if(!['ALL','DRAFT','IN_REVIEW','CHANGES_REQUESTED','APPROVED','PUBLISHED','REJECTED','RETIRED'].includes(status))throw new BadRequestException('Invalid status');
+    for(const d of [filters.from,filters.to])if(d&&!/^\d{4}-\d{2}-\d{2}$/.test(d))throw new BadRequestException('Invalid date');
+    const conditions=Prisma.sql`q."deletedAt" IS NULL
+      AND (${status}='ALL' OR v."versionStatus"::text=${status})
+      AND (${filters.search||''}='' OR q.code ILIKE ${'%'+(filters.search||'')+'%'} OR v.title ILIKE ${'%'+(filters.search||'')+'%'})
+      AND (${filters.assessmentContextId||''}='' OR q."assessmentContextId"=${filters.assessmentContextId||''})
+      AND (${filters.ownerUserId||''}='' OR q."ownerUserId"=${filters.ownerUserId||''})
+      AND (${filters.type||''}='' OR v.type::text=${filters.type||''})
+      AND (${filters.from||''}='' OR q."updatedAt">=NULLIF(${filters.from||''},'')::date)
+      AND (${filters.to||''}='' OR q."updatedAt"<NULLIF(${filters.to||''},'')::date+interval '1 day')`;
+    const join=Prisma.sql`FROM question q JOIN LATERAL (SELECT * FROM question_version WHERE "questionId"=q.id ORDER BY "versionNumber" DESC LIMIT 1) v ON true WHERE ${conditions}`;
+    const count=await this.prisma.$queryRaw<{total:bigint}[]>(Prisma.sql`SELECT count(*) total ${join}`);
+    const ids=await this.prisma.$queryRaw<{id:string}[]>(Prisma.sql`SELECT q.id ${join} ORDER BY q."updatedAt" DESC,q.id LIMIT ${take} OFFSET ${(page-1)*take}`);
+    return {items:await Promise.all(ids.map(x=>this.findOne(x.id))),total:Number(count[0].total),page,pageSize:take};
+  }
+
   async findAll(filters: { status?: string; type?: string; search?: string; ownerUserId?: string; assessmentContextId?: string }) {
     const whereClause: any = {
       deletedAt: null,
@@ -308,6 +330,7 @@ export class QuestionService {
     const questions = await this.prisma.question.findMany({
       where: whereClause,
       include: {
+        workflowEvents:{orderBy:{occurredAt:"desc"},take:1},
         classifications: {
           include: {
             topic: true,
@@ -326,14 +349,14 @@ export class QuestionService {
         },
         currentPublishedVersion: {
           include: {
-            options: true,
+            options: {orderBy: {orderIndex: "asc"}},
             media: true,
           },
         },
         versions: {
           orderBy: { versionNumber: "desc" },
           include: {
-            options: true,
+            options: {orderBy: {orderIndex: "asc"}},
             media: true,
           },
         },
@@ -345,12 +368,16 @@ export class QuestionService {
       const activeVersion = q.versions[0] || q.currentPublishedVersion;
       return {
         id: q.id,
+        ownerUserId:q.ownerUserId,
+        assessmentContextId:q.assessmentContextId,
+        revision:q.revision,
+        workflowEvents:q.workflowEvents,
         code: q.code,
         lifecycleStatus: q.lifecycleStatus,
         visibilityScope: q.visibilityScope,
         version: q.version,
         createdAt: q.createdAt,
-        classifications: q.classifications,
+        classifications: q.classifications.filter(c=>!c.validatedQuestionVersionId||c.validatedQuestionVersionId===activeVersion?.id),
         activeVersion: activeVersion || null,
         versions: q.versions,
         currentPublishedVersion: q.currentPublishedVersion,
@@ -381,13 +408,13 @@ export class QuestionService {
         versions: {
           orderBy: { versionNumber: "desc" },
           include: {
-            options: true,
+            options: {orderBy: {orderIndex: "asc"}},
             media: true,
           },
         },
         currentPublishedVersion: {
           include: {
-            options: true,
+            options: {orderBy: {orderIndex: "asc"}},
             media: true,
           },
         },
@@ -398,20 +425,21 @@ export class QuestionService {
       throw new NotFoundException(`Question with ID ${id} not found`);
     }
 
-    return question;
+    const current=question.versions[0];
+    return {...question,classifications:question.classifications.filter(c=>!c.validatedQuestionVersionId||c.validatedQuestionVersionId===current?.id)};
   }
 
   async update(id: string, dto: UpdateQuestionDto) {
-    const question = await this.findOne(id);
-    const lastVersion = question.versions[0];
-
-    if (!lastVersion) {
-      throw new BadRequestException("No version history found for this question");
-    }
-
     return await this.prisma.$transaction(async (tx) => {
+      await lockQuestion(tx,id);
+      const question = await tx.question.findUnique({where:{id},include:{versions:{orderBy:{versionNumber:'desc'},include:{options:{orderBy:{orderIndex:"asc"}},media:true}}}});
+      if(!question || question.deletedAt)throw new NotFoundException();
+      const lastVersion=question.versions[0];
+      if(!lastVersion)throw new BadRequestException('No version history');
+      if(lastVersion.versionStatus==='IN_REVIEW')throw new ConflictException('Хяналтад байгаа даалгаврыг засахгүй. Эхлээд хүсэлтээ татна уу.');
+      if(dto.expectedRevision!==undefined && dto.expectedRevision!==question.revision)throw new ConflictException('Даалгавар өөрчлөгдсөн. Хуудсаа шинэчилнэ үү.');
       // A. If latest version is in DRAFT, edit it directly
-      if (lastVersion.versionStatus === "DRAFT") {
+      if (["DRAFT", "CHANGES_REQUESTED"].includes(lastVersion.versionStatus)) {
         const updatedVersion = await tx.questionVersion.update({
           where: { id: lastVersion.id },
           data: {
@@ -486,13 +514,13 @@ export class QuestionService {
 
         await tx.question.update({
           where: { id: question.id },
-          data: { updatedAt: new Date() },
+          data: { updatedAt: new Date(), revision:{increment:1} },
         });
 
         const fullUpdatedVersion = await tx.questionVersion.findUnique({
           where: { id: lastVersion.id },
           include: {
-            options: true,
+            options: {orderBy: {orderIndex: "asc"}},
             media: true,
           },
         });
@@ -501,6 +529,7 @@ export class QuestionService {
           id: question.id,
           code: question.code,
           version: question.version,
+          revision: question.revision+1,
           activeVersion: fullUpdatedVersion,
           versions: [fullUpdatedVersion],
         };
@@ -529,7 +558,7 @@ export class QuestionService {
           scoringConfig: (dto.scoringConfig as any) !== undefined ? (dto.scoringConfig as any) : lastVersion.scoringConfig,
           rubric: (dto.rubric as any) !== undefined ? (dto.rubric as any) : (lastVersion as any).rubric || {},
           presentationConfig: (dto.presentationConfig as any) !== undefined ? (dto.presentationConfig as any) : (lastVersion as any).presentationConfig || {},
-          createdBy: "system_author",
+          createdBy: dto.ownerUserId || "system_author",
         },
       });
 
@@ -588,6 +617,7 @@ export class QuestionService {
         where: { id: question.id },
         data: {
           version: nextVersionNumber,
+          revision:{increment:1},
           updatedAt: new Date(),
         },
       });
@@ -595,7 +625,7 @@ export class QuestionService {
       const fullNewVersion = await tx.questionVersion.findUnique({
         where: { id: newVersion.id },
         include: {
-          options: true,
+          options: {orderBy: {orderIndex: "asc"}},
           media: true,
         },
       });
@@ -604,6 +634,7 @@ export class QuestionService {
         id: question.id,
         code: question.code,
         version: nextVersionNumber,
+        revision: question.revision+1,
         activeVersion: fullNewVersion,
         versions: [fullNewVersion],
       };
@@ -611,14 +642,12 @@ export class QuestionService {
   }
 
   async remove(id: string) {
-    const question = await this.findOne(id);
-    return await this.prisma.question.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy: "system_author",
-        lifecycleStatus: "ARCHIVED",
-      },
+    return this.prisma.$transaction(async tx=>{
+      await lockQuestion(tx,id);
+      const q=await tx.question.findUnique({where:{id},include:{versions:{orderBy:{versionNumber:'desc'}}}});
+      if(!q)throw new NotFoundException();
+      if(q.currentPublishedVersionId||q.versions[0]?.versionStatus==='IN_REVIEW')throw new ConflictException('Хяналтад байгаа / нийтлэгдсэн даалгаврыг устгахгүй.');
+      return tx.question.update({where:{id},data:{deletedAt:new Date(),lifecycleStatus:'ARCHIVED',revision:{increment:1}}});
     });
   }
 

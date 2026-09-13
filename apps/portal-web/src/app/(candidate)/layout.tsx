@@ -46,22 +46,22 @@ export default function CandidateLayout({
   };
 
   const navLinks = [
-    { href: "/catalog", label: "Нүүр хуудас" },
+
     { href: "/my-assessments", label: "Миний үнэлгээ" },
-    { href: "/payments", label: "Төлбөрүүд" },
+    { href: "/profile", label: "Профайл" },
     { href: "/support", label: "Тусламж" },
   ];
 
   return (
     <RoleGuard allowedRoles={["candidate"]}>
       <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-        
+
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-slate-100 px-seek-6 py-3 shadow-seek-xs">
           <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-seek-4">
-            
+
             {/* Left: Logo */}
-            <Link href="/catalog" className="flex items-center gap-seek-2.5 flex-shrink-0">
+            <Link href="/my-assessments" className="flex items-center gap-seek-2.5 flex-shrink-0">
               <div className="h-9 w-9 bg-primary rounded-seek-lg flex items-center justify-center text-white">
                 <Icons.Dashboard className="h-5 w-5" />
               </div>
@@ -73,21 +73,9 @@ export default function CandidateLayout({
               </span>
             </Link>
 
-            {/* Middle: Search Box (Desktop Only) */}
-            <div className="hidden md:flex items-center flex-1 max-w-md relative mx-seek-4">
-              <div className="absolute left-seek-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-slate-400">
-                <Icons.Search className="h-4 w-4" />
-              </div>
-              <input
-                type="text"
-                placeholder="Хайлт хийх"
-                className="w-full bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white border border-slate-200/50 rounded-full py-2 pl-11 pr-seek-4 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200 transition-all"
-              />
-            </div>
-
             {/* Right: Notifications, Avatar and Mobile Menu */}
             <div className="flex items-center gap-seek-4 flex-shrink-0">
-              
+
               {/* Mobile Search Indicator icon */}
               <button type="button" className="md:hidden p-1.5 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center">
                 <div className="h-4 w-4 bg-slate-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">
@@ -97,12 +85,7 @@ export default function CandidateLayout({
 
               {/* Notification Bell */}
               <div className="relative">
-                <IconButton ariaLabel="Notifications" className="text-slate-500 hover:text-slate-800 p-1.5 rounded-full hover:bg-slate-50 relative">
-                  <Icons.Settings className="h-5 w-5" /> {/* Bell representation */}
-                  <span className="absolute -top-1 -right-1 bg-danger text-white rounded-full text-[9px] font-bold px-1.5 py-0.5 shadow-seek-xs">
-                    5
-                  </span>
-                </IconButton>
+
               </div>
 
               {/* User Avatar dropdown */}
@@ -145,20 +128,6 @@ export default function CandidateLayout({
                         className="flex items-center justify-between rounded-seek-lg px-seek-3 py-seek-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         Тохиргоо
-                      </Link>
-                      <Link
-                        href="/wallet"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center justify-between rounded-seek-lg px-seek-3 py-seek-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        Хэтэвч
-                      </Link>
-                      <Link
-                        href="/certificates"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center justify-between rounded-seek-lg px-seek-3 py-seek-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        Сертификат
                       </Link>
                       <button
                         type="button"

@@ -4,6 +4,7 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from "@nestjs/common";
 import { createHash } from "crypto";
 import Redis from "ioredis";
@@ -38,6 +39,16 @@ export class ExecutionService {
     @Inject("REDIS_CLIENT")
     private readonly redis: Redis | null
   ) {}
+
+  private locked<T>(id: string, action: (service: ExecutionService) => Promise<T>): Promise<T> {
+    if (!this.stateStore.withAttemptLock) return action(this);
+    return this.stateStore.withAttemptLock(id, store => {
+      const publisher = store.enqueueEvent ? new Proxy(this.eventPublisher, {
+        get: (_, method: string) => (payload: Record<string, any>) => store.enqueueEvent!(method, payload),
+      }) : this.eventPublisher;
+      return action(new ExecutionService(store, publisher, this.sseService, this.redis));
+    });
+  }
 
   private createEventId(prefix: string): string {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -323,8 +334,9 @@ export class ExecutionService {
       throw new NotFoundException(`Attempt session ${attemptId} not found`);
     }
 
+    if(session.status === "active" && this.redis) (session as any).unlockKey = await this.redis.get(`unlock:${attemptId}`);
     const snapshot = await this.stateStore.getAnswers(attemptId);
-    const questions = await this.stateStore.getQuestions(attemptId);
+    const questions = session.status === "active" ? await this.stateStore.getQuestions(attemptId) : [];
 
     return {
       session,
@@ -398,7 +410,7 @@ export class ExecutionService {
         {
           instructionHash: body.instructionHash,
           policyVersion: body.policyVersion || "v1",
-          acceptedBy: body.acceptedBy || session.userId,
+          acceptedBy: session.userId,
         },
         idempotencyKey
       );
@@ -408,6 +420,13 @@ export class ExecutionService {
   }
 
   async startAttempt(
+    attemptId: string,
+    body?: { idempotencyKey?: string; clientNow?: string; deviceFingerprint?: string }
+  ): Promise<StartAssessmentAttemptResponse> {
+    return this.locked(attemptId, service => service.startAttemptLocked(attemptId, body));
+  }
+
+  private async startAttemptLocked(
     attemptId: string,
     body?: { idempotencyKey?: string; clientNow?: string; deviceFingerprint?: string }
   ): Promise<StartAssessmentAttemptResponse> {
@@ -421,6 +440,16 @@ export class ExecutionService {
       throw new BadRequestException("Attempt is not ready to start yet");
     }
 
+    if (["submitted", "expired", "locked", "cancelled", "invalidated"].includes(session.status)) {
+      throw new ConflictException("Энэ шалгалтыг дахин эхлүүлэх боломжгүй.");
+    }
+    if (session.status === "active") {
+      if (Date.now() >= new Date(session.endsAt).getTime()) throw new ConflictException("Шалгалтын хугацаа дууссан.");
+      const key = this.redis ? await this.redis.get(`unlock:${attemptId}`) : null;
+      return {attemptId, quizId: session.quizId, status: "active", unlockKey: key || `unlock-${attemptId}`, serverNow: new Date().toISOString()};
+    }
+    if (session.scheduledEndsAt && Date.now() >= new Date(session.scheduledEndsAt).getTime()) throw new ConflictException("Шалгалтын хуваарь хаагдсан.");
+    if (process.env.NODE_ENV === "production" && !(await this.stateStore.getAuditEvents(attemptId, "InstructionsAcknowledged")).length) throw new BadRequestException("Шалгалтын заавартай танилцаж зөвшөөрнө үү.");
     if (body?.deviceFingerprint) {
       (session as any).deviceFingerprintHash = body.deviceFingerprint;
     }
@@ -430,7 +459,7 @@ export class ExecutionService {
       session.status = "active";
       session.startsAt = new Date().toISOString();
       session.endsAt = new Date(
-        Date.now() + session.durationSeconds * 1000
+        Math.min(Date.now() + session.durationSeconds * 1000, session.scheduledEndsAt ? new Date(session.scheduledEndsAt).getTime() : Infinity)
       ).toISOString();
       await this.stateStore.saveSession(session);
       await this.appendAuditEvent(
@@ -474,6 +503,12 @@ export class ExecutionService {
   }
 
   async heartbeat(
+    request: AssessmentHeartbeatRequest
+  ): Promise<AssessmentHeartbeatResponse> {
+    return this.locked(request.attemptId, service => service.heartbeatLocked(request));
+  }
+
+  private async heartbeatLocked(
     request: AssessmentHeartbeatRequest
   ): Promise<AssessmentHeartbeatResponse> {
     const session = await this.stateStore.getSession(request.attemptId);
@@ -552,6 +587,12 @@ export class ExecutionService {
   async autosave(
     request: AssessmentAutosaveRequest
   ): Promise<AssessmentAutosaveResponse> {
+    return this.locked(request.attemptId, service => service.autosaveLocked(request));
+  }
+
+  private async autosaveLocked(
+    request: AssessmentAutosaveRequest
+  ): Promise<AssessmentAutosaveResponse> {
     const session = await this.stateStore.getSession(request.attemptId);
     if (!session) {
       throw new NotFoundException(`Attempt session ${request.attemptId} not found`);
@@ -593,8 +634,11 @@ export class ExecutionService {
       };
     }
 
-    if (request.localVersion <= snapshot.serverVersion) {
-      // Out of order or already saved version, return current server status
+    if (!Number.isSafeInteger(request.localVersion) || request.localVersion < 0) throw new BadRequestException("Invalid answer sequence");
+    if (request.localVersion < snapshot.localVersion) throw new ConflictException("Хариултын хуучин хувилбар ирсэн. Дахин ачаална уу.");
+    if (request.localVersion === snapshot.localVersion) {
+      if(Object.entries(request.changedAnswers || {}).some(([id,value])=>JSON.stringify(snapshot.answers[id])!==JSON.stringify(value))) throw new ConflictException("Өөр цонхноос хариулт өөрчлөгдсөн. Дахин ачаална уу.");
+      // Exact replay of the acknowledged sequence.
       return {
         attemptId: request.attemptId,
         accepted: true,
@@ -603,6 +647,8 @@ export class ExecutionService {
       };
     }
 
+    const allowedIds = new Set(session.manifest.map(q => q.id));
+    if (!request.changedAnswers || typeof request.changedAnswers !== "object" || Array.isArray(request.changedAnswers) || Object.keys(request.changedAnswers).some(id => !allowedIds.has(id))) throw new BadRequestException("Invalid answers");
     // Apply changed answers
     const updatedAnswers = {
       ...snapshot.answers,
@@ -703,6 +749,12 @@ export class ExecutionService {
   async submit(
     request: AssessmentSubmitRequest
   ): Promise<AssessmentSubmitResponse> {
+    return this.locked(request.attemptId, service => service.submitLocked(request));
+  }
+
+  private async submitLocked(
+    request: AssessmentSubmitRequest
+  ): Promise<AssessmentSubmitResponse> {
     const session = await this.stateStore.getSession(request.attemptId);
     if (!session) {
       throw new NotFoundException(`Attempt session ${request.attemptId} not found`);
@@ -779,7 +831,17 @@ export class ExecutionService {
     }
 
     const snapshot = await this.stateStore.getAnswers(request.attemptId);
-    const finalAnswers = request.finalSnapshot.answers;
+    if (!["active", "expired"].includes(session.status)) throw new ConflictException("Шалгалт эхлээгүй байна.");
+    if (remainingSeconds > 0 && session.status === "active") {
+      if (!request.finalSnapshot || !Number.isSafeInteger(request.finalSnapshot.localVersion) || !request.finalSnapshot.answers || typeof request.finalSnapshot.answers !== "object" || Array.isArray(request.finalSnapshot.answers)) throw new BadRequestException("Invalid submission snapshot");
+      if (snapshot && request.finalSnapshot.localVersion < snapshot.localVersion) throw new ConflictException("Хариултын хуучин хувилбар ирсэн. Дахин ачаална уу.");
+      if (snapshot && request.finalSnapshot.localVersion === snapshot.localVersion && this.hashPayload(request.finalSnapshot.answers) !== this.hashPayload(snapshot.answers)) throw new ConflictException("Ижил хувилбарт өөр хариулт ирсэн. Дахин ачаална уу.");
+    }
+    // Expiry can finalize only answers already acknowledged by the server.
+    const finalAnswers = remainingSeconds <= 0 || session.status === "expired"
+      ? (snapshot?.answers || {}) : request.finalSnapshot.answers;
+    const allowedIds = new Set(session.manifest.map(q => q.id));
+    if (Object.keys(finalAnswers).some(id => !allowedIds.has(id))) throw new BadRequestException("Unknown question in submission");
     const totalQuestions = session.manifest.length;
     const answeredCount = Object.keys(finalAnswers).filter(
       (k) => finalAnswers[k] !== null
@@ -811,7 +873,8 @@ export class ExecutionService {
         answeredCount,
         totalQuestions,
         receiptId,
-        finalSnapshotHash: this.hashPayload(request.finalSnapshot),
+        finalSnapshotHash: this.hashPayload({...request.finalSnapshot, answers:finalAnswers}),
+        newStatus: "submitted",
       },
       request.idempotencyKey
     );
@@ -823,7 +886,7 @@ export class ExecutionService {
       submittedAt: request.submittedAt,
       serverSubmittedAt,
       reason: request.reason,
-      finalSnapshot: request.finalSnapshot,
+      finalSnapshot: {...request.finalSnapshot, answers: finalAnswers},
     });
 
     // Request evaluation/scoring job
@@ -846,6 +909,12 @@ export class ExecutionService {
   }
 
   async recordViolation(
+    violation: AssessmentRuntimeViolation
+  ): Promise<{ accepted: boolean }> {
+    return this.locked(violation.attemptId, service => service.recordViolationLocked(violation));
+  }
+
+  private async recordViolationLocked(
     violation: AssessmentRuntimeViolation
   ): Promise<{ accepted: boolean }> {
     const session = await this.stateStore.getSession(violation.attemptId);

@@ -93,10 +93,18 @@ const navItems: Array<{
     icon: Icons.Menu,
     roles: ["assessor"],
   },
+  {href:"/admin/candidate-assessments",labelKey:"nav.candidateAssessments" as any,icon:Icons.Check,roles:["super_admin"]},
+  {href:"/admin/candidate-results",labelKey:"nav.candidateResults" as any,icon:Icons.Check,roles:["super_admin"]},
   {
     href: "/admin/questions",
     labelKey: "nav.adminQuestions" as any,
     icon: Icons.Check,
+    roles: ["super_admin"],
+  },
+  {
+    href: "/admin/quizzes",
+    labelKey: "nav.quizzes",
+    icon: Icons.ListChecks,
     roles: ["super_admin"],
   },
   {
@@ -212,6 +220,10 @@ const navItems: Array<{
 ];
 
 function isActivePath(pathname: string, href: string) {
+  if (/^\/assessor\/context\/[^/]+\/blueprints(?:\/|$)/.test(pathname)) {
+    if (href === "/assessor/blueprints") return true;
+    if (href === "/assessor/context") return false;
+  }
   return (
     pathname === href ||
     (!href.endsWith("/dashboard") && pathname.startsWith(href))

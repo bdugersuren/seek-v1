@@ -1,23 +1,19 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req } from "@nestjs/common";
+import { actorFrom, transitionQuestion } from "./question-workflow";
+import { PrismaService } from "./prisma.service";
 import { AssessmentWorkflowService } from "./assessment-workflow.service";
 
 @Controller("assessment")
 export class AssessmentWorkflowController {
-  constructor(private readonly workflowService: AssessmentWorkflowService) {}
+  constructor(private readonly workflowService: AssessmentWorkflowService, private readonly db: PrismaService) {}
 
   @Post("questions/:questionId/workflow")
   async questionWorkflow(
     @Param("questionId") questionId: string,
-    @Body()
-    body: {
-      action: string;
-      newStatus: string;
-      comment?: string;
-      actorUserId: string;
-      metadata?: Record<string, unknown>;
-    }
+    @Body() body: any,
+    @Req() req: any,
   ) {
-    return await this.workflowService.transition("question", questionId, body);
+    return transitionQuestion(this.db, questionId, body, actorFrom(req));
   }
 
   @Get("questions/:questionId/workflow")
@@ -38,29 +34,6 @@ export class AssessmentWorkflowController {
     }
   ) {
     return await this.workflowService.transition("blueprint", blueprintId, body);
-  }
-
-  @Post("quizzes/:quizId/workflow")
-  async quizWorkflow(
-    @Param("quizId") quizId: string,
-    @Body()
-    body: {
-      action: string;
-      newStatus: string;
-      comment?: string;
-      actorUserId: string;
-      metadata?: Record<string, unknown>;
-    }
-  ) {
-    return await this.workflowService.transition("quiz", quizId, body);
-  }
-
-  @Post("schedules/:scheduleId/publish")
-  async publishSchedule(
-    @Param("scheduleId") scheduleId: string,
-    @Body() body: { actorUserId: string; publishedRevisionHash?: string }
-  ) {
-    return await this.workflowService.publishSchedule(scheduleId, body);
   }
 
   @Get("schedules/:scheduleId/publication")

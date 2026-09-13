@@ -10,6 +10,9 @@ export interface AttemptAuditEvent {
 }
 
 export interface AttemptStateStore {
+  withAttemptLock?<T>(attemptId: string, action: (store: AttemptStateStore) => Promise<T>): Promise<T>;
+  enqueueEvent?(method: string, payload: Record<string, any>): Promise<void>;
+
   getSession(attemptId: string): Promise<AssessmentRuntimeSession | null>;
   saveSession(session: AssessmentRuntimeSession): Promise<void>;
   getAnswers(attemptId: string): Promise<AssessmentAnswerSnapshot | null>;

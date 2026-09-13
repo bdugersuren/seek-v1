@@ -39,6 +39,8 @@ export default function WaitingRoomPage() {
     };
   }, [attempt, now]);
 
+  if(runtime.recovering) return <RuntimeShell title="Ачаалж байна…" subtitle="Шалгалтын мэдээллийг шалгаж байна"><p role="status">Түр хүлээнэ үү.</p></RuntimeShell>;
+  if(runtime.loadError) return <RuntimeShell title="Шалгалтад холбогдож чадсангүй" subtitle=""><p role="alert">{runtime.loadError}</p><a href="https://seek.mn/my-assessments">Миний үнэлгээ рүү буцах</a><Button onClick={()=>window.location.reload()}>Дахин оролдох</Button></RuntimeShell>;
   if (!runtime.isKnownAttempt || !attempt) {
     return (
       <RuntimeShell title="Attempt олдсонгүй" subtitle="Runtime session шалгаж байна.">
@@ -52,7 +54,7 @@ export default function WaitingRoomPage() {
   return (
     <RuntimeShell
       title="Шалгалтын хүлээлгийн өрөө"
-      subtitle="Хуваарь, readiness, заавартай танилцаад эхлэх цагийг хүлээнэ."
+      subtitle="Хуваарь болон заавартай танилцаад шалгалтаа эхлүүлнэ үү."
     >
       <div className="space-y-seek-4">
         <Card className="p-seek-5">
@@ -130,21 +132,21 @@ export default function WaitingRoomPage() {
               <Text className="text-xl font-bold">Readiness</Text>
               <div className="mt-seek-4 space-y-seek-3">
                 <ReadinessRow
-                  label="Attempt entitlement"
+                  label="Оролцох эрх"
                   ok
-                  detail="Session баталгаажсан"
+                  detail="Таны шалгалт баталгаажсан"
                 />
                 <ReadinessRow
-                  label="Encrypted payload preload"
+                  label="Шалгалтын бэлтгэл"
                   ok={runtime.payloadPreloaded}
                   detail={
                     runtime.payloadPreloaded
-                      ? "Payload татагдсан, unlock key хүлээж байна"
-                      : "Payload татаж байна..."
+                      ? "Шалгалтын мэдээлэл бэлэн"
+                      : "Шалгалтыг бэлтгэж байна…"
                   }
                 />
                 <ReadinessRow
-                  label="Start countdown"
+                  label="Эхлэх цаг"
                   ok={Boolean(schedule?.startReady)}
                   detail={
                     schedule?.startReady
@@ -153,12 +155,12 @@ export default function WaitingRoomPage() {
                   }
                 />
                 <ReadinessRow
-                  label="Instruction confirmation"
+                  label="Заавартай танилцах"
                   ok={acceptedInstructions}
                   detail={
                     acceptedInstructions
                       ? "Заавартай танилцсан"
-                      : "Checkbox зөвшөөрөх шаардлагатай"
+                      : "Зааврыг уншаад зөвшөөрнө үү"
                   }
                 />
               </div>
@@ -176,13 +178,12 @@ export default function WaitingRoomPage() {
                   label="Үргэлжлэх хугацаа"
                   value={`${Math.round(attempt.session.durationSeconds / 60)} минут`}
                 />
-                <SummaryRow label="Autosubmit" value="Идэвхтэй" />
+                <SummaryRow label="Хугацаа дуусахад автоматаар илгээх" value="Идэвхтэй" />
               </div>
             </Card>
 
-            <RuntimeNotice title="Secure start model">
-              Асуултын payload урьдчилан кодлогдож татагдана. Эхлэх мөчид unlock
-              key ирсний дараа runtime нээгдэнэ.
+            <RuntimeNotice title="Асуултууд хэзээ нээгдэх вэ?">
+              Эхлэх цаг болж, та зааврыг зөвшөөрч шалгалтаа эхлүүлсний дараа асуултууд нээгдэнэ.
             </RuntimeNotice>
 
             <Card className="p-seek-4">
@@ -211,7 +212,7 @@ export default function WaitingRoomPage() {
                 variant="secondary"
                 onClick={runtime.requestFullscreen}
               >
-                Fullscreen асаах
+                Бүтэн дэлгэц болгох
               </Button>
               <Button
                 type="button"
@@ -224,7 +225,7 @@ export default function WaitingRoomPage() {
                 }
                 onClick={runtime.startAttempt}
               >
-                {runtime.starting ? "Эхлүүлж байна" : "Start event илгээх"}
+                {runtime.starting ? "Эхлүүлж байна" : "Зааврыг зөвшөөрч эхлүүлэх"}
               </Button>
               <Link
                 href={`/take/${attempt.session.attemptId}`}
@@ -233,7 +234,7 @@ export default function WaitingRoomPage() {
                 <Button
                   type="button"
                   className="w-full"
-                  disabled={!runtime.canStart || !acceptedInstructions}
+                  disabled={attempt.session.status !== "active" || !acceptedInstructions}
                 >
                   Шалгалт эхлүүлэх
                 </Button>

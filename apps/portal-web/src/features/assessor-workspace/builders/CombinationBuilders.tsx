@@ -227,8 +227,8 @@ export function CombinationMatchingBuilder({
                     className="flex-1 rounded-seek-md border border-border bg-surface px-seek-2 py-1 text-xs outline-none focus:border-primary text-slate-700"
                   >
                     <option value="">Сонгоно уу</option>
-                    {rightItems.map((r) => (
-                      <option key={r.id} value={r.id}>{r.id}</option>
+                    {rightItems.map((r,ri) => (
+                      <option key={r.id} value={r.id}>R{ri+1}. {r.value.replace(/<[^>]*>/g, "").slice(0,60)}</option>
                     ))}
                   </select>
                 </div>

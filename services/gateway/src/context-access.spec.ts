@@ -6,6 +6,10 @@ describe('Production assessor gateway routing',()=>{
  beforeAll(()=>{process.env.NODE_ENV='production';});
  afterAll(()=>{process.env.NODE_ENV=previous;});
  test.each([
+  ['POST','/api/v1/assessment/quizzes/id/revisions','ASSESSOR',0],
+  ['POST','/api/v1/assessment/quizzes/id/preview','ASSESSOR',0],
+  ['POST','/api/v1/assessment/quizzes/id/workflow','ASSESSOR',0],
+  ['GET','/api/v1/assessment/quizzes/id/workflow','ASSESSOR',0],
   ['GET','/api/v1/assessment/questions/metadata/assessment-contexts','ASSESSOR',0],
   ['GET','/api/v1/assessment/questions/metadata/audience-types','ASSESSOR',0],
   ['POST','/api/v1/assessment/questions','ASSESSOR',0],

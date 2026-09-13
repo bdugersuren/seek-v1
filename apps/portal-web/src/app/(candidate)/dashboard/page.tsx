@@ -40,6 +40,8 @@ export default function DashboardPage() {
   const role = (user?.role || "assessor") as PortalRole;
   const dashboard = useMemo(() => roleDashboards[role], [role]);
 
+  if (role === "candidate") return <PageContainer><PageTitle title="Миний шалгалтууд" subtitle="Танд оноосон шалгалт, хадгалсан явц болон нийтэлсэн дүнгээ харна уу."/><Button as={Link} href="/my-assessments">Миний шалгалтуудыг нээх</Button></PageContainer>;
+
   return (
     <PageContainer>
       <div className="flex flex-col gap-seek-4 lg:flex-row lg:items-start lg:justify-between">

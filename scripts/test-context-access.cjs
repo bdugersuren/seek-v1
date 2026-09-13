@@ -6,7 +6,10 @@ process.env.ASSESSMENT_DATABASE_URL=input.databaseUrl;
 const r=createRequire('/app/services/assessment/package.json'),{PrismaClient}=r('./generated/prisma-client');
 const p=new PrismaClient(),key='ACCESS_'+Date.now();let a,d,g,f,c,c2,t,dl,cl;const qids=[],bids=[],quizIds=[];
 const base='http://gateway:3010/api/v1';
-async function api(token,path,method='GET',body){const res=await fetch(base+path,{method,headers:{authorization:'Bearer '+token,Origin:'https://seek.mn','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return {status:res.status,data:await res.json().catch(()=>null)};}
+async function api(token,path,method='GET',body){
+ if(body&&method==='POST'&&path.endsWith('/workflow')&&body.expectedRevision===undefined){const current=await api(token,path.replace(/\/workflow$/,''));if(current.status===200)body={...body,questionVersionId:current.data.versions[0].id,expectedRevision:current.data.revision,requestId:require('crypto').randomUUID()};}
+ if(body&&method==='PUT'&&/\/questions\/[^/]+$/.test(path)&&body.expectedRevision===undefined){const current=await api(token,path);if(current.status===200)body={...body,expectedRevision:current.data.revision};}
+const res=await fetch(base+path,{method,headers:{authorization:'Bearer '+token,Origin:'https://seek.mn','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return {status:res.status,data:await res.json().catch(()=>null)};}
 async function login(credentials){const res=await fetch(base+'/auth/login',{method:'POST',headers:{Origin:'https://seek.mn','Content-Type':'application/json'},body:JSON.stringify(credentials)});assert.equal(res.status,201);return (await res.json()).accessToken;}
 (async()=>{
  a=await p.audienceType.create({data:{code:key,name:key}});d=await p.difficultyScale.create({data:{code:key,name:key}});g=await p.cognitiveFramework.create({data:{code:key,name:key}});f=await p.competenceFramework.create({data:{code:key,name:key,version:'1'}});
@@ -34,23 +37,69 @@ async function login(credentials){const res=await fetch(base+'/auth/login',{meth
  const mapping={topicId:t.id,assessmentContextId:c.id,difficulty:dl.id,bloomLevel:cl.id,weight:1};
  assert.equal((await api(assessor,'/assessment/questions/'+draft.id,'PUT',{topicMappings:[mapping]})).status,200);
  assert.equal(await p.topicQuestionClassification.count({where:{questionId:draft.id}}),1);
- res=await api(assessor,'/assessment/questions','POST',{code:key,body:'Test',type:'SHORT_TEXT',ownerUserId:'spoofed',topicMappings:[mapping]});assert.equal(res.status,201,JSON.stringify(res.data));const q=res.data;qids.push(q.id);assert.equal((await p.question.findUnique({where:{id:q.id}})).ownerUserId,user.id);
+ res=await api(assessor,'/assessment/questions','POST',{code:key,title:'Review fixture',body:'Test',type:'SHORT_TEXT',answerConfig:{answerKey:'answer'},ownerUserId:'spoofed',topicMappings:[mapping]});assert.equal(res.status,201,JSON.stringify(res.data));const q=res.data;qids.push(q.id);assert.equal((await p.question.findUnique({where:{id:q.id}})).ownerUserId,user.id);
  res=await api(assessor,'/assessment/questions?assessmentContextId='+c.id+'&ownerUserId=spoofed');assert.equal(res.status,200);assert(res.data.some(x=>x.id===q.id),'own question survives client owner filter');
  assert.equal((await api(assessor,'/assessment/questions/'+q.id,'PUT',{topicMappings:[{...mapping,assessmentContextId:c2.id}]})).status,403);assert.equal((await api(assessor,'/assessment/questions/'+q.id,'PUT',{body:'Updated'})).status,200);
  const other=await p.question.create({data:{code:key+'_OTHER',createdBy:'other',ownerUserId:'other',assessmentContextId:c.id}});qids.push(other.id);assert.equal((await api(assessor,'/assessment/questions/'+other.id)).status,403);
  assert.equal((await api(assessor,'/assessment/questions/'+q.id+'/workflow','POST',{action:'approve',newStatus:'approved',actorUserId:'fake'})).status,403);assert.equal((await api(assessor,'/assessment/questions/'+q.id+'/workflow','POST',{action:'approval_requested',newStatus:'pending',actorUserId:'fake'})).status,201);assert.equal((await p.questionWorkflowEvent.findFirst({where:{questionId:q.id}})).actorUserId,user.id);
+ // Full review lifecycle and optimistic concurrency.
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id)).data.versions[0].versionStatus,'IN_REVIEW');
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id+'/workflow','POST',{action:'withdraw'})).status,201);
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id+'/workflow','POST',{action:'approval_requested'})).status,201);
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id,'PUT',{body:'Must not edit'})).status,409);
+ assert.equal((await api(admin,'/assessment/questions/'+q.id+'/workflow','POST',{action:'changes_requested'})).status,400);
+ assert.equal((await api(admin,'/assessment/questions/'+q.id+'/workflow','POST',{action:'changes_requested',comment:'Clarify the wording'})).status,201);
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id,'PUT',{body:'Clarified wording'})).status,200);
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id+'/workflow','POST',{action:'resubmitted'})).status,201);
+ const inReview=(await api(admin,'/assessment/questions/'+q.id)).data;
+ const approveBody={action:'approve',actorUserId:'spoofed',questionVersionId:inReview.versions[0].id,expectedRevision:inReview.revision,requestId:require('crypto').randomUUID()};
+ const concurrent=await Promise.all([api(admin,'/assessment/questions/'+q.id+'/workflow','POST',approveBody),api(admin,'/assessment/questions/'+q.id+'/workflow','POST',{...approveBody,requestId:require('crypto').randomUUID()})]);
+ assert.deepEqual(concurrent.map(x=>x.status).sort(),[201,409]);
+ const winning=concurrent.find(x=>x.status===201).data;
+ assert.equal((await api(admin,'/assessment/questions/'+q.id+'/workflow','POST',{...approveBody,requestId:winning.requestId})).status,201);
+ assert.notEqual(winning.actorUserId,'spoofed');assert.equal(winning.questionVersionId,inReview.versions[0].id);
+ assert.equal((await p.question.findUnique({where:{id:q.id}})).currentPublishedVersionId,null);
+ const queue=await api(admin,'/assessment/questions?review=true&status=APPROVED&search='+key);assert.equal(queue.status,200);assert(queue.data.items.some(x=>x.id===q.id));
  res=await api(assessor,'/assessment/blueprints','POST',{name:key,code:key,assessmentContextId:c.id,sections:[{name:'Section',randomPickCount:1,pointsPerQuestion:1,selectedQuestionIds:[q.id]}]});assert.equal(res.status,201,JSON.stringify(res.data));const b=res.data;bids.push(b.id);assert.equal((await api(assessor,'/assessment/blueprints/'+b.id,'PUT',{assessmentContextId:c2.id})).status,403);
- res=await api(assessor,'/assessment/quizzes','POST',{title:key,blueprintId:b.id,durationMinutes:10});assert.equal(res.status,201,JSON.stringify(res.data));quizIds.push(res.data.id);assert.equal((await p.quizRevision.findFirst({where:{quizId:res.data.id}})).assessmentContextId,c.id);assert.equal((await api(assessor,'/assessment/quizzes/'+res.data.id)).status,200);
+ assert.equal((await api(assessor,'/assessment/quizzes','POST',{title:key,blueprintId:b.id,durationMinutes:10})).status,400);
+ assert.equal((await api(admin,'/assessment/questions/'+q.id+'/workflow','POST',{action:'publish'})).status,201);
+ const published=(await api(assessor,'/assessment/questions/'+q.id)).data;
+ assert.equal(published.currentPublishedVersion.versionStatus,'PUBLISHED');
+ res=await api(assessor,'/assessment/quizzes','POST',{title:key,blueprintId:b.id,durationMinutes:10});assert.equal(res.status,201,JSON.stringify(res.data));quizIds.push(res.data.id);assert.equal((await api(assessor,'/assessment/blueprints/'+b.id,'DELETE')).status,409);assert(await p.quizTemplate.findUnique({where:{id:b.id}}));assert.equal((await p.quizRevision.findFirst({where:{quizId:res.data.id}})).assessmentContextId,c.id);assert.equal((await api(assessor,'/assessment/quizzes/'+res.data.id)).status,200);
+ const frozen=await p.questionVersion.findUnique({where:{id:published.currentPublishedVersionId}});
+ assert.equal((await api(assessor,'/assessment/questions/'+q.id,'PUT',{body:'Version two',topicMappings:[mapping]})).status,200);
+ const v2=(await api(assessor,'/assessment/questions/'+q.id)).data;assert.equal(v2.versions[0].versionNumber,2);assert.equal(v2.currentPublishedVersionId,published.currentPublishedVersionId);
+ assert.deepEqual((await p.questionVersion.findUnique({where:{id:frozen.id}})).classificationSnapshot,frozen.classificationSnapshot);
+ assert.equal(await p.topicQuestionClassification.count({where:{questionId:q.id,validatedQuestionVersionId:frozen.id}}),1);
+ assert.equal((await p.quizRevisionQuestion.findFirst({where:{questionId:q.id}})).questionVersionId,frozen.id);
+ const adminUser=users.data.find(u=>u.email===input.admin.email);
+ const own=await p.question.create({data:{code:key+'_SELF',ownerUserId:adminUser.id,createdBy:adminUser.id,assessmentContextId:c.id,versions:{create:{versionNumber:1,versionStatus:'IN_REVIEW',type:'SHORT_TEXT',body:'Self',createdBy:adminUser.id,tags:[]}}}});qids.push(own.id);
+ assert.equal((await api(admin,'/assessment/questions/'+own.id+'/workflow','POST',{action:'approve'})).status,403);
  await p.assessmentContext.update({where:{id:c.id},data:{isActive:false}});assert(!(await api(assessor,listPath)).data.some(x=>x.id===c.id));await p.assessmentContext.update({where:{id:c.id},data:{isActive:true}});
- assert.equal((await api(admin,'/assessment/context-access/'+c.id+'/'+user.id,'DELETE')).status,200);assert.equal((await api(assessor,'/assessment/questions/'+q.id)).status,403);assert.equal((await api(assessor,'/assessment/blueprints/'+b.id)).status,403);assert(!(await api(assessor,listPath)).data.some(x=>x.id===c.id));
+ res=await api(assessor,'/assessment/blueprints','POST',{name:key+'_DELETE',code:key+'_DELETE',assessmentContextId:c.id,sections:[{name:'Disposable section',randomPickCount:1,pointsPerQuestion:1,selectedQuestionIds:[q.id]}]});assert.equal(res.status,201,JSON.stringify(res.data));const disposable=res.data;bids.push(disposable.id);
+ assert.equal((await api(assessor,'/assessment/blueprints/'+disposable.id,'DELETE')).status,200);
+ assert.equal(await p.quizTemplate.count({where:{id:disposable.id}}),0);assert.equal(await p.quizSection.count({where:{templateId:disposable.id}}),0);assert(await p.question.findUnique({where:{id:q.id}}));
+ assert.equal((await api(admin,'/assessment/blueprints/'+disposable.id,'DELETE')).status,404);
+ assert.equal((await api(admin,'/assessment/context-access/'+c.id+'/'+user.id,'DELETE')).status,200);assert.equal((await api(assessor,'/assessment/questions/'+q.id)).status,403);assert.equal((await api(assessor,'/assessment/blueprints/'+b.id)).status,403);assert.equal((await api(assessor,'/assessment/blueprints/'+b.id,'DELETE')).status,403);assert(!(await api(assessor,listPath)).data.some(x=>x.id===c.id));
  assert.equal((await api(assessor,'/assessment/questions/'+draft.id)).status,403);
- console.log('PASS API: grants/revocation, isolation, ownership, draft CRUD, workflow permissions');
+ console.log('PASS API: complete review lifecycle, concurrency, idempotency, ownership, published version pinning, draft quiz rejection, grants and revocation');
  if(input.apiOnly) return;
  const {chromium}=require('@playwright/test');assert.equal((await require('dns').promises.lookup('seek.mn')).address,input.verificationAddress);
  const browser=await chromium.launch({headless:true});try{
   async function pageFor(credentials,path){const context=await browser.newContext({ignoreHTTPSErrors:true});const page=await context.newPage();await page.goto('https://seek.mn/login');await page.locator('input[type=email]').fill(credentials.email);await page.locator('input[type=password]').fill(credentials.password);await page.locator('button[type=submit]').click();await page.waitForURL(url=>!url.pathname.endsWith('/login'));await page.goto('https://seek.mn'+path);return page;}
   const adm=await pageFor(input.admin,'/superadmin/assessment-contexts');await adm.getByText(key,{exact:true}).first().click();await adm.getByRole('combobox',{name:'ASSESSOR хэрэглэгч сонгох'}).selectOption(user.id);await adm.getByRole('button',{name:'Эрх оноох',exact:true}).click();await adm.getByRole('button',{name:'Эрх цуцлах',exact:true}).waitFor();
   const assess=await pageFor(input.assessor,'/assessor/context');await assess.getByRole('link').filter({hasText:key}).first().click();await assess.waitForLoadState('networkidle');assert(!await assess.getByRole('alert').filter({hasText:'эрх хүрэлцэхгүй'}).count());assert(assess.url().includes(c.id));assert.equal(await assess.locator('a[href="/admin/metadata/topics"]').count(),0);assert.equal(await assess.locator('a[href="/assessor/db-management"]').count(),0);await assess.screenshot({path:'/tmp/context-access-dashboard.png',fullPage:true});
+  res=await api(assessor,'/assessment/blueprints','POST',{name:key+'_BROWSER_DELETE',code:key+'_BROWSER_DELETE',assessmentContextId:c.id,sections:[]});assert.equal(res.status,201);const browserBlueprint=res.data;bids.push(browserBlueprint.id);
+  await assess.goto('https://seek.mn/assessor/context/'+c.id+'/blueprints');
+  const deleteButton=assess.getByRole('button',{name:'Устгах: '+browserBlueprint.name,exact:true});await deleteButton.waitFor();
+  assess.once('dialog',dialog=>dialog.dismiss());await deleteButton.click();assert(await p.quizTemplate.findUnique({where:{id:browserBlueprint.id}}));
+  assess.once('dialog',dialog=>dialog.accept());const deletedResponse=assess.waitForResponse(r=>r.url().endsWith('/blueprints/'+browserBlueprint.id)&&r.request().method()==='DELETE');await deleteButton.click();assert.equal((await deletedResponse).status(),200);await deleteButton.waitFor({state:'detached'});
+  await assess.reload();await assess.waitForLoadState('networkidle');assert.equal(await assess.getByRole('button',{name:'Устгах: '+browserBlueprint.name,exact:true}).count(),0);
+  res=await api(assessor,'/assessment/blueprints','POST',{name:key+'_GLOBAL_DELETE',code:key+'_GLOBAL_DELETE',assessmentContextId:c.id,sections:[]});assert.equal(res.status,201);const globalBlueprint=res.data;bids.push(globalBlueprint.id);
+  await assess.goto('https://seek.mn/assessor/blueprints');await assess.getByRole('button',{name:'Устгах: '+globalBlueprint.name,exact:true}).waitFor();
+  await assess.getByRole('button',{name:'Жагсаалт',exact:true}).click();
+  assess.once('dialog',dialog=>dialog.accept());const globalDeleted=assess.waitForResponse(r=>r.url().endsWith('/blueprints/'+globalBlueprint.id)&&r.request().method()==='DELETE');await assess.getByRole('button',{name:'Устгах: '+globalBlueprint.name,exact:true}).click();assert.equal((await globalDeleted).status(),200);assert.equal(await p.quizTemplate.count({where:{id:globalBlueprint.id}}),0);
+  console.log('PASS blueprint deletion: confirmation cancel/accept, refresh, used quiz protection, question preservation and revoked access');
   await assess.goto('https://seek.mn/assessor/context/'+c.id+'/question-bank');
   await assess.getByRole('button',{name:'+ Даалгавар нэмэх',exact:true}).click();
   const createdPromise=assess.waitForResponse(r=>r.url().endsWith('/api/v1/assessment/questions')&&r.request().method()==='POST');
@@ -65,13 +114,43 @@ async function login(credentials){const res=await fetch(base+'/auth/login',{meth
   assert.equal((await p.question.findUnique({where:{id:created.id}})).assessmentContextId,c.id);
   assert.equal(await p.topicQuestionClassification.count({where:{questionId:created.id}}),0);
   await assess.screenshot({path:'/tmp/question-draft-editor.png',fullPage:true});
+  // A real author clicks Submit, then a different administrator reviews it.
+  assert.equal((await api(assessor,'/assessment/questions/'+created.id,'PUT',{title:'Browser review '+key,body:'Which option?',explanation:'Explanation',payload:{options:[{optionKey:'A',value:'Correct answer',isCorrect:true,score:1},{optionKey:'B',value:'Other answer',isCorrect:false,score:0}]},topicMappings:[mapping]})).status,200);
+  await assess.reload();await assess.waitForLoadState('networkidle');
+  await assess.getByRole('button').filter({hasText:'Батлуулах хүсэлт'}).first().click();
+  await assess.getByPlaceholder('Батлуулах хүсэлтийн тайлбар бичнэ...').fill('Browser submission');
+  const submittedPromise=assess.waitForResponse(r=>r.url().endsWith('/questions/'+created.id+'/workflow')&&r.request().method()==='POST');
+  await assess.getByRole('button',{name:'Дахин батлуулах хүсэлт',exact:true}).or(assess.getByRole('button',{name:'Батлуулах хүсэлт илгээх',exact:true})).first().click();
+  assert.equal((await submittedPromise).status(),201);
+  await adm.goto('https://seek.mn/admin/questions');await adm.getByRole('button').filter({hasText:'Browser review '+key}).first().click();
+  await adm.getByRole('textbox',{name:'Хянагчийн тайлбар (буцаах, татгалзахад заавал)'}).fill('Browser review approved');
+  const approvedPromise=adm.waitForResponse(r=>r.url().endsWith('/questions/'+created.id+'/workflow')&&r.request().method()==='POST');
+  await adm.getByRole('button',{name:'Батлах',exact:true}).click();assert.equal((await approvedPromise).status(),201);
+  const publishedPromise=adm.waitForResponse(r=>r.url().endsWith('/questions/'+created.id+'/workflow')&&r.request().method()==='POST');
+  await adm.getByRole('button',{name:'Нийтлэх',exact:true}).click();assert.equal((await publishedPromise).status(),201);
+  await adm.waitForLoadState('networkidle');
+  await adm.screenshot({path:'/tmp/question-review-admin.png',fullPage:true});
+  await adm.setViewportSize({width:390,height:844});
+  assert(await adm.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'review page must not overflow on mobile');
+  await adm.screenshot({path:'/tmp/question-review-mobile.png',fullPage:true});
+  await adm.setViewportSize({width:1280,height:900});
+  await assess.goto('https://seek.mn/assessor/context/'+c.id+'/question-bank/'+created.id);await assess.getByRole('button',{name:'Шинэ хувилбар боловсруулах',exact:true}).waitFor();
+  await assess.screenshot({path:'/tmp/question-review-author.png',fullPage:true});
+  assert.equal((await p.questionVersion.findFirst({where:{questionId:created.id}})).versionStatus,'PUBLISHED');
+  assert.equal((await api(admin,'/assessment/questions/'+created.id+'/workflow','POST',{action:'retire'})).status,201);
+  assert.equal((await p.question.findUnique({where:{id:created.id}})).currentPublishedVersionId,null);
+  await assess.reload();await assess.getByRole('button',{name:'Шинэ хувилбар боловсруулах',exact:true}).click();
+  await assess.getByRole('button').filter({hasText:'Даалгавар үүсгэх'}).first().waitFor();
+  const newer=await p.questionVersion.findFirst({where:{questionId:created.id},orderBy:{versionNumber:'desc'}});assert.equal(newer.versionNumber,2);assert.equal(newer.versionStatus,'DRAFT');
+  await adm.goto('https://seek.mn/superadmin/assessment-contexts');await adm.getByText(key,{exact:true}).first().click();
   adm.on('dialog',d=>d.accept());await adm.getByRole('button',{name:'Эрх цуцлах',exact:true}).click();await adm.getByText('Энэ контекстэд хэрэглэгч оноогоогүй.',{exact:true}).waitFor();await assess.goto('https://seek.mn/assessor/context');await assess.getByText('Танд ашиглах боломжтой контекст одоогоор алга',{exact:true}).waitFor();
  }finally{await browser.close();}
- console.log('PASS browser: admin assignment/revocation and assessor context dashboard');
+ console.log('PASS browser: author creates/saves/submits; different admin approves/publishes; author sees decisions; mobile layout and context revocation');
 })().finally(async()=>{
  const rs=await p.quizRevision.findMany({where:{quizId:{in:quizIds}},select:{id:true}});const rids=rs.map(x=>x.id);const secs=await p.quizRevisionSection.findMany({where:{quizRevisionId:{in:rids}},select:{id:true}});
  await p.quizRevisionQuestion.deleteMany({where:{revisionSectionId:{in:secs.map(x=>x.id)}}});await p.quizRevisionSection.deleteMany({where:{quizRevisionId:{in:rids}}});await p.quizRevision.deleteMany({where:{id:{in:rids}}});await p.quiz.deleteMany({where:{id:{in:quizIds}}});
  const bs=await p.quizSection.findMany({where:{templateId:{in:bids}},select:{id:true}});await p.sectionQuestion.deleteMany({where:{sectionId:{in:bs.map(x=>x.id)}}});await p.quizSection.deleteMany({where:{templateId:{in:bids}}});await p.quizTemplate.deleteMany({where:{id:{in:bids}}});
+ await p.question.updateMany({where:{id:{in:qids}},data:{currentPublishedVersionId:null}});
  const cs=await p.topicQuestionClassification.findMany({where:{questionId:{in:qids}},select:{id:true}});await p.cognitiveLevelClassification.deleteMany({where:{classificationId:{in:cs.map(x=>x.id)}}});await p.topicQuestionCompetence.deleteMany({where:{classificationId:{in:cs.map(x=>x.id)}}});await p.topicQuestionClassification.deleteMany({where:{questionId:{in:qids}}});await p.questionWorkflowEvent.deleteMany({where:{questionId:{in:qids}}});await p.questionVersion.deleteMany({where:{questionId:{in:qids}}});await p.question.deleteMany({where:{id:{in:qids}}});
  if(t)await p.topic.delete({where:{id:t.id}});for(const x of [c,c2])if(x){await p.assessorContextGrant.deleteMany({where:{contextId:x.id}});await p.assessmentContext.delete({where:{id:x.id}});}if(dl)await p.difficultyLevel.delete({where:{id:dl.id}});if(cl)await p.cognitiveLevel.delete({where:{id:cl.id}});if(f)await p.competenceFramework.delete({where:{id:f.id}});if(g)await p.cognitiveFramework.delete({where:{id:g.id}});if(d)await p.difficultyScale.delete({where:{id:d.id}});if(a)await p.audienceType.delete({where:{id:a.id}});await p.$disconnect();
 }).catch(e=>{console.error(e.message);process.exitCode=1;});

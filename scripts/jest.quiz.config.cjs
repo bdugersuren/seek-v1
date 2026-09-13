@@ -1,0 +1,1 @@
+const base=require('./jest.blueprint.config.cjs');module.exports={...base,testMatch:[...base.testMatch,'<rootDir>/services/assessment/src/quiz-workflow.spec.ts','<rootDir>/tests/quiz-mapping.spec.ts']};

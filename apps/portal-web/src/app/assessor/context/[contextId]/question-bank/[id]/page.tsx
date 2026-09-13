@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getQuestionByIdAsync } from "@/features/assessor-workspace/api";
 import type { QuestionBankItem } from "@/features/assessor-workspace/types";
+import { ReviewDetail } from "@/features/question-review/review";
 import { QuestionEditor } from "@/features/assessor-workspace/QuestionEditor";
 
 export default function EditQuestionPage({
@@ -11,6 +12,8 @@ export default function EditQuestionPage({
   params: { id: string; contextId: string };
 }) {
   const [question, setQuestion] = useState<QuestionBankItem | null>(null);
+  const [refresh,setRefresh]=useState(0);
+  const [error,setError]=useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,14 +26,14 @@ export default function EditQuestionPage({
           setQuestion(data);
         }
       } catch (err) {
-        console.error("Failed to load question", err);
+        if(active)setError((err as Error).message);
       } finally {
         if (active) setLoading(false);
       }
     }
     load();
     return () => { active = false; };
-  }, [params.id]);
+  }, [params.id,refresh]);
 
   if (loading) {
     return (
@@ -46,17 +49,15 @@ export default function EditQuestionPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted-background">
         <div className="text-center">
-          <p className="text-lg font-semibold text-danger">Асуулт олдсонгүй.</p>
+          <p className="text-lg font-semibold text-danger">{error||"Асуулт олдсонгүй."}</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <QuestionEditor
-      mode="edit"
-      question={question}
-      backUrl={`/assessor/context/${params.contextId}/question-bank`}
-    />
-  );
+  if(!['draft','changes_requested'].includes(question.status))return <ReviewDetail id={question.id} author onChanged={()=>setRefresh(x=>x+1)}/>;
+  return <>
+    <details className="mb-4 rounded border p-3"><summary>Шийдвэр, мэдэгдлийн түүх</summary><ReviewDetail id={question.id} author onChanged={()=>setRefresh(x=>x+1)}/></details>
+    <QuestionEditor key={refresh} mode="edit" question={question} backUrl={`/assessor/context/${params.contextId}/question-bank`}/>
+  </>;
 }

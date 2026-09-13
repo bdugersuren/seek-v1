@@ -159,6 +159,7 @@ export const runtimeSnapshotStorage: RuntimeSnapshotStorage = {
       window.localStorage.setItem(getStorageKey(snapshot.attemptId), encryptedData);
     } catch (e) {
       console.error("Failed to save snapshot storage:", e);
+      window.dispatchEvent(new Event("runtime-storage-error"));
     }
   },
   async clear(attemptId) {

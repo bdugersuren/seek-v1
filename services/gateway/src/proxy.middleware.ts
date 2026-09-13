@@ -203,18 +203,20 @@ export class ProxyMiddleware implements NestMiddleware {
     if (process.env.NODE_ENV === "production") {
       const pathname = this.getRequestUrl(req).split("?")[0];
       const roles = String(req.headers["x-user-roles"] || "").split(",");
+      if (/^\/api\/v1\/(assessment\/candidate|execution)\/internal(?:\/|$)/.test(pathname)) return res.status(404).json({message:"Not found"});
+      const candidateRoute = pathname.startsWith("/api/v1/assessment/candidate/") && (roles.includes("CANDIDATE") || roles.includes("SUPER_ADMIN"));
       // Assessment service enforces per-context grants and resource ownership.
       const assessorRoute = roles.includes("ASSESSOR") && (
         (req.method === "GET" && /^\/api\/v1\/assessment\/questions\/metadata\/(assessment-contexts|audience-types|audience-levels|topics|difficulty-scales|difficulty-levels|cognitive-frameworks|cognitive-levels|competence-frameworks|competence-types)\/?$/.test(pathname)) ||
-        /^[\/]api\/v1\/assessment\/(questions|blueprints|quizzes)(\/[^/]+)?(\/workflow)?\/?$/.test(pathname)
+        /^[\/]api\/v1\/assessment\/(questions|blueprints|quizzes)(\/[^/]+)?(\/(workflow|duplicate|revisions|preview))?\/?$/.test(pathname)
       );
-      if (pathname.startsWith("/api/v1/assessment/") && !pathname.startsWith("/api/v1/assessment/catalog") && !pathname.includes("/health") && !roles.includes("SUPER_ADMIN") && !assessorRoute) {
+      if (pathname.startsWith("/api/v1/assessment/") && !pathname.startsWith("/api/v1/assessment/catalog") && !pathname.includes("/health") && !roles.includes("SUPER_ADMIN") && !assessorRoute && !candidateRoute) {
         return res.status(req.headers["x-user-id"] ? 403 : 401).json({message: "Үнэлгээ удирдах эрх шаардлагатай."});
       }
       if (pathname.startsWith("/api/v1/assessment/questions/db")) {
         return res.status(404).json({message: "Not found"});
       }
-      if (pathname === "/api/v1/execution/attempts" || pathname.includes("/mock-trigger-unlock/")) {
+      if (pathname.includes("/mock-trigger-unlock/")) {
         return res.status(503).json({code: "FEATURE_UNAVAILABLE", message: "Үнэлгээ эхлүүлэх боломж одоогоор идэвхгүй байна."});
       }
     }

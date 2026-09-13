@@ -1,0 +1,5 @@
+import {mapToBlueprint,blueprintPayload,getBlueprintSummary} from '../apps/portal-web/src/features/assessor-workspace/api';
+test('round trips blueprint fields and section identity without fake defaults',()=>{
+ const b=mapToBlueprint({id:'b',code:'BP',name:'Нэр',description:'Тайлбар',topicId:'t',topicName:'Сэдэв',assessmentContextId:'ctx',version:4,defaultDurationMinutes:35,defaultPassingScore:82,lifecycleStatus:'DRAFT',updatedAt:'2026-09-12',sections:[{id:'s',title:'Rule',description:'desc',sectionMode:'RULE_BASED',selectionRules:{schemaVersion:1,types:['MATRIX']},questionCount:3,maxScorePerQuestion:2,questions:[]}]});
+ const d=blueprintPayload(b);expect(d).toMatchObject({name:'Нэр',code:'BP',topicId:'t',version:4,defaultDurationMinutes:35,defaultPassingScore:82,sections:[{id:'s',name:'Rule',description:'desc',sectionMode:'RULE_BASED',selectionRules:{schemaVersion:1,types:['MATRIX']}}]});expect(b.status).toBe('draft');expect(getBlueprintSummary({...b,sections:[]}).ready).toBe(false);
+});

@@ -1,629 +1,605 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  Badge,
-  Button,
-  Card,
-  Checkbox,
-  Input,
-  PageTitle,
-  Select,
-  Switch,
-  Text,
-  useToast,
-} from "@seek/ui";
-import { getBlueprintSummary, validateQuiz } from "./api";
-import {
-  mockAssignableUsers,
-  mockBlueprints,
-  mockQuestionBank,
-  mockQuizzes,
-} from "./mock-data";
-import type {
-  Blueprint,
-  Quiz,
-  QuizAccessMode,
-  QuizOverrideMode,
-  QuizResultReleaseMode,
-} from "./types";
-
-const defaultBlueprint = mockBlueprints[0];
-
-const accessModeLabels: Record<QuizAccessMode, string> = {
-  public: "Нээлттэй",
-  private_code: "Захиалгат кодтой",
-  assigned_users: "Сонгосон хэрэглэгчид",
-};
-
-const releaseModeLabels: Record<QuizResultReleaseMode, string> = {
-  immediate: "Дуусмагц",
-  after_close: "Хугацаа хаагдсаны дараа",
-  manual: "Гараар нийтлэх",
-};
-
+import { Button } from "@seek/ui";
+import { BlueprintDialog, PoolPreview, bpInput, bpPanel } from "./BlueprintUI";
+import { getBlueprintByIdAsync } from "./api";
+import { QuizQuestion } from "./QuizQuestion";
+import { quizApi, quizLifecycle, quizStatus, quizAction } from "./quiz-api";
 export function QuizEditor({
-  blueprint = defaultBlueprint,
-  mode = "edit",
+  id,
+  admin = false,
 }: {
-  blueprint?: Blueprint;
-  mode?: "new" | "edit";
+  id: string;
+  admin?: boolean;
 }) {
-  const existing = mockQuizzes[0];
-  const { showToast } = useToast();
-  const [quiz, setQuiz] = useState<Quiz>(() =>
-    mode === "edit" ? existing : buildNewQuiz(blueprint),
-  );
-  const selectedBlueprint =
-    mockBlueprints.find((item) => item.id === quiz.blueprintId) ?? blueprint;
-  const summary = getBlueprintSummary(selectedBlueprint);
-  const errors = useMemo(
-    () => validateQuiz(selectedBlueprint, quiz),
-    [selectedBlueprint, quiz],
-  );
-  const mandatoryCount = quiz.questionOverrides.filter(
-    (item) => item.mode === "mandatory",
-  ).length;
-  const excludedCount = quiz.questionOverrides.filter(
-    (item) => item.mode === "excluded",
-  ).length;
-
-  const patchQuiz = (patch: Partial<Quiz>) =>
-    setQuiz((current) => {
-      const next = { ...current, ...patch };
-      if (patch.hideSolutions) {
-        next.showCorrectAnswers = false;
-        next.showExplanations = false;
+  const router = useRouter(),
+    search = useSearchParams(),
+    revisionId = search.get("revisionId") || "",
+    pending = useRef(false),
+    saved = useRef(""),
+    requests = useRef(new Map<string, string>());
+  const [q, setQ] = useState<any>(null),
+    [form, setForm] = useState<any>({}),
+    [tab, setTab] = useState(0),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
+    [busy, setBusy] = useState(false),
+    [reload, setReload] = useState(0),
+    [preview, setPreview] = useState(false),
+    [pool, setPool] = useState<any>(null),
+    [selection, setSelection] = useState<any>(null),
+    [overrides, setOverrides] = useState<any[]>([]),
+    [workflow, setWorkflow] = useState(""),
+    [comment, setComment] = useState("");
+  const overrideDirty =
+    !!q &&
+    JSON.stringify(overrides) !==
+      JSON.stringify(q.selectedRevision.runtimePolicy?.questionOverrides || []);
+  const dirty =
+    !!q && (JSON.stringify(form) !== saved.current || overrideDirty);
+  function accept(value: any) {
+    setQ(value);
+    const r = value.selectedRevision;
+    const f = {
+      title: r.title,
+      description: r.description || "",
+      durationMinutes: r.durationMinutes,
+      passingScore: Number(r.passingScore),
+      maxAttempts: r.maxAttempts,
+    };
+    setForm(f);
+    saved.current = JSON.stringify(f);
+    setOverrides(r.runtimePolicy?.questionOverrides || []);
+    setSelection(null);
+  }
+  useEffect(() => {
+    let live = true;
+    setQ(null);
+    setError("");
+    quizApi(
+      "/" +
+        encodeURIComponent(id) +
+        (revisionId ? "?revisionId=" + encodeURIComponent(revisionId) : ""),
+    )
+      .then((v) => {
+        if (live) accept(v);
+      })
+      .catch((e) => {
+        if (live)
+          setError(
+            e.status === 403
+              ? "Энэ Quiz-д хандах эрхгүй."
+              : e.status === 404
+                ? "Quiz эсвэл хувилбар олдсонгүй."
+                : e.message,
+          );
+      });
+    return () => {
+      live = false;
+    };
+  }, [id, revisionId, reload]);
+  useEffect(() => {
+    if (!dirty) return;
+    const unload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const click = (e: MouseEvent) => {
+      if (
+        (e.target as HTMLElement).closest("a[href]") &&
+        !window.confirm("Хадгалаагүй өөрчлөлтөө орхих уу?")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
       }
-      return next;
-    });
-
-  const setOverride = (questionId: string, overrideMode: QuizOverrideMode) => {
-    setQuiz((current) => {
-      const next = current.questionOverrides.filter(
-        (item) => item.questionId !== questionId,
-      );
-      return {
-        ...current,
-        questionOverrides:
-          overrideMode === "none"
-            ? next
-            : [...next, { questionId, mode: overrideMode }],
+    };
+    window.addEventListener("beforeunload", unload);
+    document.addEventListener("click", click, true);
+    return () => {
+      window.removeEventListener("beforeunload", unload);
+      document.removeEventListener("click", click, true);
+    };
+  }, [dirty]);
+  async function act(action: string) {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const base = {
+        quizRevisionId: q.selectedRevision.id,
+        expectedVersion: q.version,
       };
-    });
-  };
-
-  const toggleAssignedUser = (userId: string) =>
-    patchQuiz({
-      assignedUserIds: toggleValue(quiz.assignedUserIds ?? [], userId),
-    });
-
+      let value;
+      if (action === "save" && overrideDirty)
+        throw Error(
+          "Override өөрчлөлтөө дахин бүрдүүлэх үйлдлээр хадгалах эсвэл өмнөх сонголтод буцаана уу.",
+        );
+      if (action === "save" || action === "reselect") {
+        value = await quizApi("/" + id, "PUT", {
+          ...base,
+          ...form,
+          ...(action === "reselect"
+            ? { reselectQuestions: true, questionOverrides: overrides }
+            : {}),
+        });
+      } else if (action === "preview") {
+        setSelection(
+          await quizApi("/" + id + "/preview", "POST", {
+            ...base,
+            questionOverrides: overrides,
+          }),
+        );
+        return;
+      } else if (action === "new_revision") {
+        value = await quizApi("/" + id + "/revisions", "POST", base);
+        router.replace((admin ? "/admin/quizzes/" : "/assessor/quizzes/") + id);
+      } else {
+        if (dirty) throw Error("Эхлээд өөрчлөлтөө хадгална уу.");
+        const payload = { ...base, action, comment };
+        const key = JSON.stringify(payload);
+        if (!requests.current.has(key))
+          requests.current.set(key, crypto.randomUUID());
+        value = await quizApi("/" + id + "/workflow", "POST", {
+          ...payload,
+          requestId: requests.current.get(key),
+        });
+        setWorkflow("");
+        setComment("");
+      }
+      accept(value);
+      setNotice(
+        action === "save"
+          ? "Хадгалагдлаа."
+          : action === "reselect"
+            ? "Асуултууд дахин бүрдлээ."
+            : "Үйлдэл амжилттай.",
+      );
+    } catch (e: any) {
+      setError(
+        e.message +
+          (e.issues
+            ? " " +
+              e.issues
+                .map((x: any) => (typeof x === "string" ? x : x.message))
+                .join(" ")
+            : ""),
+      );
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
+  }
+  async function openPool() {
+    setError("");
+    try {
+      const b = await getBlueprintByIdAsync(q.templateId);
+      if (!b) throw Error("Blueprint олдсонгүй.");
+      setPool(b.readiness);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+  if (!q)
+    return (
+      <main className="p-6">
+        {error ? (
+          <>
+            <p role="alert">{error}</p>
+            <Button onClick={() => setReload((x) => x + 1)}>
+              Дахин оролдох
+            </Button>
+          </>
+        ) : (
+          <p role="status">Quiz ачаалж байна…</p>
+        )}
+      </main>
+    );
+  const r = q.selectedRevision,
+    actions = q.allowedActions || [],
+    editable = actions.includes("save");
+  let index = 0;
   return (
-    <div className="grid gap-seek-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <main className="space-y-seek-4">
-        <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-start sm:justify-between">
-          <PageTitle
-            title={mode === "new" ? "Quiz үүсгэх" : "Quiz засах"}
-            subtitle="Blueprint дээр үндэслэн төлбөр, хандалт, хугацаа, override болон result policy тохируулна."
-          />
-          <div className="flex gap-2">
-            <Link href="/quizzes">
-              <Button type="button" variant="secondary">
-                Буцах
-              </Button>
-            </Link>
-            <Button
-              type="button"
-              disabled={errors.length > 0}
-              onClick={() => showToast("Quiz mock state-д хадгалагдлаа.", "success")}
-            >
+    <main className="mx-auto min-w-0 max-w-6xl space-y-5 p-4 sm:p-6">
+      <header className={bpPanel}>
+        <Link
+          href={
+            admin
+              ? "/admin/quizzes"
+              : q.template.assessmentContextId
+                ? `/assessor/context/${q.template.assessmentContextId}/quizzes`
+                : "/assessor/quizzes"
+          }
+          className="text-primary"
+        >
+          ← Quiz жагсаалт
+        </Link>
+        <h1 className="mt-3 break-words text-2xl font-bold">{r.title}</h1>
+        <p className="mt-2 text-sm">
+          {quizStatus[r.revisionStatus]} · v{r.revisionNumber} ·{" "}
+          {quizLifecycle[q.lifecycleStatus] || q.lifecycleStatus} · Засварын
+          хувилбар {q.version}
+        </p>
+        <p className="mt-2 text-sm">
+          Нийтэлсэн:{" "}
+          {q.currentPublishedRevision
+            ? `v${q.currentPublishedRevision.revisionNumber}`
+            : "Байхгүй"}{" "}
+          · Blueprint:{" "}
+          <Link
+            className="text-primary"
+            href={`/assessor/context/${q.template.assessmentContextId}/blueprints/${q.templateId}`}
+          >
+            {q.template.name}
+          </Link>
+        </p>
+        <label className="mt-3 block text-sm">
+          Quiz хувилбар
+          <select
+            aria-label="Quiz хувилбар"
+            className={bpInput}
+            value={r.id}
+            onChange={(e) => {
+              if (!dirty || window.confirm("Хадгалаагүй өөрчлөлтөө орхих уу?"))
+                router.push(
+                  (admin ? "/admin/quizzes/" : "/assessor/quizzes/") +
+                    id +
+                    "?revisionId=" +
+                    e.target.value,
+                );
+            }}
+          >
+            {q.revisions.map((v: any) => (
+              <option key={v.id} value={v.id}>
+                v{v.revisionNumber} · {quizStatus[v.revisionStatus]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {editable && (
+            <Button disabled={busy} onClick={() => act("save")}>
               Хадгалах
             </Button>
-          </div>
+          )}
+          <Button variant="outline" onClick={() => setPreview(true)}>
+            Шалгуулагчийн харагдац
+          </Button>
+          {actions.includes("new_revision") && (
+            <Button disabled={busy} onClick={() => act("new_revision")}>
+              Шинэ ноорог хувилбар
+            </Button>
+          )}
         </div>
-
-        <Card className="p-seek-4">
-          <SectionHeader
-            title="Ерөнхий тохиргоо"
-            subtitle="Quiz нэр, blueprint, төлбөр, хугацаа болон оролдлогын тоо."
-          />
-          <div className="mt-seek-4 grid gap-seek-3 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Quiz нэр">
-              <Input
-                value={quiz.title}
-                onChange={(event) => patchQuiz({ title: event.target.value })}
+      </header>
+      {error && (
+        <p
+          role="alert"
+          className="rounded border border-red-300 bg-red-50 p-4 text-red-800"
+        >
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="rounded bg-emerald-50 p-4 text-emerald-900">
+          {notice}
+        </p>
+      )}
+      <nav
+        aria-label="Quiz editor хэсгүүд"
+        className="flex gap-2 overflow-x-auto"
+      >
+        {["Ерөнхий", "Асуулт ба оноо", "Шалгах ба нийтлэх"].map((label, i) => (
+          <Button
+            key={label}
+            variant={tab === i ? "primary" : "outline"}
+            onClick={() => setTab(i)}
+          >
+            {i + 1}. {label}
+          </Button>
+        ))}
+      </nav>
+      {tab === 0 && (
+        <section className={bpPanel}>
+          <fieldset
+            disabled={!editable || busy}
+            className="grid gap-4 sm:grid-cols-2"
+          >
+            <label>
+              Quiz нэр
+              <input
+                className={bpInput}
+                value={form.title}
+                maxLength={300}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
-            </Field>
-            <Field label="Blueprint">
-              <Select
-                value={quiz.blueprintId}
-                onChange={(event) =>
-                  patchQuiz({
-                    blueprintId: event.target.value,
-                    questionOverrides: [],
-                  })
-                }
-                options={mockBlueprints.map((item) => ({
-                  value: item.id,
-                  label: item.title,
-                }))}
-              />
-            </Field>
-            <Field label="Төлбөр (MNT)">
-              <Input
-                type="number"
-                min={0}
-                value={quiz.priceMnt}
-                onChange={(event) => patchQuiz({ priceMnt: Number(event.target.value) })}
-              />
-            </Field>
-            <Field label="Эхлэх хугацаа">
-              <Input
-                value={quiz.startAt}
-                onChange={(event) => patchQuiz({ startAt: event.target.value })}
-              />
-            </Field>
-            <Field label="Дуусах хугацаа">
-              <Input
-                value={quiz.endAt}
-                onChange={(event) => patchQuiz({ endAt: event.target.value })}
-              />
-            </Field>
-            <Field label="Шалгалтын хугацаа (мин)">
-              <Input
-                type="number"
-                min={1}
-                value={quiz.durationMinutes}
-                onChange={(event) =>
-                  patchQuiz({ durationMinutes: Number(event.target.value) })
+            </label>
+            <label>
+              Тайлбар
+              <textarea
+                aria-label="Тайлбар"
+                className={bpInput}
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
                 }
               />
-            </Field>
-            <Field label="Оролдлогын тоо">
-              <Input
-                type="number"
-                min={1}
-                value={quiz.maxAttempts}
-                onChange={(event) => patchQuiz({ maxAttempts: Number(event.target.value) })}
-              />
-            </Field>
+            </label>
+            {(
+              [
+                ["durationMinutes", "Хугацаа (минут)", 1, 1440],
+                ["passingScore", "Тэнцэх босго (%)", 0, 100],
+                ["maxAttempts", "Оролдлогын тоо", 1, 1000],
+              ] as const
+            ).map(([field, label, min, max]) => (
+              <label key={field}>
+                {label}
+                <input
+                  className={bpInput}
+                  type="number"
+                  min={min}
+                  max={max}
+                  value={form[field]}
+                  onChange={(e) =>
+                    setForm({ ...form, [field]: Number(e.target.value) })
+                  }
+                />
+              </label>
+            ))}
+          </fieldset>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Хуваарь, хандалт болон оролцогч оноолтыг админ нийтэлсэн хувилбарт
+            тусад нь тохируулна.
+          </p>
+        </section>
+      )}
+      {tab === 1 && (
+        <section className="space-y-4">
+          <div className={bpPanel}>
+            <b>
+              Хадгалсан бүрэлдэхүүн · {r.totalQuestionCount} асуулт ·{" "}
+              {Number(r.totalMaxScore)} оноо
+            </b>
+            <p className="mt-2 text-sm">
+              Хэсэг, авах тоо, оноог Blueprint-ээс өвлөсөн. Дахин бүрдүүлэхээс
+              бусад засвар асуултуудыг солихгүй.
+            </p>
+            {editable && (
+              <Button className="mt-3" variant="outline" onClick={openPool}>
+                Заавал оруулах / хасах
+              </Button>
+            )}
           </div>
-        </Card>
-
-        <Card className="p-seek-4">
-          <SectionHeader
-            title="Хандалт"
-            subtitle="Нээлттэй, кодтой захиалгат эсвэл зөвхөн сонгосон хэрэглэгчдэд харагдах байдлаар тохируулна."
-          />
-          <div className="mt-seek-4 grid gap-seek-3 md:grid-cols-3">
-            {(Object.keys(accessModeLabels) as QuizAccessMode[]).map((modeKey) => (
-              <button
-                key={modeKey}
-                type="button"
-                className={`rounded-seek-lg border p-seek-3 text-left ${
-                  quiz.accessMode === modeKey
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-surface hover:bg-surface-hover"
-                }`}
-                onClick={() =>
-                  patchQuiz({
-                    accessMode: modeKey,
-                    accessCode:
-                      modeKey === "private_code"
-                        ? quiz.accessCode || generateAccessCode(selectedBlueprint.id)
-                        : quiz.accessCode,
-                  })
-                }
+          {r.sections.map((s: any) => (
+            <div key={s.id} className="space-y-3">
+              <h2 className="font-bold">
+                {s.title} · {s.questionCount} асуулт ·{" "}
+                {Number(s.maxScorePerQuestion)} оноо/асуулт
+              </h2>
+              {s.questions.map((x: any) => (
+                <QuizQuestion key={x.id} item={x} index={index++} />
+              ))}
+            </div>
+          ))}
+        </section>
+      )}
+      {tab === 2 && (
+        <section className={bpPanel}>
+          <h2 className="text-lg font-bold">
+            {q.readiness.status === "READY"
+              ? "✓ Бэлэн"
+              : "! Засвар шаардлагатай"}
+          </h2>
+          <p>
+            {r.totalQuestionCount} асуулт · {Number(r.totalMaxScore)} оноо ·{" "}
+            {r.durationMinutes} минут · Босго {Number(r.passingScore)}%
+          </p>
+          {q.readiness.issues.map((x: string) => (
+            <p key={x} className="mt-2 text-amber-800">
+              {x}
+            </p>
+          ))}
+          <div className="my-4 flex flex-wrap gap-2">
+            {actions
+              .filter((x: string) => quizAction[x])
+              .map((action: string) => (
+                <Button
+                  key={action}
+                  disabled={busy || dirty}
+                  onClick={() => {
+                    setWorkflow(action);
+                    setComment("");
+                  }}
+                >
+                  {quizAction[action]}
+                </Button>
+              ))}
+          </div>
+          {admin && r.revisionStatus === "PUBLISHED" && (
+            <Link
+              className="text-primary underline"
+              href={"/admin/candidate-assessments?quizRevisionId=" + r.id}
+            >
+              Энэ хувилбараар хуваарь үүсгэх
+            </Link>
+          )}
+          <p className="my-3 text-sm">
+            Нийтлэх нь шалгуулагчдад шууд нээхгүй. Одоогийн хуваарь, эхэлсэн
+            оролдлогууд өөрчлөгдөхгүй.
+          </p>
+          <h3 className="font-semibold">Үйлдлийн түүх</h3>
+          {!q.workflow.length && (
+            <p className="text-sm">Үйлдлийн түүх хараахан байхгүй.</p>
+          )}
+          <ol className="mt-3 space-y-3">
+            {q.workflow.map((e: any) => (
+              <li key={e.id} className="rounded border p-3 text-sm">
+                {quizAction[e.action] || e.action} ·{" "}
+                {quizStatus[e.newStatus] || e.newStatus} ·{" "}
+                {new Date(e.occurredAt).toLocaleString("mn-MN")}
+                <p>{e.comment}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {preview && (
+        <BlueprintDialog
+          title="Шалгуулагчийн харагдац — хадгалсан хувилбар"
+          onClose={() => setPreview(false)}
+        >
+          <p className="mb-4 text-sm">
+            Preview: хариулт хадгалахгүй, attempt болон үнэлгээ үүсгэхгүй.
+          </p>
+          <div className="space-y-4">
+            {r.sections
+              .flatMap((s: any) => s.questions)
+              .map((x: any, i: number) => (
+                <QuizQuestion key={x.id} item={x} index={i} candidate />
+              ))}
+          </div>
+        </BlueprintDialog>
+      )}
+      {pool && (
+        <BlueprintDialog
+          title="Асуултын бүрэлдэхүүн тохируулах"
+          onClose={() => {
+            if (!busy) setPool(null);
+          }}
+        >
+          <p className="mb-4 text-sm">
+            Одоогийн Blueprint-ийн зөвшөөрөгдсөн сан. Шүүлтүүр өөрчлөх нь
+            хадгалсан асуултуудыг шууд солихгүй.
+          </p>
+          <div className="max-h-72 space-y-2 overflow-y-auto">
+            {Array.from(
+              new Map<string, any>(
+                (pool.sections || [])
+                  .flatMap((s: any) => s.candidates || [])
+                  .map((x: any) => [x.id, x]),
+              ).values(),
+            ).map((x: any) => (
+              <label
+                key={x.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded border p-2"
               >
-                <Text className="font-bold">{accessModeLabels[modeKey]}</Text>
-                <Text variant="muted" className="mt-1 text-xs">
-                  {modeKey === "public"
-                    ? "Каталог/жагсаалтад харагдана."
-                    : modeKey === "private_code"
-                      ? "Зөвхөн кодоор нэвтэрнэ."
-                      : "Сонгосон хэрэглэгчид л харна."}
-                </Text>
-              </button>
+                <span className="min-w-0 break-words">{x.title}</span>
+                <select
+                  aria-label={x.title + " сонголт"}
+                  className="rounded border p-2"
+                  value={
+                    overrides.find((o) => o.questionId === x.id)?.mode || "none"
+                  }
+                  onChange={(e) => {
+                    setSelection(null);
+                    setOverrides([
+                      ...overrides.filter((o) => o.questionId !== x.id),
+                      ...(e.target.value === "none"
+                        ? []
+                        : [{ questionId: x.id, mode: e.target.value }]),
+                    ]);
+                  }}
+                >
+                  <option value="none">Сангаас сонгох</option>
+                  <option value="mandatory">Заавал оруулах</option>
+                  <option value="excluded">Хасах</option>
+                </select>
+              </label>
             ))}
           </div>
-          {quiz.accessMode === "private_code" && (
-            <Field className="mt-seek-4 max-w-md" label="Нэвтрэх код">
-              <Input
-                value={quiz.accessCode ?? ""}
-                onChange={(event) => patchQuiz({ accessCode: event.target.value })}
-              />
-            </Field>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() => {
+              setOverrides([]);
+              setSelection(null);
+            }}
+          >
+            Override цэвэрлэх
+          </Button>
+          <Button
+            className="ml-2 mt-3"
+            variant="outline"
+            onClick={() => {
+              setOverrides(r.runtimePolicy?.questionOverrides || []);
+              setSelection(null);
+            }}
+          >
+            Хадгалсан сонголтод буцах
+          </Button>
+          <div className="my-4 flex flex-wrap gap-2">
+            <Button disabled={busy} onClick={() => act("preview")}>
+              Жишиг бүрэлдэхүүн шалгах
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Хадгалсан ноорогийн асуултуудыг одоогийн Blueprint-ээс дахин бүрдүүлэх үү?",
+                  )
+                )
+                  void act("reselect");
+              }}
+            >
+              Асуултыг дахин бүрдүүлэх
+            </Button>
+          </div>
+          {overrideDirty && (
+            <p className="text-sm text-amber-800">
+              Сонголтын өөрчлөлт хараахан хадгалагдаагүй.
+            </p>
           )}
-          {quiz.accessMode === "assigned_users" && (
-            <div className="mt-seek-4 grid gap-seek-2 md:grid-cols-2">
-              {mockAssignableUsers.map((user) => (
-                <label
-                  key={user.id}
-                  className="flex items-center justify-between gap-seek-3 rounded-seek-md border border-border p-seek-3"
-                >
-                  <span>
-                    <Text className="font-semibold">{user.name}</Text>
-                    <Text variant="muted" className="text-xs">{user.email}</Text>
-                  </span>
-                  <Checkbox
-                    checked={(quiz.assignedUserIds ?? []).includes(user.id)}
-                    onChange={() => toggleAssignedUser(user.id)}
-                  />
-                </label>
-              ))}
-            </div>
+          {selection && (
+            <>
+              <h3 className="font-bold">Жишиг сонголт — хадгалаагүй</h3>
+              <PoolPreview result={selection} />
+            </>
           )}
-        </Card>
-
-        <Card className="p-seek-4">
-          <SectionHeader
-            title="Холих тохиргоо"
-            subtitle="Бөөнөөр шалгалт авах үед section болон хариултын дарааллыг холих эсэх."
-          />
-          <div className="mt-seek-4 grid gap-seek-3 md:grid-cols-2">
-            <PolicyToggle
-              title="Хэсгүүдийг холих"
-              description="Section-үүдийн дарааллыг оролцогч бүрт өөрчилнө."
-              checked={quiz.shuffleSections}
-              onChange={(checked) => patchQuiz({ shuffleSections: checked })}
+          {error && (
+            <p role="alert" className="text-red-700">
+              {error}
+            </p>
+          )}
+        </BlueprintDialog>
+      )}
+      {workflow && (
+        <BlueprintDialog
+          title={quizAction[workflow]}
+          onClose={() => {
+            if (!busy) setWorkflow("");
+          }}
+        >
+          <p className="mb-3">
+            v{r.revisionNumber} · {r.title}
+          </p>
+          <label>
+            Тайлбар{workflow === "changes_requested" ? " (шаардлагатай)" : ""}
+            <textarea
+              className={bpInput}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
             />
-            <PolicyToggle
-              title="Хариултуудыг холих"
-              description="Сонголтот асуултын хариултын дарааллыг холино."
-              checked={quiz.shuffleAnswers}
-              onChange={(checked) => patchQuiz({ shuffleAnswers: checked })}
-            />
-          </div>
-        </Card>
-
-        <Card className="p-seek-4">
-          <SectionHeader
-            title="Үр дүн ба тайлан"
-            subtitle="Шалгалт дуусахад суралцагчид юуг харуулахыг тохируулна."
-          />
-          <div className="mt-seek-4 grid gap-seek-3 md:grid-cols-2">
-            <Field label="Result release">
-              <Select
-                value={quiz.resultReleaseMode}
-                onChange={(event) =>
-                  patchQuiz({
-                    resultReleaseMode: event.target.value as QuizResultReleaseMode,
-                  })
-                }
-                options={(Object.keys(releaseModeLabels) as QuizResultReleaseMode[]).map(
-                  (value) => ({ value, label: releaseModeLabels[value] }),
-                )}
-              />
-            </Field>
-            <PolicyToggle
-              title="Hide Solutions"
-              description="Зөв хариу болон тайлбарыг суралцагчид нуух."
-              checked={quiz.hideSolutions}
-              onChange={(checked) => patchQuiz({ hideSolutions: checked })}
-            />
-            <PolicyToggle
-              title="Show Leaderboard"
-              description="Оролцогчдын ranking/leaderboard харуулах."
-              checked={quiz.showLeaderboard}
-              onChange={(checked) => patchQuiz({ showLeaderboard: checked })}
-            />
-            <PolicyToggle
-              title="Оноо харуулах"
-              description="Суралцагч нийт оноогоо харах эсэх."
-              checked={quiz.showScore}
-              onChange={(checked) => patchQuiz({ showScore: checked })}
-            />
-            <PolicyToggle
-              title="Зөв/буруу харуулах"
-              description="Асуулт бүрийн correctness төлөвийг харуулах."
-              checked={quiz.showCorrectness}
-              onChange={(checked) => patchQuiz({ showCorrectness: checked })}
-            />
-            <PolicyToggle
-              title="Зөв хариу харуулах"
-              description="Correct answer key-г result дээр харуулах."
-              checked={quiz.showCorrectAnswers}
-              disabled={quiz.hideSolutions}
-              onChange={(checked) => patchQuiz({ showCorrectAnswers: checked })}
-            />
-            <PolicyToggle
-              title="Тайлбар харуулах"
-              description="Rubric, feedback, solution explanation харуулах."
-              checked={quiz.showExplanations}
-              disabled={quiz.hideSolutions}
-              onChange={(checked) => patchQuiz({ showExplanations: checked })}
-            />
-          </div>
-        </Card>
-
-        {errors.length > 0 && (
-          <Card className="border-danger bg-danger-background p-seek-4">
-            <Text className="font-semibold text-danger-foreground">Validation алдаа</Text>
-            <div className="mt-2 space-y-1">
-              {errors.map((error) => (
-                <Text key={error} className="text-sm text-danger-foreground">
-                  {error}
-                </Text>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        <Card className="p-seek-4">
-          <SectionHeader
-            title="Асуултын pool"
-            subtitle="Section бүр дээр заавал оруулах болон quiz-д оруулахгүй асуултыг тэмдэглэнэ."
-          />
-          <div className="mt-seek-4 space-y-seek-4">
-            {selectedBlueprint.sections.map((section) => {
-              const sectionOverrides = quiz.questionOverrides.filter((override) =>
-                section.selectedQuestionIds.includes(override.questionId),
-              );
-              return (
-                <div key={section.id} className="rounded-seek-lg border border-border p-seek-4">
-                  <div className="mb-seek-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <Text className="font-semibold">{section.name}</Text>
-                    <Badge variant="secondary">
-                      Pool {section.selectedQuestionIds.length} · Сонгох{" "}
-                      {section.randomPickCount} · Override {sectionOverrides.length}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {section.selectedQuestionIds.map((questionId) => {
-                      const question = mockQuestionBank.find((item) => item.id === questionId);
-                      const currentMode =
-                        quiz.questionOverrides.find((item) => item.questionId === questionId)?.mode ||
-                        "none";
-                      return (
-                        <div
-                          key={questionId}
-                          className="grid gap-seek-3 rounded-seek-md bg-muted-background p-seek-3 lg:grid-cols-[1fr_auto] lg:items-center"
-                        >
-                          <div>
-                            <Text className="font-semibold">
-                              {question?.code} · {question?.title}
-                            </Text>
-                            <Text variant="muted" className="line-clamp-2 text-xs">
-                              {question?.body}
-                            </Text>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <OverrideButton
-                              active={currentMode === "mandatory"}
-                              onClick={() =>
-                                setOverride(
-                                  questionId,
-                                  currentMode === "mandatory" ? "none" : "mandatory",
-                                )
-                              }
-                              tone="success"
-                            >
-                              Заавал
-                            </OverrideButton>
-                            <OverrideButton
-                              active={currentMode === "excluded"}
-                              onClick={() =>
-                                setOverride(
-                                  questionId,
-                                  currentMode === "excluded" ? "none" : "excluded",
-                                )
-                              }
-                              tone="danger"
-                            >
-                              Хасах
-                            </OverrideButton>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      </main>
-
-      <QuizSummaryAside
-        quiz={quiz}
-        blueprint={selectedBlueprint}
-        errors={errors}
-        mandatoryCount={mandatoryCount}
-        excludedCount={excludedCount}
-        pickedQuestions={summary.pickedQuestions}
-      />
-    </div>
+          </label>
+          <Button
+            className="mt-4"
+            disabled={
+              busy || (workflow === "changes_requested" && !comment.trim())
+            }
+            onClick={() => act(workflow)}
+          >
+            {quizAction[workflow]} — баталгаажуулах
+          </Button>
+          {error && (
+            <p role="alert" className="mt-3 text-red-700">
+              {error}
+            </p>
+          )}
+        </BlueprintDialog>
+      )}
+    </main>
   );
-}
-
-function OverrideButton({
-  active,
-  onClick,
-  tone,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  tone: "success" | "danger";
-  children: React.ReactNode;
-}) {
-  const activeClass =
-    tone === "success"
-      ? "border-success bg-success-background text-success-foreground"
-      : "border-danger bg-danger-background text-danger-foreground";
-  return (
-    <button
-      type="button"
-      className={`rounded-seek-md border px-seek-3 py-seek-1.5 text-sm font-semibold ${
-        active ? activeClass : "border-border bg-surface text-foreground"
-      }`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
-function QuizSummaryAside({
-  quiz,
-  blueprint,
-  errors,
-  mandatoryCount,
-  excludedCount,
-  pickedQuestions,
-}: {
-  quiz: Quiz;
-  blueprint: Blueprint;
-  errors: string[];
-  mandatoryCount: number;
-  excludedCount: number;
-  pickedQuestions: number;
-}) {
-  return (
-    <aside className="space-y-seek-4 xl:sticky xl:top-seek-4 xl:self-start">
-      <Card className="bg-gradient-to-br from-primary to-purple-600 p-seek-5 text-primary-foreground">
-        <Text className="font-bold">Quiz summary</Text>
-        <div className="mt-seek-4 grid grid-cols-2 gap-seek-3">
-          <SummaryCell label="Үнэ" value={quiz.priceMnt === 0 ? "Үнэгүй" : `${quiz.priceMnt.toLocaleString()}₮`} />
-          <SummaryCell label="Access" value={accessModeLabels[quiz.accessMode]} />
-          <SummaryCell label="Оролдлого" value={quiz.maxAttempts} />
-          <SummaryCell label="Quiz-д орох" value={pickedQuestions} />
-          <SummaryCell label="Mandatory" value={mandatoryCount} />
-          <SummaryCell label="Excluded" value={excludedCount} />
-        </div>
-      </Card>
-      <Card className="p-seek-4">
-        <Text className="font-semibold">Сонголтын дүрэм</Text>
-        <Text variant="muted" className="mt-2 text-sm">
-          Blueprint: {blueprint.title}. Mandatory асуултууд заавал орно, excluded
-          асуултууд хасагдана. Үлдсэн pool-оос section бүрийн m тоо хүртэл
-          сонгоно.
-        </Text>
-        <Badge className="mt-seek-3" variant={errors.length > 0 ? "danger" : "success"}>
-          {errors.length > 0 ? "Засвар шаардлагатай" : "Хуваарь гаргахад бэлэн"}
-        </Badge>
-      </Card>
-      <Card className="p-seek-4">
-        <Text className="font-semibold">Result policy</Text>
-        <div className="mt-seek-3 space-y-2 text-sm">
-          <PolicyLine label="Нээгдэх" value={releaseModeLabels[quiz.resultReleaseMode]} />
-          <PolicyLine label="Solutions" value={quiz.hideSolutions ? "Нууна" : "Харуулж болно"} />
-          <PolicyLine label="Оноо" value={quiz.showScore ? "Харуулна" : "Нууна"} />
-          <PolicyLine label="Leaderboard" value={quiz.showLeaderboard ? "Харуулна" : "Нууна"} />
-        </div>
-      </Card>
-    </aside>
-  );
-}
-
-function PolicyToggle({
-  title,
-  description,
-  checked,
-  disabled,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className={`rounded-seek-lg border border-border p-seek-3 ${disabled ? "opacity-60" : ""}`}>
-      <div className="flex items-start justify-between gap-seek-3">
-        <div>
-          <Text className="font-semibold">{title}</Text>
-          <Text variant="muted" className="mt-1 text-xs">{description}</Text>
-        </div>
-        <Switch
-          checked={checked}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className={`block ${className ?? ""}`}>
-      <Text className="mb-1 text-xs font-bold uppercase text-muted-foreground">{label}</Text>
-      {children}
-    </label>
-  );
-}
-
-function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div>
-      <Text className="font-bold">{title}</Text>
-      <Text variant="muted" className="text-sm">{subtitle}</Text>
-    </div>
-  );
-}
-
-function SummaryCell({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-seek-md bg-white/15 p-seek-3">
-      <Text className="text-xs opacity-80">{label}</Text>
-      <Text className="text-lg font-bold">{value}</Text>
-    </div>
-  );
-}
-
-function PolicyLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-seek-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value}</span>
-    </div>
-  );
-}
-
-function buildNewQuiz(blueprint: Blueprint): Quiz {
-  return {
-    id: `quiz-${blueprint.id}`,
-    title: `${blueprint.title} quiz`,
-    blueprintId: blueprint.id,
-    priceMnt: 0,
-    accessMode: "private_code",
-    accessCode: generateAccessCode(blueprint.id),
-    assignedUserIds: [],
-    startAt: "2026-08-01 09:00",
-    endAt: "2026-08-07 18:00",
-    durationMinutes: blueprint.totalDurationMinutes,
-    maxAttempts: 1,
-    shuffleSections: false,
-    shuffleAnswers: true,
-    hideSolutions: true,
-    showLeaderboard: false,
-    showScore: true,
-    showCorrectness: false,
-    showCorrectAnswers: false,
-    showExplanations: false,
-    resultReleaseMode: "after_close",
-    status: "draft",
-    questionOverrides: [],
-  };
-}
-
-function generateAccessCode(blueprintId: string) {
-  return blueprintId.toUpperCase().replace(/[^A-Z0-9]+/g, "-").slice(0, 12);
-}
-
-function toggleValue(values: string[], value: string) {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
 }

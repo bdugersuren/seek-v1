@@ -1,3 +1,4 @@
+import { CandidateController } from "./candidate.controller";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ContextAccessGuard, ContextAccessFilter, ContextAccessController } from "./context-access";
 import { CognitiveService } from "./cognitive.service";
@@ -30,6 +31,7 @@ import * as amqp from "amqplib";
     QuizController,
     ScheduleController,
     CatalogController,
+    CandidateController,
   ],
   providers: [
     {provide: APP_GUARD, useClass: ContextAccessGuard},

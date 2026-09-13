@@ -1,0 +1,37 @@
+const assert=require('node:assert/strict');
+module.exports=async function({input,key,ids,owner,other,a,e,auth,credentials}){
+ const {chromium}=require('/app/node_modules/@playwright/test');
+ assert.equal((await require('dns').promises.lookup('seek.mn')).address,input.verificationAddress);
+ const browser=await chromium.launch({headless:true});
+ let debugPage;
+ try {
+  async function login(creds){const context=await browser.newContext({ignoreHTTPSErrors:true});const page=await context.newPage();await page.goto('https://seek.mn/login');await page.locator('input[type=email]').fill(creds.email);await page.locator('input[type=password]').fill(creds.password);await page.locator('button[type=submit]').click();await page.waitForURL(url=>!url.pathname.endsWith('/login'));return page;}
+  await a.quizSchedule.update({where:{id:ids.schedule},data:{status:'DRAFT',publishedAt:null,publishedBy:null}});
+  const admin=await login(input.admin);await admin.goto('https://seek.mn/admin/candidate-assessments');await admin.getByLabel('Хуваарь',{exact:true}).selectOption(ids.schedule);await admin.getByLabel('CANDIDATE хэрэглэгч',{exact:true}).selectOption(other);
+  const published=admin.waitForResponse(r=>r.url().endsWith('/assessment/schedules/'+ids.schedule+'/publish')&&r.request().method()==='POST');
+  await admin.getByRole('button',{name:'Хуваарь нийтлэх',exact:true}).click();
+  assert.equal((await published).status(),201);
+  const authResponse=await fetch('http://gateway:3010/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://seek.mn'},body:JSON.stringify(input.admin)});assert.equal(authResponse.status,201);const adminToken=(await authResponse.json()).accessToken;
+  const publication=await fetch('http://gateway:3010/api/v1/assessment/schedules/'+ids.schedule+'/publication',{headers:{Authorization:'Bearer '+adminToken}});assert.equal(publication.status,200);assert.equal((await publication.json()).status,'PUBLISHED');
+  const persisted=await a.quizSchedule.findUnique({where:{id:ids.schedule}});assert.equal(persisted.status,'OPEN');assert(persisted.publishedAt);assert(persisted.publishedBy);
+  await admin.reload();await admin.getByLabel('Хуваарь',{exact:true}).selectOption(ids.schedule);assert((await admin.getByLabel('Хуваарь',{exact:true}).locator('option:checked').textContent()).includes('OPEN'));
+  await admin.getByLabel('CANDIDATE хэрэглэгч',{exact:true}).selectOption(other);
+  console.log('PASS real HTTP schedule publish: DRAFT → OPEN, persisted publisher/time, reload.');
+  const assigned=admin.waitForResponse(r=>r.url().endsWith('/assessment/candidate/admin/assignments/'+ids.schedule)&&r.request().method()==='POST');await admin.getByRole('button',{name:'Оноох',exact:true}).click();assert.equal((await assigned).status(),201);
+  const page=await login(credentials[other]);debugPage=page;await page.goto('https://seek.mn/my-assessments');await page.getByRole('heading',{name:key,exact:true}).waitFor();await page.getByRole('button',{name:'Хүлээлгийн өрөө',exact:true}).click();await page.waitForURL('**/waiting/*');
+  const attemptId=new URL(page.url()).pathname.split('/').pop();await page.getByRole('checkbox',{name:'Би бүх зааврыг анхааралтай уншиж, ойлгосон.'}).check();const started=page.waitForResponse(r=>r.url().includes('/execution/start/')&&r.request().method()==='POST');await page.getByRole('button',{name:'Зааврыг зөвшөөрч эхлүүлэх',exact:true}).click();assert.equal((await started).status(),201);
+  await page.getByRole('button',{name:'Шалгалт эхлүүлэх',exact:true}).click();await page.waitForURL('**/take/*');if(input.questionType==='MATCHING'){await page.getByLabel('Мөр 1 харгалзуулах хариулт').selectOption('R2');await page.getByLabel('Мөр 2 харгалзуулах хариулт').selectOption('R1');}else if(input.questionType==='MATRIX'){await page.getByLabel('Мөр 1: Two',{exact:true}).check();await page.getByLabel('Мөр 2: One',{exact:true}).check();}else await page.getByRole('radio',{name:/Correct/}).check();
+  const saved=page.waitForResponse(r=>r.url().endsWith('/execution/autosave')&&r.request().method()==='POST');await page.getByRole('button',{name:'Хадгалах',exact:true}).click();assert((await (await saved).json()).accepted);
+  await page.reload();if(input.questionType==='MATCHING'){await page.getByLabel('Мөр 1 харгалзуулах хариулт').waitFor();assert.equal(await page.getByLabel('Мөр 1 харгалзуулах хариулт').inputValue(),'R2');}else if(input.questionType==='MATRIX'){await page.getByLabel('Мөр 1: Two',{exact:true}).waitFor();assert(await page.getByLabel('Мөр 1: Two',{exact:true}).isChecked());}else{await page.getByRole('radio',{name:/Correct/}).waitFor();assert(await page.getByRole('radio',{name:/Correct/}).isChecked());}
+  await page.setViewportSize({width:375,height:812});{const overflow=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,items:[...document.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left< -1||e.scrollWidth>e.clientWidth+1).slice(0,10).map(e=>({tag:e.tagName,cls:e.className,text:(e.textContent||'').slice(0,80),left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right}))}));console.log(JSON.stringify(overflow));assert(overflow.scroll<=overflow.width)};await page.screenshot({path:'/tmp/candidate-take-mobile.png',fullPage:true});
+  page.once('dialog',d=>d.accept());const submitted=page.waitForResponse(r=>r.url().endsWith('/execution/submit')&&r.request().method()==='POST');await page.getByRole('button',{name:'Тест дуусгах',exact:true}).click();assert((await (await submitted).json()).accepted);await page.getByRole('button',{name:'Receipt харах',exact:true}).click();await page.getByText('Шалгалтыг хүлээн авсан.',{exact:true}).waitFor();
+  // Other user's valid credentials cannot read this attempt.
+  const response=await fetch('http://gateway:3010/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://seek.mn'},body:JSON.stringify(credentials[owner])});assert.equal(response.status,201);const token=(await response.json()).accessToken;
+  assert.equal((await fetch('http://gateway:3010/api/v1/execution/session/'+attemptId,{headers:{Authorization:'Bearer '+token}})).status,403);
+  await page.goto('https://quiz.seek.mn/results/'+attemptId);await page.getByText(/Дүн нийтлэгдэхийг хүлээж байна|Хариултын оноог тооцоолж байна/).waitFor();assert.equal(await page.getByText(/2 \/ 2 оноо/).count(),0);
+  for(let i=0;i<20;i++){const row=await e.quizAttempt.findUnique({where:{id:attemptId}});if(row.runtimePolicySnapshot.result)break;await page.waitForTimeout(1000);}
+  await admin.goto('https://seek.mn/admin/candidate-results');await admin.getByRole('button').filter({hasText:other}).click();admin.once('dialog',d=>d.accept());await admin.getByRole('button',{name:'Дүн нийтлэх',exact:true}).click();
+  await page.reload();await page.getByText('2 / 2 оноо (100.0%)',{exact:true}).waitFor();await page.screenshot({path:'/tmp/candidate-published-result.png',fullPage:true});
+  console.log('PASS browser: real admin assignment, CANDIDATE login/start/save/reload/submit/receipt, mobile overflow, second-user isolation, admin release and real result.');
+ }catch(error){if(debugPage){console.log('Browser failure at',debugPage.url(),(await debugPage.locator('body').innerText()).slice(0,3500));await debugPage.screenshot({path:'/tmp/candidate-browser-failure.png',fullPage:true});}throw error;}finally{await browser.close();}
+};

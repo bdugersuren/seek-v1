@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import type {
   AssessmentAnswerSnapshot,
   AssessmentAnswerValue,
@@ -10,7 +10,7 @@ import type {
   AssessmentSubmitRequest,
   AssessmentSubmitResponse,
 } from "@seek/contracts";
-import { runtimeAdapter } from "./adapter";
+import { runtimeAdapter, subscribeUnlock, runtimeJson } from "./adapter";
 import { runtimeSnapshotStorage } from "./storage";
 import type { RuntimeAnswers, RuntimeAttempt } from "./types";
 
@@ -65,8 +65,14 @@ export function useAssessmentRuntime(attemptId: string) {
   const [savingQuestionId, setSavingQuestionId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const isKnownAttempt = Boolean(attempt);
+  useEffect(()=>{const error=()=>setSaveError("Төхөөрөмж дээр хадгалж чадсангүй. Сүлжээнд холбогдон хариултаа серверт хадгална уу.");window.addEventListener("runtime-storage-error",error);return ()=>window.removeEventListener("runtime-storage-error",error);},[]);
+  const saveInFlight = useRef(false);
+  const sequence = useRef(0);
+  const latestAnswers = useRef(answers);
+  latestAnswers.current = answers;
   const startsAtMs = attempt ? new Date(attempt.session.startsAt).getTime() : 0;
   const canStart =
     Boolean(attempt) &&
@@ -127,25 +133,20 @@ export function useAssessmentRuntime(attemptId: string) {
 
       setAttempt(session);
       if (session) {
+        const restoredKey=(session.session as any).unlockKey;
+        if(restoredKey){setUnlockKey(restoredKey);setUnlockReceived(true);}
         const offset = new Date(session.session.serverNow).getTime() - Date.now();
         setServerOffsetMs(offset);
         setRemainingSeconds(getRemainingSeconds(session.session.endsAt, offset));
-        if (["submitted", "expired", "locked"].includes(session.session.status)) {
-          setSubmitted({
-            attemptId: session.session.attemptId,
-            accepted: false,
-            status: session.session.status as "submitted" | "expired" | "locked",
-            receiptId: `receipt-${session.session.attemptId}`,
-            serverSubmittedAt: session.session.serverNow,
-            answeredCount: Object.values(session.snapshot.answers).filter(isAnswered).length,
-            totalQuestions: session.questions.length,
-          });
+        if (session.session.status === "submitted") {
+          const receipt=await runtimeJson<{submitted:boolean;receiptId?:string;submittedAt?:string}>(`/runtime/attempts/${attemptId}/receipt`);
+          if(receipt.submitted) setSubmitted({attemptId,accepted:true,status:"submitted",receiptId:receipt.receiptId!,serverSubmittedAt:receipt.submittedAt!,answeredCount:Object.values(session.snapshot.answers).filter(isAnswered).length,totalQuestions:session.session.manifest.length});
         }
         const restored = await runtimeSnapshotStorage.load(
           attemptId,
-          attemptId // Pre-unlock snapshot; the next effect restores with the delivered key.
+          (session.session as any).unlockKey || attemptId
         );
-        if (restored) {
+        if (restored && restored.localVersion > session.snapshot.localVersion) {
           const expired = getRemainingSeconds(session.session.endsAt, offset) <= 0;
           setAnswers(restored.answers as RuntimeAnswers);
           setLocalVersion(restored.localVersion);
@@ -170,7 +171,7 @@ export function useAssessmentRuntime(attemptId: string) {
       setRecovering(false);
     }
 
-    void loadSession();
+    void loadSession().catch(error=>{if(active){setLoadError(error.message);setRecovering(false);}});
 
     return () => {
       active = false;
@@ -200,41 +201,7 @@ export function useAssessmentRuntime(attemptId: string) {
     void loadRestoredSession();
   }, [attempt, unlockReceived, recovering, attemptId, unlockKey]);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !attemptId) return;
-
-    const sseBaseUrl = process.env.NEXT_PUBLIC_EXECUTION_URL || "http://127.0.0.1:3010/api/v1/execution";
-    const eventSource = new EventSource(`${sseBaseUrl}/sse/${attemptId}`);
-
-    eventSource.addEventListener("unlock", (event) => {
-      try {
-        const parsed = JSON.parse(event.data);
-        if (parsed && parsed.unlockKey) {
-          setUnlockKey(parsed.unlockKey);
-          setUnlockReceived(true);
-          setAttempt((current) =>
-            current
-              ? {
-                  ...current,
-                  session: { ...current.session, status: "active" },
-                }
-              : current,
-          );
-        }
-      } catch (err) {
-        console.error("[SSE] Failed to parse unlock key event:", err);
-      }
-    });
-
-    eventSource.onerror = (err) => {
-      console.warn("[SSE] EventSource connection error or retry:", err);
-    };
-
-    return () => {
-      eventSource.close();
-      console.log("[SSE] EventSource connection closed");
-    };
-  }, [attemptId]);
+  useEffect(() => subscribeUnlock(attemptId, key => {setUnlockKey(key);setUnlockReceived(true);}), [attemptId]);
 
   useEffect(() => {
     if (!attempt) return;
@@ -313,7 +280,7 @@ export function useAssessmentRuntime(attemptId: string) {
           count: current.length + 1,
           message,
         };
-        void runtimeAdapter.recordViolation(violation);
+        void runtimeAdapter.recordViolation(violation).catch(()=>setSaveError("Холболтыг шалгаж байна. Хариулт хадгалалтын төлөвийг анхаарна уу."));
         return [...current, violation];
       });
     },
@@ -329,6 +296,7 @@ export function useAssessmentRuntime(attemptId: string) {
         | "policy_lock",
     ) => {
       if (!attempt || submitting || submitted) return;
+      if (saveInFlight.current) { setSaveError("Хариулт хадгалж байна. Хадгалалт дууссаны дараа илгээнэ үү."); return; }
       setSubmitting(true);
 
       const finalSnapshot = createSnapshot({ pendingSubmit: !online });
@@ -351,6 +319,7 @@ export function useAssessmentRuntime(attemptId: string) {
           reason,
         };
         const response = await runtimeAdapter.submit(request);
+        if (!response.accepted) { setSaveError("Илгээлтийг сервер хүлээн аваагүй. Хариултууд төхөөрөмж дээр хадгалагдсан."); return; }
         setPendingSubmit(false);
         setSubmitted(response);
         setAttempt((current) =>
@@ -368,6 +337,10 @@ export function useAssessmentRuntime(attemptId: string) {
             : current,
         );
         await runtimeSnapshotStorage.clear(attempt.session.attemptId);
+      } catch (error) {
+        setPendingSubmit(true);
+        setSaveError(error instanceof Error ? error.message : "Илгээж чадсангүй. Дахин оролдоно уу.");
+        await runtimeSnapshotStorage.save({...finalSnapshot,pendingSubmit:true},unlockKey || attemptId);
       } finally {
         setSubmitting(false);
       }
@@ -395,7 +368,8 @@ export function useAssessmentRuntime(attemptId: string) {
 
   useEffect(() => {
     if (online && pendingSubmit && !submitted) {
-      void submitAttempt("offline_expired");
+      const retry=window.setTimeout(()=>void submitAttempt("offline_expired"),5000);
+      return ()=>window.clearTimeout(retry);
     }
   }, [online, pendingSubmit, submitAttempt, submitted]);
 
@@ -439,7 +413,7 @@ export function useAssessmentRuntime(attemptId: string) {
           if (nextResponse.forceSubmit && !submitted) {
             void submitAttempt("timer_expired");
           }
-        });
+        }).catch(()=>setSaveError("Сервертэй холбогдож чадсангүй. Холболт сэргэхэд дахин оролдоно."));
     }, attempt.session.heartbeatIntervalSeconds * 1000);
 
     return () => window.clearInterval(heartbeat);
@@ -449,21 +423,24 @@ export function useAssessmentRuntime(attemptId: string) {
     if (!attempt || !canStart) return;
 
     const autosave = window.setInterval(() => {
-      if (submitted || pendingSubmit || !hasUnsavedAnswers) return;
-
+      if (submitting || submitted || pendingSubmit || !hasUnsavedAnswers || saveInFlight.current || !online || remainingSeconds <= 0) return;
+      saveInFlight.current=true;
+      const nextSequence=Math.max(sequence.current,localVersion,serverVersion)+1;
+      sequence.current=nextSequence;setLocalVersion(nextSequence);
       const request: AssessmentAutosaveRequest = {
         attemptId: attempt.session.attemptId,
-        idempotencyKey: `autosave-${attempt.session.attemptId}-${localVersion}`,
-        localVersion,
+        idempotencyKey: `autosave-${attempt.session.attemptId}-${nextSequence}`,
+        localVersion: nextSequence,
         changedAnswers: answers,
         markedForReview,
         clientSavedAt: new Date().toISOString(),
       };
       void runtimeAdapter.autosave(request).then((response) => {
+        if(!response.accepted) throw new Error("Хариултыг сервер хүлээн аваагүй.");
         setServerVersion(response.serverVersion);
         setLastSavedAt(response.serverSavedAt);
-        setDirtyQuestionIds({});
-      });
+        setDirtyQuestionIds(current=>Object.fromEntries(Object.entries(current).map(([id,dirty])=>[id,JSON.stringify(latestAnswers.current[id])===JSON.stringify(request.changedAnswers[id])?false:dirty])));
+      }).catch(error=>setSaveError(error.message)).finally(()=>{saveInFlight.current=false;});
     }, attempt.session.autosaveIntervalSeconds * 1000);
 
     return () => window.clearInterval(autosave);
@@ -476,6 +453,9 @@ export function useAssessmentRuntime(attemptId: string) {
     markedForReview,
     pendingSubmit,
     submitted,
+    submitting,
+    online,
+    serverVersion,
   ]);
 
   useEffect(() => {
@@ -507,21 +487,23 @@ export function useAssessmentRuntime(attemptId: string) {
   }, [attempt, registerViolation]);
 
   async function saveQuestion(questionId = currentQuestionId) {
-    if (!attempt || !questionId || submitting || pendingSubmit) return false;
+    if (!attempt || !questionId || submitting || pendingSubmit || saveInFlight.current) return false;
     if (attempt.session.status !== "active") {
       setSaveError("Attempt active биш байна.");
       return false;
     }
 
+    saveInFlight.current=true;
     setSavingQuestionId(questionId);
     setSaveError(null);
     try {
-      const nextLocalVersion = Math.max(localVersion, serverVersion + 1);
+      const nextLocalVersion = Math.max(sequence.current, localVersion, serverVersion)+1;
+      sequence.current=nextLocalVersion;setLocalVersion(nextLocalVersion);
       const request: AssessmentAutosaveRequest = {
         attemptId: attempt.session.attemptId,
         idempotencyKey: `question-save-${attempt.session.attemptId}-${questionId}-${nextLocalVersion}`,
         localVersion: nextLocalVersion,
-        changedAnswers: { [questionId]: answers[questionId] ?? null },
+        changedAnswers: answers,
         markedForReview,
         clientSavedAt: new Date().toISOString(),
       };
@@ -530,7 +512,7 @@ export function useAssessmentRuntime(attemptId: string) {
       setServerVersion(response.serverVersion);
       setLocalVersion((current) => Math.max(current, nextLocalVersion));
       setLastSavedAt(response.serverSavedAt);
-      setDirtyQuestionIds((current) => ({ ...current, [questionId]: false }));
+      setDirtyQuestionIds(current=>Object.fromEntries(Object.entries(current).map(([id,dirty])=>[id,JSON.stringify(latestAnswers.current[id])===JSON.stringify(request.changedAnswers[id])?false:dirty])));
       setErrorQuestionIds((current) => ({ ...current, [questionId]: false }));
       return true;
     } catch (error) {
@@ -538,6 +520,7 @@ export function useAssessmentRuntime(attemptId: string) {
       setErrorQuestionIds((current) => ({ ...current, [questionId]: true }));
       return false;
     } finally {
+      saveInFlight.current=false;
       setSavingQuestionId(null);
     }
   }
@@ -565,7 +548,9 @@ export function useAssessmentRuntime(attemptId: string) {
   }
 
   function toggleMarkedForReview(questionId = currentQuestionId) {
-    if (!questionId) return;
+    if (!questionId || !attempt || attempt.session.status !== "active" || submitting || submitted) return;
+    setLocalVersion(current=>current+1);
+    setDirtyQuestionIds(current=>({...current,[questionId]:true}));
     setMarkedForReview((current) => ({ ...current, [questionId]: !current[questionId] }));
   }
 
@@ -574,11 +559,12 @@ export function useAssessmentRuntime(attemptId: string) {
     if (errorQuestionIds[questionId]) return "error";
     if (dirtyQuestionIds[questionId]) return "unsaved";
     if (markedForReview[questionId]) return "flagged";
-    if (answers[questionId] !== undefined || visitedQuestionIds[questionId]) return "saved";
+    if (answers[questionId] !== undefined && answers[questionId] !== null && answers[questionId] !== "") return "saved";
     return "not_visited";
   }
 
   function updateAnswer(questionId: string, value: AssessmentAnswerValue) {
+    if(!attempt || attempt.session.status !== "active" || remainingSeconds <= 0 || submitted || submitting) return;
     setAnswers((current) => ({ ...current, [questionId]: value }));
     setLocalVersion((current) => current + 1);
     setDirtyQuestionIds((current) => ({ ...current, [questionId]: true }));
@@ -604,6 +590,8 @@ export function useAssessmentRuntime(attemptId: string) {
     setStarting(true);
     try {
       const result = await runtimeAdapter.startAttempt(attempt.session.attemptId);
+      const refreshed = await runtimeAdapter.getSession(attempt.session.attemptId);
+      if(refreshed)setAttempt(refreshed);
       syncServerOffset(result.serverNow);
       setUnlockKey(result.unlockKey);
       setUnlockReceived(true);
@@ -625,6 +613,7 @@ export function useAssessmentRuntime(attemptId: string) {
   }
 
   return {
+    loadError,
     attempt,
     isKnownAttempt,
     recovering,

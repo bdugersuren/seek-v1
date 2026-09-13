@@ -1,5 +1,6 @@
+import { CandidateAttemptService } from "./candidate-attempt.service";
 import { AttemptOwnerGuard } from "./attempt-owner.guard";
-import { Controller, Get, Post, Body, Param, Sse, Res, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Sse, Res, UseGuards, Req, ForbiddenException } from "@nestjs/common";
 import { Observable } from "rxjs";
 import {
   AssessmentAutosaveRequest,
@@ -23,6 +24,7 @@ import { SignatureGuard } from "./infrastructure/guards/signature.guard";
 export class ExecutionController {
   constructor(
     private readonly executionService: ExecutionService,
+    private readonly candidateAttempts: CandidateAttemptService,
     private readonly sseService: SseService
   ) {}
 
@@ -40,11 +42,17 @@ export class ExecutionController {
     return this.executionService.getSession(attemptId);
   }
 
+  @Get("my-attempts")
+  async myAttempts(@Req() req:any) { return this.candidateAttempts.list(req.headers['x-user-id']); }
+
   @Post("attempts")
   async createAttempt(
+    @Req() req: any,
     @Body() request: CreateAssessmentAttemptRequest
   ): Promise<CreateAssessmentAttemptResponse> {
-    return this.executionService.createAttempt(request);
+    const roles=String(req.headers['x-user-roles'] || '').split(',');
+    if(!roles.includes('CANDIDATE')) throw new ForbiddenException();
+    return this.candidateAttempts.create(request.assessmentId, req.headers['x-user-id']);
   }
 
   @Post("preload/:attemptId")

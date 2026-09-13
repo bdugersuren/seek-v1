@@ -6,6 +6,7 @@ export type QuestionWorkflowStatus =
   | "resubmitted"
   | "approved"
   | "published"
+  | "retired"
   | "archived"
   | "rejected"
   | "deleted";
@@ -105,6 +106,9 @@ export interface QuestionTopicMapping {
 }
 
 export interface QuestionBankItem {
+  revision?: number;
+  questionVersionId?: string;
+  allowedActions?: string[];
   id: string;
   code: string;
   title: string;
@@ -124,7 +128,13 @@ export interface QuestionBankItem {
   topicId: string;
   topicName: string;
   topicMappings?: QuestionTopicMapping[];
-  difficulty?: DifficultyLevel;
+  difficulty?: DifficultyLevel | string;
+  difficultyName?: string;
+  difficultyColor?: string;
+  difficultyRank?: number;
+  difficultyLevelId?: string;
+  publishedVersionId?: string;
+  statistics?: {usageCount:number;gradedCount:number;correctCount:number;averagePercentage:number|null;asOf:string}|null;
   tags: string[];
   options: QuestionOption[];
   answerKey?: string;
@@ -153,6 +163,8 @@ export type BlueprintSelectionStrategy =
   | "adaptive_ai";
 
 export interface BlueprintSection {
+  sectionMode?: "FIXED" | "RULE_BASED";
+  selectionRules?: {schemaVersion:1;topicIds?:string[];includeDescendants?:boolean;types?:string[];difficultyLevelIds?:string[];audienceLevelIds?:string[]};
   id: string;
   name: string;
   description: string;
@@ -172,6 +184,13 @@ export interface BlueprintTopicMapping {
 }
 
 export interface Blueprint {
+  linkedQuizzes?: any[];
+  code?: string;
+  version?: number;
+  createdBy?: string;
+  usageCount?: number;
+  allowedActions?: string[];
+  readiness?: any;
   id: string;
   title: string;
   description: string;

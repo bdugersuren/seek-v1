@@ -11,23 +11,23 @@ export function RuntimeShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-muted-background">
+    <main className="min-h-screen overflow-x-hidden bg-muted-background">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-seek-4 py-seek-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Text className="text-lg font-bold text-primary">seek.mn Assessment</Text>
             <Text variant="muted" className="text-sm">
-              High-concurrency quiz runtime
+              Шалгалт өгөх хэсэг
             </Text>
           </div>
           <div className="rounded-seek-md border border-border bg-muted-background px-seek-3 py-seek-2 text-sm font-semibold text-foreground">
-            Runtime app
+            Үнэлгээ
           </div>
         </div>
       </header>
       <div className="mx-auto max-w-7xl px-seek-4 py-seek-5">
         <div className="mb-seek-4">
-          <h1 className="font-sans text-2xl font-bold text-foreground sm:text-3xl">
+          <h1 className="break-all font-sans text-2xl font-bold text-foreground sm:text-3xl">
             {title}
           </h1>
           <Text variant="muted" className="mt-1">

@@ -1,409 +1,469 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { randomUUID } from "crypto";
+import { materializeBlueprint } from "./blueprint-materialize";
+import { poolCatalog, assessPools } from "./blueprint-pools";
 import { PrismaService } from "./prisma.service";
 import { CreateQuizDto, UpdateQuizDto } from "./dto/quiz.dto";
-
+import { Actor, lockQuestion } from "./question-workflow";
+import {
+  quizActions,
+  quizSettings,
+  snapshotReadiness,
+  assertQuizVersion,
+  requireQuizAction,
+  quizHash,
+  quizRequest,
+} from "./quiz-workflow";
+const revisionInclude = {
+  sections: {
+    orderBy: { orderIndex: "asc" as const },
+    include: {
+      questions: {
+        orderBy: { orderIndex: "asc" as const },
+        include: {
+          question: true,
+          questionVersion: { include: { options: true, media: true } },
+        },
+      },
+    },
+  },
+};
+const detailInclude = {
+  template: true,
+  revisions: {
+    orderBy: { revisionNumber: "desc" as const },
+    include: revisionInclude,
+  },
+  currentPublishedRevision: true,
+};
 @Injectable()
 export class QuizService {
   constructor(private readonly prisma: PrismaService) {}
-
+  async load(db: any, id: string) {
+    const q = await db.quiz.findUnique({
+      where: { id },
+      include: detailInclude,
+    });
+    if (!q) throw new NotFoundException("Quiz олдсонгүй.");
+    return q;
+  }
+  async locked(tx: any, id: string, dto: any) {
+    await tx.$queryRaw`SELECT id FROM quiz WHERE id=${id} FOR UPDATE`;
+    const q = await this.load(tx, id);
+    assertQuizVersion(q, dto);
+    return q;
+  }
+  actor(q: any, actor?: Actor | string): Actor {
+    return typeof actor === "string"
+      ? { id: actor, roles: ["ASSESSOR"] }
+      : actor || { id: q.createdBy, roles: ["ASSESSOR"] };
+  }
+  async readiness(db: any, q: any, r: any) {
+    const result = snapshotReadiness(q, r);
+    const context = await db.assessmentContext.findUnique({
+      where: { id: r.assessmentContextId },
+    });
+    if (!context?.isActive) result.issues.push("Контекст идэвхгүй.");
+    if (
+      !(await db.assessorContextGrant.count({
+        where: { contextId: r.assessmentContextId, userId: q.createdBy },
+      }))
+    )
+      result.issues.push("Зохиогчийн контекстийн эрх цуцлагдсан.");
+    result.status = result.issues.length ? "NEEDS_ATTENTION" : "READY";
+    return result;
+  }
+  async findOne(id: string, actor?: Actor, revisionId?: string) {
+    const q = await this.load(this.prisma, id),
+      selected = q.revisions.find(
+        (r: any) => r.id === (revisionId || q.revisions[0]?.id),
+      );
+    if (!selected) throw new NotFoundException("Quiz хувилбар олдсонгүй.");
+    const readiness = await this.readiness(this.prisma, q, selected);
+    for (const rev of q.revisions)
+      for (const section of rev.sections)
+        for (const item of section.questions)
+          if (item.question.ownerUserId !== q.createdBy) {
+            item.question = { id: item.questionId };
+            item.questionVersion = null;
+          }
+    return {
+      ...q,
+      selectedRevision: selected,
+      readiness,
+      allowedActions: quizActions(q, selected, this.actor(q, actor)),
+      workflow: await this.prisma.assessmentWorkflowEvent.findMany({
+        where: { aggregateType: "quiz", aggregateId: id },
+        orderBy: { occurredAt: "asc" },
+      }),
+    };
+  }
+  async findAll(
+    contextId?: string,
+    allowedIds?: Set<string>,
+    query: any = {},
+    actor?: Actor,
+  ) {
+    const where: any = {
+      ...(contextId ? { template: { assessmentContextId: contextId } } : {}),
+      ...(allowedIds ? { id: { in: [...allowedIds] } } : {}),
+    };
+    const rows = await this.prisma.quiz.findMany({
+      where,
+      include: {
+        template: { select: { name: true, assessmentContextId: true } },
+        revisions: { orderBy: { revisionNumber: "desc" }, take: 1 },
+        currentPublishedRevision: true,
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (query.paged !== "true") return rows;
+    const page = Number(query.page || 1),
+      pageSize = Number(query.pageSize || 12);
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > 100
+    )
+      throw new BadRequestException("Хуудасны хэмжээ буруу.");
+    const filtered = rows.filter(
+      (q) =>
+        (!query.search ||
+          `${q.code} ${q.revisions[0]?.title || q.title}`
+            .toLowerCase()
+            .includes(String(query.search).toLowerCase())) &&
+        (!query.status || q.revisions[0]?.revisionStatus === query.status) &&
+        (!query.blueprintId || q.templateId === query.blueprintId),
+    );
+    return {
+      items: filtered.slice((page - 1) * pageSize, page * pageSize),
+      total: filtered.length,
+      page,
+      pageSize,
+      facets: {
+        blueprints: [
+          ...new Map(
+            rows.map((q) => [
+              q.templateId,
+              { id: q.templateId, name: q.template.name },
+            ]),
+          ).values(),
+        ],
+      },
+      summary: {
+        total: rows.length,
+        published: rows.filter((q) => q.currentPublishedRevisionId).length,
+        inReview: rows.filter(
+          (q) => q.revisions[0]?.revisionStatus === "IN_REVIEW",
+        ).length,
+      },
+    };
+  }
   async create(dto: CreateQuizDto) {
-    if (!dto.title || !dto.blueprintId || !dto.durationMinutes) {
-      throw new BadRequestException("title, blueprintId and durationMinutes are required");
-    }
-
-    const blueprint = await this.prisma.quizTemplate.findUnique({
-      where: { id: dto.blueprintId },
+    quizSettings(dto);
+    if (!dto.title || !dto.blueprintId || !dto.createdBy)
+      throw new BadRequestException("Нэр, Blueprint, хэрэглэгч шаардлагатай.");
+    const actor = this.actor(dto);
+    const id = await this.prisma.$transaction(
+      (tx) =>
+        quizRequest(tx, actor, "create", dto, async () => {
+          await tx.$queryRaw`SELECT id FROM quiz_template WHERE id=${dto.blueprintId} FOR UPDATE`;
+          const b = await tx.quizTemplate.findUnique({
+            where: { id: dto.blueprintId },
+          });
+          if (!b) throw new NotFoundException("Blueprint олдсонгүй.");
+          if (
+            !Number.isInteger(dto.expectedBlueprintVersion) ||
+            dto.expectedBlueprintVersion !== b.version
+          )
+            throw new ConflictException(
+              "Blueprint өөрчлөгдсөн. Шинэ тохиргоог шалгана уу.",
+            );
+          const q = await tx.quiz.create({
+            data: {
+              templateId: b.id,
+              code: "quiz-" + randomUUID(),
+              title: dto.title.trim(),
+              createdBy: actor.id,
+              version: 1,
+            },
+          });
+          const r = await tx.quizRevision.create({
+            data: {
+              quizId: q.id,
+              revisionNumber: 1,
+              revisionStatus: "DRAFT",
+              assessmentContextId: b.assessmentContextId!,
+              title: dto.title.trim(),
+              description: dto.description || null,
+              durationMinutes: dto.durationMinutes ?? b.defaultDurationMinutes,
+              passingScore: dto.passingScore ?? b.defaultPassingScore,
+              maxAttempts: dto.maxAttempts ?? 1,
+              createdBy: actor.id,
+              runtimePolicy: {
+                questionOverrides: dto.questionOverrides || [],
+              } as any,
+            },
+          });
+          await materializeBlueprint(
+            tx,
+            b.id,
+            r.id,
+            dto.questionOverrides || [],
+          );
+          return q.id;
+        }),
+      { timeout: 30000 },
+    );
+    return this.findOne(id, actor);
+  }
+  async bump(tx: any, q: any, actor: Actor) {
+    await tx.quiz.update({
+      where: { id: q.id },
+      data: { version: { increment: 1 }, updatedBy: actor.id },
+    });
+  }
+  async update(id: string, dto: UpdateQuizDto, actorInput?: Actor | string) {
+    quizSettings(dto);
+    await this.prisma.$transaction(
+      async (tx) => {
+        const q = await this.locked(tx, id, dto),
+          actor = this.actor(q, actorInput),
+          r = q.revisions.find((r: any) => r.id === dto.quizRevisionId);
+        requireQuizAction(q, r, actor, "save");
+        const old = r.runtimePolicy?.questionOverrides || [],
+          overrides = dto.questionOverrides ?? old;
+        if (!dto.reselectQuestions && quizHash(overrides) !== quizHash(old))
+          throw new BadRequestException(
+            "Override өөрчлөхдөө дахин бүрдүүлэх үйлдлийг ашиглана уу.",
+          );
+        await tx.quizRevision.update({
+          where: { id: r.id },
+          data: {
+            title: dto.title?.trim(),
+            description: dto.description,
+            durationMinutes: dto.durationMinutes,
+            passingScore: dto.passingScore,
+            maxAttempts: dto.maxAttempts,
+            runtimePolicy: { ...r.runtimePolicy, questionOverrides: overrides },
+          },
+        });
+        if (dto.reselectQuestions)
+          await materializeBlueprint(tx, q.templateId, r.id, overrides);
+        await this.bump(tx, q, actor);
+      },
+      { timeout: 30000 },
+    );
+    return this.findOne(
+      id,
+      typeof actorInput === "object" ? actorInput : undefined,
+      dto.quizRevisionId,
+    );
+  }
+  async preview(id: string, dto: any, actor: Actor) {
+    const q = await this.load(this.prisma, id);
+    assertQuizVersion(q, dto);
+    const r = q.revisions.find((r: any) => r.id === dto.quizRevisionId);
+    requireQuizAction(q, r, actor, "reselect");
+    quizSettings(dto);
+    const b = await this.prisma.quizTemplate.findUniqueOrThrow({
+      where: { id: q.templateId },
       include: {
         sections: {
-          include: {
-            questions: {
-              include: {
-                question: {
-                  include: {
-                    currentPublishedVersion: true,
-                    versions: {
-                      orderBy: { versionNumber: "desc" },
-                      take: 1,
-                    },
-                  },
-                },
-              },
-            },
-          },
+          orderBy: { orderIndex: "asc" },
+          include: { questions: true },
         },
       },
     });
-
-    if (!blueprint) {
-      throw new NotFoundException(`Blueprint with ID ${dto.blueprintId} not found`);
-    }
-
-    const quizId = await this.prisma.$transaction(async (tx) => {
-      const code = `quiz-${dto.blueprintId}-${Date.now()}`;
-
-      // 1. Create parent Quiz
-      const quiz = await tx.quiz.create({
-        data: {
-          templateId: dto.blueprintId,
-          code,
-          title: dto.title,
-          createdBy: dto.createdBy || "system_author",
-          version: 1,
-        },
-      });
-
-      // 2. Create QuizRevision v1
-      const revision = await tx.quizRevision.create({
-        data: {
-          quizId: quiz.id,
-          revisionNumber: 1,
-          revisionStatus: "DRAFT",
-          assessmentContextId: blueprint.assessmentContextId,
-          title: dto.title,
-          description: dto.description || null,
-          durationMinutes: dto.durationMinutes,
-          passingScore: 70.0, // Default passing threshold
-          maxAttempts: dto.maxAttempts || 1,
-          paymentRequired: (dto.priceMnt || 0) > 0,
-          defaultPrice: dto.priceMnt || 0,
-          currencyCode: "MNT",
-          createdBy: dto.createdBy || "system_author",
-          runtimePolicy: {
-            questionOverrides: dto.questionOverrides || [],
-          } as any,
-        },
-      });
-
-      // 3. Process sections & random question pick selection based on overrides
-      for (const section of blueprint.sections) {
-        const revSection = await tx.quizRevisionSection.create({
+    return assessPools(
+      b,
+      await poolCatalog(this.prisma, b.assessmentContextId, b.createdBy),
+      randomUUID(),
+      dto.questionOverrides || [],
+    );
+  }
+  async newRevision(id: string, dto: any, actor: Actor) {
+    await this.prisma.$transaction(
+      async (tx) => {
+        const q = await this.locked(tx, id, dto),
+          r = q.revisions.find((r: any) => r.id === dto.quizRevisionId);
+        requireQuizAction(q, r, actor, "new_revision");
+        const {
+          id: oldId,
+          sections,
+          revisionNumber,
+          revisionStatus,
+          createdAt,
+          createdBy,
+          reviewedBy,
+          reviewedAt,
+          approvedBy,
+          approvedAt,
+          publishedBy,
+          publishedAt,
+          retiredAt,
+          approvalComment,
+          ...settings
+        } = r;
+        const next = await tx.quizRevision.create({
           data: {
-            quizRevisionId: revision.id,
-            sourceSectionId: section.id,
-            title: section.title,
-            sectionMode: "FIXED",
-            orderIndex: section.orderIndex,
-            questionCount: section.questionCount,
-            maxScorePerQuestion: section.maxScorePerQuestion,
-            selectionStrategy: "RANDOM",
+            ...settings,
+            revisionNumber: q.revisions[0].revisionNumber + 1,
+            revisionStatus: "DRAFT",
+            questionManifestHash: null,
+            createdBy: actor.id,
           },
         });
-
-        // Resolve question list with overrides
-        const mandatoryIds = (dto.questionOverrides || [])
-          .filter((ov) => ov.mode === "mandatory")
-          .map((ov) => ov.questionId);
-        const excludedIds = new Set(
-          (dto.questionOverrides || [])
-            .filter((ov) => ov.mode === "excluded")
-            .map((ov) => ov.questionId)
-        );
-
-        const candidates = section.questions.filter(
-          (q) => !mandatoryIds.includes(q.questionId) && !excludedIds.has(q.questionId)
-        );
-
-        const chosenQuestions = [
-          ...section.questions.filter((q) => mandatoryIds.includes(q.questionId)),
-          ...candidates,
-        ].slice(0, section.questionCount);
-
-        for (let i = 0; i < chosenQuestions.length; i++) {
-          const cq = chosenQuestions[i];
-          const activeVersion = cq.question.currentPublishedVersion || cq.question.versions[0];
-          if (!activeVersion) continue;
-
-          await tx.quizRevisionQuestion.create({
-            data: {
-              revisionSectionId: revSection.id,
-              questionId: cq.questionId,
-              questionVersionId: activeVersion.id,
-              orderIndex: i + 1,
-              maxScore: section.maxScorePerQuestion,
-              minScore: 0.0,
-            },
+        for (const s of sections) {
+          const { id: oldSection, quizRevisionId, questions, ...data } = s;
+          const ns = await tx.quizRevisionSection.create({
+            data: { ...data, quizRevisionId: next.id },
           });
-        }
-      }
-
-      return quiz.id;
-    });
-    return this.findOne(quizId);
-  }
-
-  async findAll(contextId?: string) {
-    return await this.prisma.quiz.findMany({
-      where: contextId
-        ? {
-            template: {
-              assessmentContextId: contextId,
-            },
-          }
-        : undefined,
-      include: {
-        revisions: {
-          orderBy: { revisionNumber: "desc" },
-          take: 1,
-        },
-        currentPublishedRevision: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-  }
-
-  async findOne(id: string) {
-    const quiz = await this.prisma.quiz.findUnique({
-      where: { id },
-      include: {
-        revisions: {
-          orderBy: { revisionNumber: "desc" },
-          include: {
-            sections: {
-              orderBy: { orderIndex: "asc" },
-              include: {
-                questions: {
-                  orderBy: { orderIndex: "asc" },
-                  include: {
-                    question: true,
-                    questionVersion: {
-                      include: {
-                        options: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        currentPublishedRevision: true,
-      },
-    });
-
-    if (!quiz) {
-      throw new NotFoundException(`Quiz with ID ${id} not found`);
-    }
-
-    return quiz;
-  }
-
-  async update(id: string, dto: UpdateQuizDto) {
-    const quiz = await this.findOne(id);
-    const lastRevision = quiz.revisions[0];
-
-    if (!lastRevision) {
-      throw new BadRequestException("No revision history found for this quiz");
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      // A. If latest revision is DRAFT, edit it directly
-      if (lastRevision.revisionStatus === "DRAFT") {
-        await tx.quizRevision.update({
-          where: { id: lastRevision.id },
-          data: {
-            title: dto.title !== undefined ? dto.title : lastRevision.title,
-            description: dto.description !== undefined ? dto.description : lastRevision.description,
-            durationMinutes: dto.durationMinutes !== undefined ? dto.durationMinutes : lastRevision.durationMinutes,
-            maxAttempts: dto.maxAttempts !== undefined ? dto.maxAttempts : lastRevision.maxAttempts,
-            paymentRequired: dto.priceMnt !== undefined ? dto.priceMnt > 0 : lastRevision.paymentRequired,
-            defaultPrice: dto.priceMnt !== undefined ? dto.priceMnt : lastRevision.defaultPrice,
-            runtimePolicy: {
-              questionOverrides: dto.questionOverrides !== undefined ? dto.questionOverrides : (lastRevision.runtimePolicy as any)?.questionOverrides || [],
-            } as any,
-          },
-        });
-
-        // Reprocess questions for sections if overrides changed
-        if (dto.questionOverrides !== undefined) {
-          const blueprint = await tx.quizTemplate.findUnique({
-            where: { id: quiz.templateId },
-            include: {
-              sections: {
-                include: {
-                  questions: {
-                    include: {
-                      question: {
-                        include: {
-                          currentPublishedVersion: true,
-                          versions: { orderBy: { versionNumber: "desc" }, take: 1 },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          });
-
-          if (blueprint) {
-            for (const section of blueprint.sections) {
-              const revSection = await tx.quizRevisionSection.findFirst({
-                where: { quizRevisionId: lastRevision.id, sourceSectionId: section.id },
-              });
-
-              if (revSection) {
-                await tx.quizRevisionQuestion.deleteMany({
-                  where: { revisionSectionId: revSection.id },
-                });
-
-                const mandatoryIds = (dto.questionOverrides || [])
-                  .filter((ov) => ov.mode === "mandatory")
-                  .map((ov) => ov.questionId);
-                const excludedIds = new Set(
-                  (dto.questionOverrides || [])
-                    .filter((ov) => ov.mode === "excluded")
-                    .map((ov) => ov.questionId)
-                );
-
-                const candidates = section.questions.filter(
-                  (q) => !mandatoryIds.includes(q.questionId) && !excludedIds.has(q.questionId)
-                );
-
-                const chosenQuestions = [
-                  ...section.questions.filter((q) => mandatoryIds.includes(q.questionId)),
-                  ...candidates,
-                ].slice(0, section.questionCount);
-
-                for (let i = 0; i < chosenQuestions.length; i++) {
-                  const cq = chosenQuestions[i];
-                  const activeVersion = cq.question.currentPublishedVersion || cq.question.versions[0];
-                  if (!activeVersion) continue;
-
-                  await tx.quizRevisionQuestion.create({
-                    data: {
-                      revisionSectionId: revSection.id,
-                      questionId: cq.questionId,
-                      questionVersionId: activeVersion.id,
-                      orderIndex: i + 1,
-                      maxScore: section.maxScorePerQuestion,
-                      minScore: 0.0,
-                    },
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        return;
-      }
-
-      // B. If latest revision is PUBLISHED/APPROVED, create a new revision as DRAFT
-      const nextRevNumber = lastRevision.revisionNumber + 1;
-      const newRevision = await tx.quizRevision.create({
-        data: {
-          quizId: quiz.id,
-          revisionNumber: nextRevNumber,
-          revisionStatus: "DRAFT",
-          assessmentContextId: lastRevision.assessmentContextId,
-          title: dto.title !== undefined ? dto.title : lastRevision.title,
-          description: dto.description !== undefined ? dto.description : lastRevision.description,
-          durationMinutes: dto.durationMinutes !== undefined ? dto.durationMinutes : lastRevision.durationMinutes,
-          passingScore: lastRevision.passingScore,
-          maxAttempts: dto.maxAttempts !== undefined ? dto.maxAttempts : lastRevision.maxAttempts,
-          paymentRequired: dto.priceMnt !== undefined ? dto.priceMnt > 0 : lastRevision.paymentRequired,
-          defaultPrice: dto.priceMnt !== undefined ? dto.priceMnt : lastRevision.defaultPrice,
-          currencyCode: lastRevision.currencyCode,
-          createdBy: "system_author",
-          runtimePolicy: {
-            questionOverrides: dto.questionOverrides !== undefined ? dto.questionOverrides : (lastRevision.runtimePolicy as any)?.questionOverrides || [],
-          } as any,
-        },
-      });
-
-      // Populate sections and questions for the new revision
-      const blueprint = await tx.quizTemplate.findUnique({
-        where: { id: quiz.templateId },
-        include: {
-          sections: {
-            include: {
-              questions: {
-                include: {
-                  question: {
-                    include: {
-                      currentPublishedVersion: true,
-                      versions: { orderBy: { versionNumber: "desc" }, take: 1 },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      if (blueprint) {
-        const overridesSource = dto.questionOverrides !== undefined ? dto.questionOverrides : (lastRevision.runtimePolicy as any)?.questionOverrides || [];
-        for (const section of blueprint.sections) {
-          const revSection = await tx.quizRevisionSection.create({
-            data: {
-              quizRevisionId: newRevision.id,
-              sourceSectionId: section.id,
-              title: section.title,
-              sectionMode: "FIXED",
-              orderIndex: section.orderIndex,
-              questionCount: section.questionCount,
-              maxScorePerQuestion: section.maxScorePerQuestion,
-              selectionStrategy: "RANDOM",
-            },
-          });
-
-          const mandatoryIds = overridesSource
-            .filter((ov: any) => ov.mode === "mandatory")
-            .map((ov: any) => ov.questionId);
-          const excludedIds = new Set(
-            overridesSource
-              .filter((ov: any) => ov.mode === "excluded")
-              .map((ov: any) => ov.questionId)
-          );
-
-          const candidates = section.questions.filter(
-            (q) => !mandatoryIds.includes(q.questionId) && !excludedIds.has(q.questionId)
-          );
-
-          const chosenQuestions = [
-            ...section.questions.filter((q) => mandatoryIds.includes(q.questionId)),
-            ...candidates,
-          ].slice(0, section.questionCount);
-
-          for (let i = 0; i < chosenQuestions.length; i++) {
-            const cq = chosenQuestions[i];
-            const activeVersion = cq.question.currentPublishedVersion || cq.question.versions[0];
-            if (!activeVersion) continue;
-
+          for (const item of questions) {
+            const {
+              id: oldQuestion,
+              revisionSectionId,
+              question,
+              questionVersion,
+              ...data
+            } = item;
             await tx.quizRevisionQuestion.create({
-              data: {
-                revisionSectionId: revSection.id,
-                questionId: cq.questionId,
-                questionVersionId: activeVersion.id,
-                orderIndex: i + 1,
-                maxScore: section.maxScorePerQuestion,
-                minScore: 0.0,
-              },
+              data: { ...data, revisionSectionId: ns.id },
             });
           }
         }
-      }
-
-      // Update parent quiz revision count
-      await tx.quiz.update({
-        where: { id: quiz.id },
-        data: { version: nextRevNumber },
-      });
-
-      return;
-    });
-    return this.findOne(id);
-  }
-
-  async remove(id: string) {
-    const quiz = await this.findOne(id);
-    return await this.prisma.quiz.update({
-      where: { id },
-      data: {
-        lifecycleStatus: "ARCHIVED" as any,
-        archivedAt: new Date(),
+        await this.bump(tx, q, actor);
       },
-    });
+      { timeout: 30000 },
+    );
+    return this.findOne(id, actor);
+  }
+  async transition(id: string, dto: any, actor: Actor) {
+    if(dto?.comment!==undefined && (typeof dto.comment!=="string" || dto.comment.length>20000)) throw new BadRequestException("Тайлбарын формат буруу.");
+    await this.prisma.$transaction(
+      (tx) =>
+        quizRequest(tx, actor, "workflow:" + id, dto, async () => {
+          const q = await this.locked(tx, id, dto),
+            r = q.revisions.find((r: any) => r.id === dto.quizRevisionId);
+          requireQuizAction(q, r, actor, dto.action);
+          if (
+            ![
+              "approval_requested",
+              "withdraw",
+              "approve",
+              "changes_requested",
+              "publish",
+              "reopen",
+            ].includes(dto.action)
+          )
+            throw new BadRequestException("Workflow үйлдэл буруу.");
+          if (
+            dto.action === "changes_requested" &&
+            (typeof dto.comment !== "string" || !dto.comment.trim())
+          )
+            throw new BadRequestException("Буцаах тайлбар шаардлагатай.");
+          if (
+            ["approval_requested", "approve", "publish"].includes(dto.action)
+          ) {
+            for (const qid of [
+              ...new Set<string>(
+                r.sections.flatMap((s: any) =>
+                  s.questions.map((x: any) => x.questionId),
+                ),
+              ),
+            ].sort())
+              await lockQuestion(tx, qid);
+            const fresh = await this.load(tx, id),
+              fr = fresh.revisions.find((x: any) => x.id === r.id),
+              ready = await this.readiness(tx, fresh, fr);
+            if (ready.issues.length)
+              throw new BadRequestException({
+                message: "Quiz ашиглахад бэлэн биш.",
+                issues: ready.issues,
+              });
+          }
+          const status = {
+            approval_requested: "IN_REVIEW",
+            withdraw: "DRAFT",
+            approve: "APPROVED",
+            changes_requested: "DRAFT",
+            publish: "PUBLISHED",
+            reopen: "DRAFT",
+          }[dto.action];
+          const data: any = { revisionStatus: status };
+          if (dto.action === "approve")
+            Object.assign(data, {
+              approvedBy: actor.id,
+              approvedAt: new Date(),
+              reviewedBy: actor.id,
+              reviewedAt: new Date(),
+              approvalComment: dto.comment || null,
+            });
+          if (dto.action === "changes_requested")
+            Object.assign(data, {
+              reviewedBy: actor.id,
+              reviewedAt: new Date(),
+              approvalComment: dto.comment,
+              approvedBy: null,
+              approvedAt: null,
+            });
+          if (dto.action === "publish") {
+            const manifest = r.sections.map((s: any) => ({
+              id: s.id,
+              questions: s.questions.map((x: any) => ({
+                id: x.questionId,
+                version: x.questionVersionId,
+                score: String(x.maxScore),
+              })),
+            }));
+            Object.assign(data, {
+              publishedBy: actor.id,
+              publishedAt: new Date(),
+              questionManifestHash: quizHash(manifest),
+            });
+            await tx.quiz.update({
+              where: { id },
+              data: {
+                currentPublishedRevisionId: r.id,
+                title: r.title,
+                lifecycleStatus: "PUBLISHED",
+              },
+            });
+          }
+          await tx.quizRevision.update({ where: { id: r.id }, data });
+          await this.bump(tx, q, actor);
+          await tx.assessmentWorkflowEvent.create({
+            data: {
+              aggregateType: "quiz",
+              aggregateId: id,
+              previousStatus: r.revisionStatus,
+              newStatus: status,
+              action: dto.action,
+              comment: dto.comment || null,
+              actorUserId: actor.id,
+              metadata: {
+                quizRevisionId: r.id,
+                actorRoles: actor.roles,
+                requestId: dto.requestId,
+              },
+            },
+          });
+          return id;
+        }),
+      { timeout: 30000 },
+    );
+    return this.findOne(id, actor, dto.quizRevisionId);
+  }
+  async remove(id: string) {
+    throw new BadRequestException(
+      "Quiz устгах боломжгүй. Нийтэлсэн хувилбарын түүхийг хадгална.",
+    );
   }
 }

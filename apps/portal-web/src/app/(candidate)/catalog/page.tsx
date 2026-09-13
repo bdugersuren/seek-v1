@@ -12,7 +12,7 @@ import {
   useToast,
   useDialog,
 } from "@seek/ui";
-import { fetchAudienceTypes } from "@/features/assessor-workspace/api";
+import { authFetch } from "@/lib/auth-client";
 import { createAssessmentRuntimeUrl } from "@/features/assessment-runtime/url";
 import { createCatalogAttempt } from "@/features/catalog/attempts";
 import { readCatalogCart, saveCatalogCart } from "@/features/catalog/cart";
@@ -69,7 +69,9 @@ export default function CatalogPage() {
     // Load Audience Types dynamically from database
     async function loadAudienceTypes() {
       try {
-        const types = await fetchAudienceTypes();
+        const response = await authFetch("/api/v1/assessment/candidate/facets");
+        if(!response.ok)throw new Error("Шүүлтүүрийг татаж чадсангүй.");
+        const types = await response.json();
         setAudienceTypes(types || []);
       } catch (err) {
         console.error("Failed to load audience types for filters", err);

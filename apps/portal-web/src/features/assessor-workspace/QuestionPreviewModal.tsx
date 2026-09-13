@@ -1,4 +1,5 @@
 "use client";
+import { questionTypeIcons } from "./question-presentation";
 
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -39,21 +40,7 @@ import type {
 import { RichTextPreview } from "./builders/RichTextPreviewer";
 import { QuestionTypePreview } from "./builders/OptionPreviews";
 
-const questionTypeIcons: Record<QuestionType, React.ComponentType<any>> = {
-  SINGLE_CHOICE: Icons.SingleChoose,
-  MULTIPLE_CHOICE: Icons.MultiChoose,
-  TRUE_FALSE: Icons.TrueFalse,
-  ORDERING: Icons.Ordering,
-  MATCHING: Icons.Matching,
-  SHORT_TEXT: Icons.ShortText,
-  FILL_BLANK: Icons.FillBlank,
-  MATRIX: Icons.Matrix,
-  NUMERIC: Icons.Numeric,
-  LIKERT: Icons.Likert,
-  SJT: Icons.Sjt,
-  CASE_BUNDLE: Icons.CaseBundle,
-  ESSAY: Icons.Essay,
-};
+
 
 const scoringModeLabels: Record<string, string> = {
   per_option: "Харгалзах оноо",
@@ -83,6 +70,7 @@ const statusVariant: Record<
   published: "success",
   archived: "secondary",
   rejected: "danger",
+  retired: "secondary",
   deleted: "danger",
 };
 
@@ -150,7 +138,7 @@ export function QuestionPreviewModal({
           setLoadingEvents(true);
           const evs = await fetchQuestionWorkflowEvents(question.id);
           if (active) {
-            setWorkflowEvents(evs || []);
+            setWorkflowEvents((evs || []).map((event:any)=>({...event,newStatus:String(event.newStatus).toLowerCase()})));
           }
         } catch (err) {
           console.error("Failed to load workflow events:", err);
@@ -199,7 +187,7 @@ export function QuestionPreviewModal({
   const durationSeconds = activeQuestion.defaultTimeSeconds ?? 60;
 
   return (
-    <div className="fixed inset-0 z-modal grid place-items-center bg-slate-900/60 backdrop-blur-sm p-seek-4 transition-all duration-300">
+    <div role="dialog" aria-modal="true" aria-label="Асуултын урьдчилан харах" className="fixed inset-0 z-modal grid place-items-center bg-slate-900/60 backdrop-blur-sm p-seek-4 transition-all duration-300">
       <Card className="max-h-[92vh] w-full max-w-5xl overflow-auto p-seek-6 shadow-2xl relative border-slate-200 bg-white rounded-seek-2xl">
         {/* Close Button */}
         <div className="absolute right-6 top-6">
@@ -207,6 +195,7 @@ export function QuestionPreviewModal({
             type="button" 
             variant="outline" 
             onClick={onClose}
+            aria-label="Хаах"
             className="h-9 w-9 p-0 rounded-seek-md flex items-center justify-center hover:bg-slate-50 border-slate-200 text-slate-700 shadow-seek-sm bg-white"
           >
             ✕
@@ -502,7 +491,7 @@ export function QuestionPreviewModal({
                     </div>
                     {activeQuestion.updatedAt && (
                       <span className="text-[10px] font-semibold text-slate-400 block">
-                        Last reviewed: {new Date(activeQuestion.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        Шинэчилсэн: {new Date(activeQuestion.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </span>
                     )}
                   </div>
@@ -547,7 +536,7 @@ export function QuestionPreviewModal({
                             )}
                             
                             <span className="text-[10px] font-semibold text-slate-400 block">
-                              {ev.actorName || "Reviewer"} • {ev.occurredAt ? new Date(ev.occurredAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
+                              {ev.actorName || (ev.actorRole==="ASSESSOR"?"Зохиогч":ev.actorRole==="SUPER_ADMIN"?"Хянагч":"Хэрэглэгч")} • {ev.occurredAt ? new Date(ev.occurredAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""}
                             </span>
                           </div>
                         );
@@ -641,6 +630,7 @@ export function QuestionPreviewModal({
             type="button" 
             variant="outline" 
             onClick={onClose}
+            aria-label="Хаах"
             className="px-seek-6 py-2 h-10 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-seek-md shadow-seek-xs bg-white text-xs"
           >
             Close

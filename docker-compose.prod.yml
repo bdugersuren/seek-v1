@@ -336,7 +336,7 @@ services:
     - no-new-privileges:true
     mem_limit: 1g
     cpus: 2
-    image: seek-assessment-web:${SEEK_IMAGE_TAG:-production}
+    image: ${SEEK_ASSESSMENT_WEB_IMAGE:-seek-assessment-web:production}
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend.production
@@ -440,6 +440,8 @@ services:
     restart: unless-stopped
     environment:
       PORT: '3070'
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-seek_mq_user}:${RABBITMQ_DEFAULT_PASS:?Required production secret}@rabbitmq:5672
+      CANDIDATE_INTERNAL_SECRET: ${CANDIDATE_INTERNAL_SECRET:-}
       ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
         production secret}@postgres:5432/assessment_db?connection_limit=5
       NODE_ENV: production
@@ -482,6 +484,8 @@ services:
       USE_REDIS: 'true'
       USE_RABBITMQ: 'true'
       ENABLE_SIGNATURE_VERIFICATION: 'false'
+      CANDIDATE_INTERNAL_SECRET: ${CANDIDATE_INTERNAL_SECRET:-}
+      ASSESSMENT_SERVICE_URL: http://assessment:3070
       EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
         production secret}@postgres:5432/execution_db?connection_limit=5
       REDIS_URL: redis://:${REDIS_PASSWORD:?Required production secret}@redis:6379
@@ -502,7 +506,7 @@ services:
     - no-new-privileges:true
     mem_limit: 768m
     cpus: 2
-    image: seek-backend:${SEEK_IMAGE_TAG:-production}
+    image: ${SEEK_EXECUTION_IMAGE:-seek-backend:production}
     build:
       context: .
       dockerfile: docker/Dockerfile.production
@@ -714,6 +718,8 @@ services:
       target: backend
     environment:
       PORT: '3070'
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-seek_mq_user}:${RABBITMQ_DEFAULT_PASS:?Required production secret}@rabbitmq:5672
+      CANDIDATE_INTERNAL_SECRET: ${CANDIDATE_INTERNAL_SECRET:-}
       ASSESSMENT_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
         production secret}@postgres:5432/assessment_db?connection_limit=5
       NODE_ENV: production
@@ -744,6 +750,8 @@ services:
       USE_REDIS: 'true'
       USE_RABBITMQ: 'true'
       ENABLE_SIGNATURE_VERIFICATION: 'false'
+      CANDIDATE_INTERNAL_SECRET: ${CANDIDATE_INTERNAL_SECRET:-}
+      ASSESSMENT_SERVICE_URL: http://assessment:3070
       EXECUTION_DATABASE_URL: postgresql://${POSTGRES_USER:-seek_admin}:${POSTGRES_PASSWORD:?Required
         production secret}@postgres:5432/execution_db?connection_limit=5
       REDIS_URL: redis://:${REDIS_PASSWORD:?Required production secret}@redis:6379

@@ -3,6 +3,8 @@ import { PrismaService } from "./prisma.service";
 
 type WorkflowEvent = {
   id: string;
+  questionVersionId?: string;
+  actorRole?: string;
   aggregateType: "question" | "blueprint" | "quiz" | "schedule" | "result";
   aggregateId: string;
   action: string;
@@ -99,6 +101,8 @@ export class AssessmentWorkflowService {
 
       return {
         id: event.id,
+        questionVersionId:event.questionVersionId,
+        actorRole:event.actorRole,
         aggregateType: "question",
         aggregateId: event.questionId,
         action: event.action,
@@ -155,6 +159,8 @@ export class AssessmentWorkflowService {
       });
       return events.map((event) => ({
         id: event.id,
+        questionVersionId:event.questionVersionId,
+        actorRole:event.actorRole,
         aggregateType: "question",
         aggregateId: event.questionId,
         action: event.action,
@@ -185,40 +191,12 @@ export class AssessmentWorkflowService {
     }
   }
 
-  async publishSchedule(
-    scheduleId: string,
-    body: { actorUserId: string; publishedRevisionHash?: string }
-  ): Promise<SchedulePublication> {
-    await this.prisma.quizSchedule.update({
-      where: { id: scheduleId },
-      data: {
-        status: "PUBLISHED" as any,
-        publishedRevisionHash: body.publishedRevisionHash,
-      },
-    });
-
-    const event = await this.transition("schedule", scheduleId, {
-      action: "publish",
-      newStatus: "PUBLISHED",
-      actorUserId: body.actorUserId,
-      metadata: { publishedRevisionHash: body.publishedRevisionHash } as any,
-    });
-
-    return {
-      scheduleId,
-      status: "PUBLISHED",
-      publishedAt: event.occurredAt,
-      eligibilityMaterializationRequested: true,
-      eventId: event.id,
-    };
-  }
-
   async getSchedulePublication(scheduleId: string): Promise<SchedulePublication> {
     const schedule = await this.prisma.quizSchedule.findUnique({
       where: { id: scheduleId },
     });
 
-    if (!schedule || schedule.status !== ("PUBLISHED" as any)) {
+    if (!schedule || !schedule.publishedAt || schedule.status === "DRAFT" || schedule.status === "CANCELLED") {
       throw new NotFoundException(`Schedule ${scheduleId} has not been published`);
     }
 
@@ -226,7 +204,7 @@ export class AssessmentWorkflowService {
       where: {
         aggregateType: "schedule",
         aggregateId: scheduleId,
-        newStatus: "PUBLISHED",
+        action: "publish",
       },
       orderBy: { occurredAt: "desc" },
     });
@@ -234,7 +212,7 @@ export class AssessmentWorkflowService {
     return {
       scheduleId,
       status: "PUBLISHED",
-      publishedAt: lastPublishEvent?.occurredAt.toISOString() || schedule.updatedAt.toISOString(),
+      publishedAt: schedule.publishedAt.toISOString(),
       eligibilityMaterializationRequested: true,
       eventId: lastPublishEvent?.id || "manual-publish",
     };

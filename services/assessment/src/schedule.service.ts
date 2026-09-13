@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, UnauthorizedException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
 import { CreateScheduleDto, UpdateScheduleDto } from "./dto/schedule.dto";
 import * as amqp from "amqplib";
@@ -21,6 +21,8 @@ export class ScheduleService {
       throw new BadRequestException("name, quizRevisionId, code, availableFrom, and availableUntil are required");
     }
 
+    const from=new Date(dto.availableFrom), until=new Date(dto.availableUntil);
+    if(!Number.isFinite(from.getTime())||!Number.isFinite(until.getTime())||until<=from)throw new BadRequestException("Хуваарийн эхлэх, хаах цаг буруу байна.");
     const revision = await this.prisma.quizRevision.findUnique({
       where: { id: dto.quizRevisionId },
     });
@@ -130,18 +132,28 @@ export class ScheduleService {
   }
 
   async publish(id: string, actorUserId: string) {
+    if (!actorUserId) throw new UnauthorizedException();
     const schedule = await this.findOne(id);
 
+    if(schedule.quizRevision.revisionStatus !== "PUBLISHED")throw new BadRequestException("Нийтэлсэн quiz хувилбар сонгоно уу.");
+    const supported=["SINGLE_CHOICE","MULTIPLE_CHOICE","TRUE_FALSE","SHORT_TEXT","NUMERIC","ESSAY","MATCHING","MATRIX"];
+    if(!schedule.quizRevision.sections.length || schedule.quizRevision.sections.some(s=>!s.questions.length||s.questions.some(q=>!supported.includes(q.questionVersion.type))))throw new BadRequestException("Хоосон эсвэл runtime дэмжихгүй төрөлтэй шалгалтыг нийтлэх боломжгүй.");
     return await this.prisma.$transaction(async (tx) => {
       // 1. Update status to OPEN (published status on QuizSchedule is represented as OPEN or active under scheduling metadata)
       const updatedSchedule = await tx.quizSchedule.update({
         where: { id },
         data: {
-          status: "OPEN" as any,
+          status: "OPEN",
           publishedAt: new Date(),
           publishedBy: actorUserId,
         },
       });
+
+      await tx.assessmentWorkflowEvent.create({data:{
+        aggregateType:"schedule", aggregateId:id, action:"publish",
+        previousStatus:schedule.status, newStatus:"OPEN", actorUserId,
+        metadata:{quizRevisionId:schedule.quizRevisionId},
+      }});
 
       // 2. Publish assessment.published event via RabbitMQ
       const payload = {

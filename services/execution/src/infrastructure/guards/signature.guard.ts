@@ -46,11 +46,10 @@ export class SignatureGuard implements CanActivate {
 
     const nonceKey = `nonce:${nonce}`;
     if (this.redis) {
-      const exists = await this.redis.exists(nonceKey);
-      if (exists) {
+      const reserved = await this.redis.set(nonceKey, "1", "EX", 300, "NX");
+      if (reserved !== "OK") {
         throw new ForbiddenException("Duplicate request nonce (possible replay attack)");
       }
-      await this.redis.set(nonceKey, "1", "EX", 300);
     } else {
       if (this.memoryNonces.has(nonce)) {
         throw new ForbiddenException("Duplicate request nonce (possible replay attack)");
@@ -79,6 +78,7 @@ export class SignatureGuard implements CanActivate {
       unlockKey = await this.redis.get(`unlock:${attemptId}`) || "";
     }
     if (!unlockKey) {
+      if(process.env.NODE_ENV === "production") throw new UnauthorizedException("Attempt signing key expired");
       unlockKey = `unlock-${attemptId}`;
     }
 
@@ -87,8 +87,8 @@ export class SignatureGuard implements CanActivate {
 
     const isValid = this.cryptoKms.verifySignature(message, signature, unlockKey);
     if (!isValid) {
-      const systemSecret = process.env.SYSTEM_SIGNING_KEY || "seek_system_signing_key_secret_12345";
-      const isSystemValid = this.cryptoKms.verifySignature(message, signature, systemSecret);
+      const systemSecret = process.env.SYSTEM_SIGNING_KEY;
+      const isSystemValid = Boolean(systemSecret && systemSecret.length >= 32 && this.cryptoKms.verifySignature(message, signature, systemSecret));
       if (!isSystemValid) {
         throw new ForbiddenException("Invalid request signature");
       }

@@ -42,6 +42,7 @@ export const statusLabels: Record<QuestionWorkflowStatus, string> = {
   published: "Нийтлэгдсэн",
   archived: "Архивлагдсан",
   rejected: "Татгалзсан",
+  retired: "Ашиглалтаас гаргасан",
   deleted: "Устгасан",
 };
 

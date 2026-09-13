@@ -1,0 +1,5 @@
+"use client";
+import {useEffect,useState} from 'react';
+import {useParams} from 'next/navigation';
+import {runtimeJson} from '@/features/runtime/adapter';
+export default function Result(){const {attemptId}=useParams<{attemptId:string}>();const [data,setData]=useState<any>(null),[error,setError]=useState('');useEffect(()=>{runtimeJson(`/runtime/attempts/${attemptId}/result`).then(setData).catch(e=>setError(e.message));},[attemptId]);return <main className="mx-auto max-w-xl p-6 space-y-4"><h1 className="text-2xl font-bold">Үнэлгээний үр дүн</h1>{error?<p role="alert">{error}</p>:!data?<p role="status">Ачаалж байна…</p>:data.status==='PUBLISHED'?<><h2>{data.title}</h2><p className="text-2xl">{data.totalScore} / {data.maxScore} оноо ({data.percentage.toFixed(1)}%)</p><p>Нийтэлсэн: {new Date(data.publishedAt).toLocaleString('mn-MN')}</p></>:<p>{data.status==='REVIEW_REQUIRED'?'Хариултыг шалгагч үнэлж байна.':data.status==='AWAITING_RELEASE'?'Дүн нийтлэгдэхийг хүлээж байна.':'Хариултын оноог тооцоолж байна.'}</p>}<a className="text-primary underline" href="https://seek.mn/my-assessments">Миний үнэлгээ</a></main>;}

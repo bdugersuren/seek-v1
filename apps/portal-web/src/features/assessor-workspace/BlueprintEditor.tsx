@@ -1,81 +1,49 @@
 "use client";
-
-import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
+import {QuizCreateDialog} from "./QuizCreateDialog";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@seek/ui";
 import {
-  Badge,
-  Button,
-  Card,
-  Checkbox,
-  Icons,
-  Input,
-  Select,
-  Text,
-  Textarea,
-  useToast,
-} from "@seek/ui";
-import {
-  getBlueprintSummary,
-  isBlueprintSectionValid,
   createBlueprint,
   updateBlueprint,
-  fetchQuestions,
+  previewBlueprint,
   fetchTopics,
+  fetchDifficultyLevels,
+  fetchAudienceLevels,
+  fetchAssessmentContexts,
+  fetchBlueprintCandidates,
+  createQuiz,
+  updateQuiz,
+  getBlueprintByIdAsync,
 } from "./api";
+import type { Blueprint, BlueprintSection } from "./types";
+import { questionTypeLabels } from "./mock-data";
+import { QuestionTypeBadge } from "./question-presentation";
 import {
-  competencyLabels,
-  difficultyLabels,
-  mockBlueprints,
-  questionTypeLabels,
-  statusLabels,
-} from "./mock-data";
-import type {
-  Blueprint,
-  BlueprintSection,
-  BlueprintSelectionStrategy,
-  BlueprintTopicMapping,
-  CompetencyType,
-  DifficultyLevel,
-  QuestionBankItem,
-} from "./types";
-
-interface ExtendedBlueprintSection extends BlueprintSection {
-  difficultyGrouping?: "easy" | "medium" | "hard" | "all";
-  filterTopicIds?: string[];
-  excludeAttempted?: boolean;
-  randomizeOrder?: boolean;
-}
-
-interface BlueprintWizardState {
-  id: string;
-  title: string;
-  description: string;
-  topicId: string;
-  topicName: string;
-  passScore: number;
-  totalDurationMinutes: number;
-  status: Blueprint["status"];
-  topicMappings: BlueprintTopicMapping[];
-  sections: ExtendedBlueprintSection[];
-  reviewComment: string;
-}
-
-const defaultBlueprint = mockBlueprints[0];
-
-const difficultyVariant: Record<
-  DifficultyLevel,
-  "primary" | "secondary" | "success" | "danger" | "warning"
-> = {
-  very_easy: "success",
-  easy: "success",
-  medium: "warning",
-  hard: "danger",
-  very_hard: "danger",
-};
-
+  BlueprintDialog,
+  PoolPreview,
+  BlueprintQuizLinks,
+  Readiness,
+  bpPanel,
+  bpInput,
+} from "./BlueprintUI";
+const empty = (contextId?: string): Blueprint => ({
+  id: "",
+  code: "",
+  version: 1,
+  title: "",
+  description: "",
+  topicId: "",
+  topicName: "",
+  assessmentContextId: contextId,
+  totalDurationMinutes: 60,
+  passScore: 70,
+  status: "draft",
+  sections: [],
+  updatedAt: "",
+});
 export function BlueprintEditor({
-  blueprint = defaultBlueprint,
+  blueprint,
   mode = "edit",
   contextId,
 }: {
@@ -84,1113 +52,767 @@ export function BlueprintEditor({
   contextId?: string;
 }) {
   const router = useRouter();
-  const { showToast } = useToast();
-  const [submitted, setSubmitted] = useState(false);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-
-  // Modals state
-  const [editingPoolId, setEditingPoolId] = useState<string | null>(null);
-  const [selectBankPoolId, setSelectBankPoolId] = useState<string | null>(null);
-  const [expandedPoolIds, setExpandedPoolIds] = useState<string[]>([]);
-
-  const activeContextId = contextId || blueprint.assessmentContextId;
-
-  // Questions and Topics
-  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
+  const [quizBlueprint,setQuizBlueprint]=useState<any>(null);
+  const [state, setState] = useState<Blueprint>(() =>
+    mode === "new" ? empty(contextId) : blueprint || empty(contextId),
+  );
+  const saved = useRef(JSON.stringify(state));
+  const pending = useRef(false);
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [fieldError, setFieldError] = useState(""),
+    [notice, setNotice] = useState("");
+  const [topics, setTopics] = useState<any[]>([]),
+    [levels, setLevels] = useState<any[]>([]),
+    [audiences, setAudiences] = useState<any[]>([]),
+    [contexts, setContexts] = useState<any[]>([]),
+    [metadataError, setMetadataError] = useState(""),
+    [reload, setReload] = useState(0);
+  const [tab, setTab] = useState(0),
+    [result, setResult] = useState<any>(null),
+    [picker, setPicker] = useState<number | null>(null),
+    [query, setQuery] = useState(""),
+    [page, setPage] = useState(1),
+    [bank, setBank] = useState<any>({ items: [], total: 0 }),
+    [bankError, setBankError] = useState(""),
+    [bankLoading, setBankLoading] = useState(false);
+  const activeContext = contextId || state.assessmentContextId;
+  const dirty = JSON.stringify(state) !== saved.current;
   useEffect(() => {
     let active = true;
-    async function load() {
-      try {
-        const data = await fetchQuestions({ 
-          ownerUserId: "mock-assessor", 
-          assessmentContextId: activeContextId 
-        });
+    setMetadataError("");
+    Promise.all([
+      fetchAssessmentContexts(),
+      fetchTopics(activeContext),
+      fetchDifficultyLevels(),
+      fetchAudienceLevels(),
+    ])
+      .then(([c, t, l, a]) => {
         if (active) {
-          setQuestions(data || []);
+          setContexts(c);
+          setTopics(t);
+          setLevels(l);
+          setAudiences(a);
         }
-      } catch (err) {
-        console.error("Failed to load questions in BlueprintEditor", err);
-      }
-    }
-    load();
-    return () => { active = false; };
-  }, [activeContextId]);
-
-  const [rawTopics, setRawTopics] = useState<any[]>([]);
+      })
+      .catch(
+        () => active && setMetadataError("Лавлах мэдээлэл татаж чадсангүй."),
+      );
+    return () => {
+      active = false;
+    };
+  }, [activeContext, reload]);
   useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    const links = (e: MouseEvent) => {
+      const a = (e.target as Element).closest("a");
+      if (
+        dirty &&
+        a?.href &&
+        !a.href.endsWith("#") &&
+        !window.confirm("Хадгалаагүй өөрчлөлт байна. Гарах уу?")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", links, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", links, true);
+    };
+  }, [dirty]);
+  useEffect(() => {
+    if (picker === null || !activeContext) return;
     let active = true;
-    async function loadTopics() {
-      if (activeContextId) {
-        try {
-          const tData = await fetchTopics(activeContextId);
-          if (active) setRawTopics(tData || []);
-        } catch (err) {
-          console.error("Failed to load topics in BlueprintEditor", err);
-        }
-      }
-    }
-    loadTopics();
-    return () => { active = false; };
-  }, [activeContextId]);
-
-  const [state, setState] = useState<BlueprintWizardState>(() => {
-    const source = mode === "new" ? defaultBlueprint : blueprint;
-    return {
-      id: mode === "new" ? "bp-new" : source.id,
-      title: mode === "new" ? "Шинэ блюпринт" : source.title,
-      description: source.description,
-      topicId: source.topicId,
-      topicName: source.topicName,
-      passScore: source.passScore,
-      totalDurationMinutes: source.totalDurationMinutes,
-      status: mode === "new" ? "draft" : source.status,
-      topicMappings: source.topicMappings ?? [],
-      sections: (source.sections ?? []).map(sec => ({
-        ...sec,
-        difficultyGrouping: (sec as any).difficultyGrouping ?? "all",
-        filterTopicIds: (sec as any).filterTopicIds ?? [],
-        excludeAttempted: (sec as any).excludeAttempted ?? false,
-        randomizeOrder: (sec as any).randomizeOrder ?? true,
-      })),
-      reviewComment: source.reviewComment ?? "",
-    };
-  });
-
-  const setPartial = (patch: Partial<BlueprintWizardState>) =>
-    setState((current) => ({ ...current, ...patch }));
-
-  const addPool = () => {
-    const newId = `sec-${state.sections.length + 1}`;
-    const newPool: ExtendedBlueprintSection = {
-      id: newId,
-      name: `POOL ${state.sections.length + 1}: Linear Equations — Basic`,
-      description: "Шинэ pool тохиргоо",
-      selectedQuestionIds: [],
-      randomPickCount: 1,
-      pointsPerQuestion: 1,
-      durationMinutes: 5,
-      strategy: "random",
-      difficultyGrouping: "easy",
-      filterTopicIds: [],
-      excludeAttempted: false,
-      randomizeOrder: true,
-    };
-    setState(current => ({
-      ...current,
-      sections: [...current.sections, newPool]
-    }));
-    setExpandedPoolIds(current => [...current, newId]);
-    setEditingPoolId(newId); // Нэмэгдсэн даруйд тохируулах modal нээх
-  };
-
-  const togglePoolExpand = (id: string) => {
-    setExpandedPoolIds(current =>
-      current.includes(id) ? current.filter(pId => pId !== id) : [...current, id]
+    setBankLoading(true);
+    setBankError("");
+    const timer = setTimeout(
+      () =>
+        fetchBlueprintCandidates({
+          assessmentContextId: activeContext,
+          search: query,
+          page: String(page),
+        })
+          .then((r) => active && setBank(r))
+          .catch((e) => active && setBankError(e.message))
+          .finally(() => active && setBankLoading(false)),
+      200,
     );
-  };
-
-  const copyPool = (sectionId: string) => {
-    const target = state.sections.find(s => s.id === sectionId);
-    if (!target) return;
-    const newId = `sec-${state.sections.length + 1}`;
-    const copied: ExtendedBlueprintSection = {
-      ...target,
-      id: newId,
-      name: `${target.name} (Хуулбар)`,
-      selectedQuestionIds: [...target.selectedQuestionIds],
+    return () => {
+      active = false;
+      clearTimeout(timer);
     };
-    setState(current => ({
-      ...current,
-      sections: [...current.sections, copied]
-    }));
-    showToast("Pool амжилттай хуулагдлаа.", "success");
-  };
-
-  const deletePool = (sectionId: string) => {
-    setState(current => ({
-      ...current,
-      sections: current.sections.filter(s => s.id !== sectionId)
-    }));
-    showToast("Pool устгагдлаа.", "success");
-  };
-
-  const save = async () => {
+  }, [picker, activeContext, query, page, reload]);
+  const ctx = contexts.find((c) => c.id === activeContext);
+  const actualLevels = levels.filter(
+    (l) => l.difficultyScaleId === ctx?.difficultyScaleId,
+  );
+  const actualAudiences = audiences.filter(
+    (a) => a.audienceTypeId === ctx?.audienceTypeId,
+  );
+  function patch(p: Partial<Blueprint>) {
+    setState((s) => ({ ...s, ...p }));
+    setResult(null);
+    setNotice("");
+  }
+  function section(i: number, p: Partial<BlueprintSection>) {
+    patch({
+      sections: state.sections.map((s, j) => (i === j ? { ...s, ...p } : s)),
+    });
+  }
+  function add() {
+    patch({
+      sections: [
+        ...state.sections,
+        {
+          id: "new-" + crypto.randomUUID(),
+          name: `Сан ${state.sections.length + 1}`,
+          description: "",
+          sectionMode: "FIXED",
+          selectionRules: { schemaVersion: 1 },
+          selectedQuestionIds: [],
+          randomPickCount: 1,
+          pointsPerQuestion: 1,
+          durationMinutes: 0,
+          strategy: "random",
+        },
+      ],
+    });
+  }
+  async function action(kind: "save" | "preview" | "quiz") {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    setFieldError("");
     try {
-      const bpData: Blueprint = {
-        id: state.id,
-        title: state.title,
-        description: state.description,
-        topicId: state.topicId,
-        topicName: state.topicName,
-        passScore: state.passScore,
-        totalDurationMinutes: state.totalDurationMinutes,
-        status: state.status,
-        assessmentContextId: activeContextId,
-        sections: state.sections,
-        updatedAt: new Date().toISOString(),
-      };
-
-      if (mode === "edit") {
-        await updateBlueprint(bpData.id, bpData);
-      } else {
-        await createBlueprint(bpData);
+      if (!state.title.trim())
+        throw Object.assign(new Error("Blueprint нэр шаардлагатай."), {
+          field: "name",
+        });
+      if (!activeContext) throw new Error("Контекст сонгоно уу.");
+      let value = { ...state, assessmentContextId: activeContext };
+      if (kind === "preview") {
+        setResult(await previewBlueprint(value));
+        setTab(2);
+        return;
       }
-      showToast("Загвар амжилттай хадгалагдлаа.", "success");
-      router.push(activeContextId ? `/assessor/context/${activeContextId}/blueprints` : "/assessor/blueprints");
-    } catch (err: any) {
-      showToast("Хадгалахад алдаа гарлаа.", "danger");
+      const payload = {
+        ...value,
+        ...(!(value.code || "").trim() ? { code: undefined } : {}),
+      };
+      const stored = state.id
+        ? await updateBlueprint(state.id, payload)
+        : await createBlueprint(payload);
+      saved.current = JSON.stringify(stored);
+      setState(stored);
+      setResult(stored.readiness);
+      setNotice("Хадгалагдлаа.");
+      if (kind === "quiz") {
+        if (stored.readiness?.status !== "READY") {
+          setTab(2);
+          throw new Error("Quiz үүсгэхийн өмнө доорх зөрчлүүдийг засна уу.");
+        }
+        setQuizBlueprint(stored);
+      }
+      if (!state.id)
+        router.replace(
+          `/assessor/context/${activeContext}/blueprints/${stored.id}`,
+        );
+    } catch (e: any) {
+      setError(e.message || "Үйлдэл амжилтгүй.");
+      setFieldError(e.field || "");
+      if (e.issues) setResult({ status: "NEEDS_ATTENTION", issues: e.issues });
+    } finally {
+      setBusy(false);
+      pending.current = false;
     }
-  };
-
-  // Stats calculation
-  const totalQuestionsSelected = useMemo(() => {
-    return state.sections.reduce((sum, s) => sum + s.randomPickCount, 0);
-  }, [state.sections]);
-
-  const totalAvailablePool = useMemo(() => {
-    return state.sections.reduce((sum, s) => sum + s.selectedQuestionIds.length, 0);
-  }, [state.sections]);
-
-  const difficultyDistribution = useMemo(() => {
-    const counts = { easy: 0, medium: 0, hard: 0 };
-    state.sections.forEach(s => {
-      s.selectedQuestionIds.forEach(qId => {
-        const q = questions.find(item => item.id === qId);
-        if (q) {
-          if (q.difficulty?.includes("easy")) counts.easy++;
-          else if (q.difficulty?.includes("hard")) counts.hard++;
-          else counts.medium++;
-        }
-      });
-    });
-    const total = counts.easy + counts.medium + counts.hard || 1;
-    return {
-      easy: { count: counts.easy, pct: Math.round((counts.easy / total) * 100) },
-      medium: { count: counts.medium, pct: Math.round((counts.medium / total) * 100) },
-      hard: { count: counts.hard, pct: Math.round((counts.hard / total) * 100) },
-    };
-  }, [state.sections, questions]);
-
-  const topicBreakdown = useMemo(() => {
-    const topicCounts: Record<string, number> = {};
-    state.sections.forEach(s => {
-      s.selectedQuestionIds.forEach(qId => {
-        const q = questions.find(item => item.id === qId);
-        if (q) {
-          const name = q.topicName || "Бусад";
-          topicCounts[name] = (topicCounts[name] ?? 0) + 1;
-        }
-      });
-    });
-    const total = Object.values(topicCounts).reduce((sum, c) => sum + c, 0) || 1;
-    return Object.entries(topicCounts).map(([name, count]) => ({
-      name,
-      count,
-      pct: Math.round((count / total) * 100)
-    })).sort((a, b) => b.count - a.count);
-  }, [state.sections, questions]);
-
+  }
+  async function reselect(id:string){
+    if(dirty&&!window.confirm('Хадгалаагүй өөрчлөлтөө орхих уу?'))return;
+    router.push('/assessor/quizzes/'+id);
+  }
+  const number = (value: string) => (value === "" ? 0 : Number(value));
   return (
-    <div className="min-h-screen bg-muted-background pb-24">
-      {/* HEADER SECTION */}
-      <header className="sticky top-0 z-header border-b border-border bg-surface/95 px-seek-4 py-seek-3 backdrop-blur shadow-seek-sm">
-        <div className="flex flex-col gap-seek-4 xl:flex-row xl:items-center xl:justify-between max-w-[96rem] mx-auto w-full">
-          <div className="flex items-center gap-seek-3 flex-1 min-w-0">
-            <Link
-              href={activeContextId ? `/assessor/context/${activeContextId}/blueprints` : "/assessor/blueprints"}
-              className="grid h-10 w-10 place-items-center rounded-seek-md border border-border bg-surface hover:bg-surface-hover shrink-0 transition-colors"
-              aria-label="Буцах"
-            >
-              <Icons.Undo2 className="h-5 w-5 text-muted-foreground" />
-            </Link>
-            <div className="min-w-0">
-              {isEditingTitle ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={state.title}
-                    className="text-xl font-bold h-9 py-1 px-2 border border-border rounded"
-                    autoFocus
-                    onBlur={() => setIsEditingTitle(false)}
-                    onChange={(e) => setPartial({ title: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") setIsEditingTitle(false);
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Text className="text-xl font-bold truncate">
-                    {state.title}
-                  </Text>
-                  <button type="button" onClick={() => setIsEditingTitle(true)} aria-label="Нэр засах">
-                    <Icons.SavePen className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-                  </button>
-                </div>
-              )}
-              <Text variant="muted" className="text-xs">
-                {state.topicName || "Mathematics 101"} · Draft Template
-              </Text>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-seek-4">
-            <div className="flex items-center gap-seek-3">
-              <Badge variant="primary" className="bg-primary/10 text-primary border-none px-seek-3 py-1 text-xs font-semibold rounded-seek-full">
-                ● {totalQuestionsSelected} Total Questions Selected
-              </Badge>
-              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                <Icons.Timer className="h-4 w-4" />
-                Est. Duration: ~{state.totalDurationMinutes} mins
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={addPool}>
-                <span className="mr-1 font-bold">+</span> Add pool
-              </Button>
-              <Link href={activeContextId ? `/assessor/context/${activeContextId}/blueprints` : "/assessor/blueprints"}>
-                <Button type="button" variant="secondary" size="sm">
-                  Cancel
-                </Button>
-              </Link>
-              <Button type="button" size="sm" onClick={save}>
-                Save Template
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN CONTAINER */}
-      <div className="mx-auto max-w-[96rem] px-seek-4 py-seek-5 grid gap-seek-5 lg:grid-cols-[1fr_24rem] w-full">
-        {/* LEFT COLUMN: QUESTION POOLS */}
-        <div className="space-y-seek-4">
-          <div>
-            <Text className="text-xl font-bold">Question Pools</Text>
-            <Text variant="muted" className="text-xs mt-1">
-              Configure rule-based pools to dynamically assemble exams. Students will receive random questions matching these profiles.
-            </Text>
-          </div>
-
-          {state.sections.length === 0 ? (
-            <Card className="p-seek-8 text-center border-dashed border-2">
-              <Text className="font-semibold text-muted-foreground mb-seek-3">Үүсгэсэн асуултын сан (Pool) байхгүй байна.</Text>
-              <Button type="button" variant="outline" onClick={addPool}>+ Анхны Pool үүсгэх</Button>
-            </Card>
-          ) : (
-            state.sections.map((section, index) => {
-              const selectedQuestions = questions.filter(q => section.selectedQuestionIds.includes(q.id));
-              const valid = section.selectedQuestionIds.length >= section.randomPickCount;
-              const isExpanded = expandedPoolIds.includes(section.id);
-              return (
-                <Card key={section.id} className="overflow-hidden rounded-seek-lg border border-border shadow-seek-sm bg-surface">
-                  <div className={`p-seek-4 bg-muted-background/5 ${isExpanded ? "border-b border-border/40" : ""}`}>
-                    <div className="flex flex-col gap-seek-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-seek-3 min-w-0">
-                        <span className="cursor-grab text-muted-foreground shrink-0">⠿</span>
-                        <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 uppercase tracking-wider text-[10px] font-bold">
-                          POOL {index + 1}
-                        </Badge>
-                        <Text className="font-bold text-foreground truncate">{section.name}</Text>
-                        <Badge variant={section.difficultyGrouping === "easy" ? "success" : section.difficultyGrouping === "hard" ? "danger" : "warning"} className="text-[10px] capitalize">
-                          {section.difficultyGrouping}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground font-medium shrink-0">
-                          Pick {section.randomPickCount} / {section.selectedQuestionIds.length} Available
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0 ml-auto">
-                        <button
-                          type="button"
-                          onClick={() => setEditingPoolId(section.id)}
-                          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded transition-colors"
-                          title="Засах"
-                        >
-                          <Icons.SavePen className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => copyPool(section.id)}
-                          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded transition-colors"
-                          title="Хуулах"
-                        >
-                          <Icons.Undo2 className="h-4 w-4 rotate-180" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deletePool(section.id)}
-                          className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/5 rounded transition-colors"
-                          title="Устгах"
-                        >
-                          <Icons.Trash className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => togglePoolExpand(section.id)}
-                          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-surface-hover rounded transition-colors"
-                          title={isExpanded ? "Хураах" : "Дэлгэх"}
-                        >
-                          <Icons.ChevronRight className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pool Questions List */}
-                  {isExpanded && (
-                    <div className="p-seek-4 space-y-seek-3">
-                    {selectedQuestions.length === 0 ? (
-                      <div className="py-seek-4 text-center border border-dashed rounded text-sm text-muted-foreground bg-muted-background/10">
-                        Сонгосон асуулт байхгүй байна.
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs min-w-[40rem]">
-                          <thead>
-                            <tr className="border-b border-border/60 text-muted-foreground font-semibold">
-                              <th className="py-2 w-16">ID</th>
-                              <th className="py-2">QUESTION TEXT SNIPPET</th>
-                              <th className="py-2 w-24">DIFFICULTY</th>
-                              <th className="py-2 w-28">SUCCESS RATE</th>
-                              <th className="py-2 w-16 text-center">LINK</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedQuestions.slice(0, 3).map((q) => (
-                              <tr key={q.id} className="border-b border-border/40 hover:bg-muted-background/5">
-                                <td className="py-2.5 font-bold text-primary">{q.code}</td>
-                                <td className="py-2.5 font-medium truncate max-w-[20rem]">{q.body || (q as any).stem}</td>
-                                <td className="py-2.5">
-                                  <Badge variant={q.difficulty ? difficultyVariant[q.difficulty] : "secondary"} className="text-[10px]">
-                                    {q.difficulty ? difficultyLabels[q.difficulty] : "Medium"}
-                                  </Badge>
-                                </td>
-                                <td className="py-2.5 text-muted-foreground font-medium">72%</td>
-                                <td className="py-2.5 text-center">
-                                  <Icons.Check className="h-4 w-4 text-primary mx-auto" />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        {selectedQuestions.length > 3 && (
-                          <div className="text-xs text-muted-foreground mt-2 font-medium">
-                            Showing 3 of {selectedQuestions.length} candidate questions in current item bank sync
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex justify-end pt-seek-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectBankPoolId(section.id)}
-                      >
-                        <Icons.Settings className="h-3.5 w-3.5 mr-1" />
-                        Manage Questions
-                      </Button>
-                     </div>
-                  </div>
-                  )}
-                </Card>
-              );
-            })
-          )}
-        </div>
-
-        {/* RIGHT COLUMN: LIVE BLUEPRINT SUMMARY */}
-        <aside className="space-y-seek-4">
-          <Card className="p-seek-4 shadow-seek-sm bg-surface space-y-seek-4 border border-border">
-            <div className="flex items-center justify-between border-b border-border/60 pb-seek-3">
-              <span className="flex items-center gap-2 font-bold text-foreground text-sm uppercase">
-                <Icons.ChartIcon className="h-4 w-4 text-primary" /> Live Blueprint Summary
-              </span>
-              <button
-                type="button"
-                onClick={() => showToast("Үзүүлэлтийг шинэчиллээ.", "success")}
-                className="text-muted-foreground hover:text-foreground"
-                title="Шинэчлэх"
-              >
-                <Icons.Recycle className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* General metrics */}
-            <div className="space-y-seek-3 text-xs border-b border-border/40 pb-seek-4">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground font-medium">Target Exam Size</span>
-                <span className="font-bold text-foreground text-sm">{totalQuestionsSelected} Questions</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground font-medium">Total Available Pool</span>
-                <span className="font-bold text-primary text-sm">{totalAvailablePool} Questions Available</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground font-medium">LMS Course Sync</span>
-                <span className="font-bold text-success">Active & Mapped</span>
-              </div>
-            </div>
-
-            {/* Difficulty distribution Donut Chart */}
-            <div className="border-b border-border/40 pb-seek-4">
-              <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-seek-3">
-                Estimated Difficulty Distribution
-              </Text>
-              <div className="flex items-center gap-seek-4">
-                {/* SVG Donut Chart */}
-                <div className="relative h-24 w-24 shrink-0 flex items-center justify-center">
-                  <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                    {/* Easy segment */}
-                    {difficultyDistribution.easy.pct > 0 && (
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15.915"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3.5"
-                        strokeDasharray={`${difficultyDistribution.easy.pct} ${100 - difficultyDistribution.easy.pct}`}
-                        strokeDashoffset="0"
-                      />
-                    )}
-                    {/* Medium segment */}
-                    {difficultyDistribution.medium.pct > 0 && (
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15.915"
-                        fill="none"
-                        stroke="#f59e0b"
-                        strokeWidth="3.5"
-                        strokeDasharray={`${difficultyDistribution.medium.pct} ${100 - difficultyDistribution.medium.pct}`}
-                        strokeDashoffset={`-${difficultyDistribution.easy.pct}`}
-                      />
-                    )}
-                    {/* Hard segment */}
-                    {difficultyDistribution.hard.pct > 0 && (
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15.915"
-                        fill="none"
-                        stroke="#ef4444"
-                        strokeWidth="3.5"
-                        strokeDasharray={`${difficultyDistribution.hard.pct} ${100 - difficultyDistribution.hard.pct}`}
-                        strokeDashoffset={`-${difficultyDistribution.easy.pct + difficultyDistribution.medium.pct}`}
-                      />
-                    )}
-                  </svg>
-                  <div className="text-center z-10">
-                    <span className="block text-lg font-bold text-foreground leading-none">{totalQuestionsSelected}</span>
-                    <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-wider">QS</span>
-                  </div>
-                </div>
-
-                {/* Legend percentages */}
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" /> Easy ({difficultyDistribution.easy.count})
-                    </span>
-                    <span className="text-foreground">{difficultyDistribution.easy.pct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" /> Med ({difficultyDistribution.medium.count})
-                    </span>
-                    <span className="text-foreground">{difficultyDistribution.medium.pct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <span className="h-2 w-2 rounded-full bg-red-500" /> Hard ({difficultyDistribution.hard.count})
-                    </span>
-                    <span className="text-foreground">{difficultyDistribution.hard.pct}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Topic coverage breakdown */}
-            <div className="space-y-seek-3 border-b border-border/40 pb-seek-4">
-              <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Topic Coverage Breakdown
-              </Text>
-              <div className="space-y-2">
-                {topicBreakdown.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">Сэдэв сонгоогүй байна.</div>
-                ) : (
-                  topicBreakdown.map((topic, idx) => {
-                    const colors = ["bg-indigo-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-sky-500"];
-                    const color = colors[idx % colors.length];
-                    return (
-                      <div key={topic.name} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-foreground truncate max-w-[12rem]">{topic.name}</span>
-                          <span className="text-muted-foreground">{topic.count} Qs ({topic.pct}%)</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
-                          <div style={{ width: `${topic.pct}%` }} className={`h-full ${color} rounded-full`} />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-primary/20 text-primary hover:bg-primary/5 text-xs font-bold py-2.5 rounded-seek-md"
-              onClick={() => showToast("Шалгалтын загварыг үүсгэлээ.", "success")}
-            >
-              ⚡ Test Generate Sample Exam
-            </Button>
-            <Text variant="muted" className="text-[10px] text-center block">
-              Simulate a sample exam with randomized algorithms to check difficulty balance.
-            </Text>
-          </Card>
-
-          {/* Rule Collisions panel */}
-          <Card className="p-seek-4 bg-surface border border-border rounded-seek-lg shadow-seek-sm flex items-start gap-seek-3">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
-              <Icons.Info className="h-4 w-4" />
-            </span>
-            <div>
-              <Text className="text-xs font-bold text-foreground">Rule Collisions</Text>
-              <Text variant="muted" className="text-[10px] mt-1 leading-normal">
-                Questions matching multiple templates default to the highest weight pool.
-              </Text>
-            </div>
-          </Card>
-        </aside>
-      </div>
-
-      {/* CONFIGURE QUESTION POOL MODAL (2-Р ЗУРАГ) */}
-      {editingPoolId && (
-        <QuestionPoolModal
-          section={state.sections.find(s => s.id === editingPoolId)!}
-          topics={rawTopics}
-          onClose={() => setEditingPoolId(null)}
-          onApply={(updatedSection) => {
-            setState(current => ({
-              ...current,
-              sections: current.sections.map(s => s.id === editingPoolId ? { ...s, ...updatedSection } : s)
-            }));
-            setEditingPoolId(null);
-            showToast("Pool амжилттай тохируулагдлаа.", "success");
-          }}
-        />
-      )}
-
-      {/* SELECT QUESTIONS FROM BANK MODAL (3-Р ЗУРАГ) */}
-      {selectBankPoolId && (
-        <SelectQuestionsBankModal
-          section={state.sections.find(s => s.id === selectBankPoolId)!}
-          questions={questions}
-          topics={rawTopics}
-          onClose={() => setSelectBankPoolId(null)}
-          onApply={(selectedQuestionIds) => {
-            setState(current => ({
-              ...current,
-              sections: current.sections.map(s => s.id === selectBankPoolId ? { ...s, selectedQuestionIds } : s)
-            }));
-            setSelectBankPoolId(null);
-            showToast("Асуултын сонголтыг хадгаллаа.", "success");
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* CONFIGURE QUESTION POOL MODAL COMPONENT */
-function QuestionPoolModal({
-  section,
-  topics,
-  onClose,
-  onApply,
-}: {
-  section: ExtendedBlueprintSection;
-  topics: any[];
-  onClose: () => void;
-  onApply: (updated: Partial<ExtendedBlueprintSection>) => void;
-}) {
-  const [name, setName] = useState(section.name);
-  const [pickCount, setPickCount] = useState(section.randomPickCount);
-  const [availableCount, setAvailableCount] = useState(section.selectedQuestionIds.length);
-  const [difficultyGrouping, setDifficultyGrouping] = useState<"easy" | "medium" | "hard" | "all">(
-    section.difficultyGrouping ?? "all"
-  );
-  const [filterTopicIds, setFilterTopicIds] = useState<string[]>(section.filterTopicIds ?? []);
-  const [excludeAttempted, setExcludeAttempted] = useState(section.excludeAttempted ?? false);
-  const [randomizeOrder, setRandomizeOrder] = useState(section.randomizeOrder ?? true);
-
-  const [isOpenTopicsDropdown, setIsOpenTopicsDropdown] = useState(false);
-
-  return (
-    <div className="fixed inset-0 z-modal grid place-items-center bg-black/45 p-seek-4">
-      <Card className="w-full max-w-lg overflow-auto p-seek-5 shadow-seek-xl bg-surface space-y-seek-4 border border-border rounded-seek-lg">
-        <div className="flex items-center justify-between border-b border-border/40 pb-seek-3">
-          <Text className="text-base font-bold text-foreground">Configure Question Pool</Text>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <Icons.CircleX className="h-5 w-5" />
+    <main className="mx-auto min-w-0 max-w-6xl space-y-5 p-4 sm:p-6">
+      <header
+        className={`${bpPanel} flex flex-wrap items-start justify-between gap-4`}
+      >
+        <div>
+          <button
+            className="mb-3 text-sm text-primary"
+            onClick={() => {
+              if (!dirty || window.confirm("Хадгалаагүй өөрчлөлтөө орхих уу?"))
+                router.push(
+                  activeContext
+                    ? `/assessor/context/${activeContext}/blueprints`
+                    : "/assessor/blueprints",
+                );
+            }}
+          >
+            ← Blueprint жагсаалт
           </button>
+          <h1 className="text-2xl font-bold">
+            {state.title || "Шинэ Blueprint"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {ctx?.name || "Контекст сонгоно уу"} ·{" "}
+            {state.status === "archived" ? "Архивлагдсан" : "Ноорог"} · Хувилбар{" "}
+            {state.version || 1}
+          </p>
         </div>
-
-        {/* POOL NAME */}
-        <div className="space-y-1">
-          <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pool Name</Text>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Pool нэр..." />
-        </div>
-
-        {/* SELECTION RULE */}
-        <div className="space-y-1">
-          <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Selection Rule</Text>
-          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-            <span>Pick</span>
-            <Input
-              type="number"
-              min={1}
-              value={pickCount}
-              onChange={(e) => setPickCount(Number(e.target.value))}
-              className="w-16 h-8 text-center"
-            />
-            <span className="text-muted-foreground font-normal">question randomly from</span>
-            <span className="font-bold text-primary">{availableCount}</span>
-            <span className="text-muted-foreground font-normal">eligible candidates.</span>
-          </div>
-        </div>
-
-        {/* EQUATED DIFFICULTY GROUPING */}
-        <div className="space-y-2">
-          <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Equated Difficulty Grouping</Text>
-          <div className="flex rounded-seek-md bg-muted-background p-0.5 border border-border/60">
-            {["easy", "medium", "hard", "all"].map((diff) => (
-              <button
-                key={diff}
-                type="button"
-                onClick={() => setDifficultyGrouping(diff as any)}
-                className={`flex-1 text-center py-1.5 text-xs font-bold rounded-seek-md uppercase tracking-wider transition-all ${
-                  difficultyGrouping === diff
-                    ? "bg-surface shadow-seek-sm text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                ● {diff}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* FILTER BY TOPICS / TAGS */}
-        <div className="space-y-1 relative">
-          <div className="flex justify-between items-center mb-1">
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Filter by Topics / Tags</Text>
-            <span className="text-[10px] text-success font-semibold">{filterTopicIds.length} matching topics</span>
-          </div>
-
-          <div
-            className="min-h-10 w-full px-seek-3 py-seek-2 rounded-seek-md bg-surface text-foreground border border-border flex flex-wrap gap-1 items-center cursor-pointer hover:border-border-hover transition-colors"
-            onClick={() => setIsOpenTopicsDropdown(!isOpenTopicsDropdown)}
-          >
-            {filterTopicIds.length > 0 ? (
-              filterTopicIds.map((topicId) => {
-                const topic = topics.find((t) => t.id === topicId);
-                return (
-                  <span key={topicId} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded">
-                    {topic?.title || topic?.name || topicId}
-                    <button
-                      type="button"
-                      className="hover:text-primary-hover font-bold ml-1 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFilterTopicIds(filterTopicIds.filter((id) => id !== topicId));
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                );
-              })
-            ) : (
-              <span className="text-muted-foreground text-xs font-semibold">Сэдэв сонгох...</span>
-            )}
-          </div>
-
-          {isOpenTopicsDropdown && (
-            <div className="absolute z-dropdown mt-1 w-full max-h-48 overflow-y-auto rounded-seek-md border border-border bg-surface p-2 shadow-seek-lg space-y-1">
-              {topics.map((topic) => {
-                const isChecked = filterTopicIds.includes(topic.id);
-                return (
-                  <label key={topic.id} className="flex items-center gap-2 p-1.5 hover:bg-surface-hover rounded cursor-pointer text-xs font-semibold">
-                    <Checkbox
-                      checked={isChecked}
-                      onChange={() => {
-                        if (isChecked) {
-                          setFilterTopicIds(filterTopicIds.filter((id) => id !== topic.id));
-                        } else {
-                          setFilterTopicIds([...filterTopicIds, topic.id]);
-                        }
-                      }}
-                    />
-                    <span>{topic.title || topic.name}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ADDITIONAL RULES */}
-        <div className="space-y-2 border-t border-border/40 pt-seek-3">
-          <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-seek-2">Additional Rules</Text>
-          <label className="flex items-start gap-2.5 text-xs font-semibold text-foreground cursor-pointer">
-            <Checkbox checked={excludeAttempted} onChange={() => setExcludeAttempted(!excludeAttempted)} />
-            <span>Exclude previously answered / attempted questions</span>
-          </label>
-          <label className="flex items-start gap-2.5 text-xs font-semibold text-foreground cursor-pointer mt-2">
-            <Checkbox checked={randomizeOrder} onChange={() => setRandomizeOrder(!randomizeOrder)} />
-            <span>Randomize question selection order during assembly</span>
-          </label>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="flex justify-end gap-2 border-t border-border/40 pt-seek-4">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+        <div className="flex flex-wrap gap-2">
           <Button
-            type="button"
-            size="sm"
-            onClick={() =>
-              onApply({
-                name,
-                randomPickCount: pickCount,
-                difficultyGrouping,
-                filterTopicIds,
-                excludeAttempted,
-                randomizeOrder,
-              })
-            }
+            variant="outline"
+            disabled={busy || !!metadataError}
+            onClick={() => action("preview")}
           >
-            Save Pool
+            Бэлэн эсэхийг шалгах
+          </Button>
+          <Button
+            disabled={busy || !!metadataError}
+            onClick={() => action("save")}
+          >
+            {busy ? "Ажиллаж байна…" : "Хадгалах"}
           </Button>
         </div>
-      </Card>
-    </div>
-  );
-}
-
-/* SELECT QUESTIONS FROM BANK MODAL (3-Р ЗУРАГ) */
-function SelectQuestionsBankModal({
-  section,
-  questions,
-  topics,
-  onClose,
-  onApply,
-}: {
-  section: ExtendedBlueprintSection;
-  questions: QuestionBankItem[];
-  topics: any[];
-  onClose: () => void;
-  onApply: (selectedIds: string[]) => void;
-}) {
-  const [selected, setSelected] = useState<string[]>(section.selectedQuestionIds ?? []);
-  const [query, setQuery] = useState("");
-  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
-
-  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
-
-  // Filter logic
-  const filtered = useMemo(() => {
-    return questions.filter((q) => {
-      const matchQuery =
-        q.title.toLowerCase().includes(query.toLowerCase()) ||
-        q.code.toLowerCase().includes(query.toLowerCase());
-      const matchTopic = selectedTopicIds.length === 0 || selectedTopicIds.includes(q.topicId);
-      const matchType = selectedTypes.length === 0 || selectedTypes.includes(q.type);
-      const matchDifficulty = selectedDifficulties.length === 0 || selectedDifficulties.includes(q.difficulty ?? "");
-      return matchQuery && matchTopic && matchType && matchDifficulty;
-    });
-  }, [questions, query, selectedTopicIds, selectedTypes, selectedDifficulties]);
-
-  const activeQuestion = useMemo(() => {
-    return questions.find((q) => q.id === activeQuestionId) || filtered[0] || null;
-  }, [activeQuestionId, filtered, questions]);
-
-  const toggleSelect = (id: string) => {
-    setSelected((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    const allIds = filtered.map((q) => q.id);
-    const allSelected = allIds.every((id) => selected.includes(id));
-    if (allSelected) {
-      setSelected((current) => current.filter((id) => !allIds.includes(id)));
-    } else {
-      setSelected((current) => Array.from(new Set([...current, ...allIds])));
-    }
-  };
-
-  const isAllSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((q) => selected.includes(q.id));
-  }, [filtered, selected]);
-
-  const totalPoints = useMemo(() => {
-    return selected.reduce((sum, id) => {
-      const q = questions.find((item) => item.id === id);
-      return sum + (q?.defaultMaxScore ?? (q as any).points ?? 0);
-    }, 0);
-  }, [selected, questions]);
-
-  const clearAllFilters = () => {
-    setQuery("");
-    setSelectedTopicIds([]);
-    setSelectedTypes([]);
-    setSelectedDifficulties([]);
-  };
-
-  return (
-    <div className="fixed inset-0 z-modal grid place-items-center bg-black/45 p-seek-4">
-      <Card className="max-h-[96vh] w-full max-w-6xl overflow-hidden p-0 shadow-seek-lg bg-surface flex flex-col border border-border rounded-seek-lg">
-        {/* MODAL HEADER */}
-        <div className="flex items-center justify-between border-b border-border/40 px-seek-5 py-seek-4">
-          <div>
-            <Text className="text-base font-bold text-foreground">Select Questions from Bank</Text>
-            <Badge variant="secondary" className="mt-1 bg-primary/10 text-primary border-none">
-              Selected: {selected.length}
-            </Badge>
-          </div>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <Icons.CircleX className="h-5 w-5" />
-          </button>
+      </header>
+      {metadataError && (
+        <div role="alert" className={bpPanel}>
+          {metadataError}
+          <Button variant="outline" onClick={() => setReload((v) => v + 1)}>
+            Дахин оролдох
+          </Button>
         </div>
-
-        {/* MODAL BODY (3-COLUMN LAYOUT) */}
-        <div className="flex-1 grid grid-cols-[15rem_1fr_20rem] overflow-hidden min-h-[30rem]">
-          {/* COLUMN 1: FILTERS */}
-          <div className="border-r border-border/40 p-seek-4 overflow-y-auto space-y-seek-4">
-            <div className="relative">
-              <Icons.Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search questions..."
-                className="pl-8 text-xs h-8"
-              />
-            </div>
-
-            {/* SUBJECT & TOPICS */}
-            <div className="space-y-2">
-              <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Subject & Topics</Text>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                {topics.map((t) => (
-                  <label key={t.id} className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
-                    <Checkbox
-                      checked={selectedTopicIds.includes(t.id)}
-                      onChange={() =>
-                        setSelectedTopicIds((current) =>
-                          current.includes(t.id) ? current.filter((id) => id !== t.id) : [...current, t.id]
-                        )
-                      }
-                    />
-                    <span className="truncate">{t.title || t.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* QUESTION TYPE */}
-            <div className="space-y-2">
-              <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Question Type</Text>
-              <div className="space-y-1.5">
-                {Object.entries(questionTypeLabels).slice(0, 4).map(([value, label]) => (
-                  <label key={value} className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
-                    <Checkbox
-                      checked={selectedTypes.includes(value)}
-                      onChange={() =>
-                        setSelectedTypes((current) =>
-                          current.includes(value) ? current.filter((t) => t !== value) : [...current, value]
-                        )
-                      }
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* DIFFICULTY LEVEL */}
-            <div className="space-y-2">
-              <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Difficulty Level</Text>
-              <div className="space-y-1.5">
-                {Object.entries(difficultyLabels).slice(0, 3).map(([value, label]) => (
-                  <label key={value} className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
-                    <Checkbox
-                      checked={selectedDifficulties.includes(value)}
-                      onChange={() =>
-                        setSelectedDifficulties((current) =>
-                          current.includes(value) ? current.filter((d) => d !== value) : [...current, value]
-                        )
-                      }
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
+      )}
+      {error && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-900"
+        >
+          {error}
+          {fieldError && <p className="mt-1 text-xs">Талбар: {fieldError}</p>}
+          {(error.includes("өөрчлөгдсөн") || error.includes("шинэчилсэн")) && (
+            <p className="mt-2 text-sm">
+              Таны бичсэн өөрчлөлт энэ дэлгэцэд хэвээр. Дахин ачаалахаас өмнө
+              хуулж авна уу.
+            </p>
+          )}
+        </div>
+      )}
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl bg-emerald-50 p-4 text-emerald-900"
+        >
+          {notice}
+        </p>
+      )}
+      <nav
+        className="flex gap-2 overflow-x-auto"
+        aria-label="Засварлагчийн хэсгүүд"
+      >
+        {["1. Ерөнхий", "2. Асуултын сангууд", "3. Шалгах ба ашиглах"].map(
+          (label, i) => (
             <button
-              type="button"
-              onClick={clearAllFilters}
-              className="text-xs font-bold text-primary hover:underline block pt-2"
+              key={label}
+              aria-current={tab === i ? "step" : undefined}
+              onClick={() => setTab(i)}
+              className={`shrink-0 rounded-lg px-4 py-3 text-sm font-semibold ${tab === i ? "bg-primary text-primary-foreground" : "bg-surface"}`}
             >
-              Clear All Filters
+              {label}
             </button>
+          ),
+        )}
+      </nav>
+      {tab === 0 && (
+        <section className={`${bpPanel} grid gap-4 sm:grid-cols-2`}>
+          {!contextId && !state.id && (
+            <label className="sm:col-span-2">
+              Контекст
+              <select
+                aria-label="Контекст"
+                className={bpInput}
+                value={activeContext || ""}
+                onChange={(e) =>
+                  patch({
+                    assessmentContextId: e.target.value,
+                    topicId: "",
+                    sections: [],
+                  })
+                }
+              >
+                <option value="">Сонгоно уу</option>
+                {contexts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label>
+            Нэр
+            <input
+              aria-label="Нэр"
+              className={bpInput}
+              value={state.title}
+              onChange={(e) => patch({ title: e.target.value })}
+              maxLength={200}
+            />
+          </label>
+          <label>
+            Код
+            <input
+              aria-label="Код"
+              className={bpInput}
+              value={state.code || ""}
+              placeholder="Хоосон бол автоматаар үүсгэнэ"
+              onChange={(e) => patch({ code: e.target.value })}
+            />
+          </label>
+          <label className="sm:col-span-2">
+            Тайлбар
+            <textarea
+              aria-label="Тайлбар"
+              className={bpInput}
+              value={state.description}
+              onChange={(e) => patch({ description: e.target.value })}
+            />
+          </label>
+          <label>
+            Үндсэн сэдэв
+            <select
+              aria-label="Үндсэн сэдэв"
+              className={bpInput}
+              value={state.topicId}
+              onChange={(e) => patch({ topicId: e.target.value })}
+            >
+              <option value="">Тохируулаагүй</option>
+              {topics.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title || t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Нийт хугацаа (минут)
+            <input
+              aria-label="Нийт хугацаа"
+              type="number"
+              min={1}
+              max={1440}
+              className={bpInput}
+              value={state.totalDurationMinutes}
+              onChange={(e) =>
+                patch({ totalDurationMinutes: number(e.target.value) })
+              }
+            />
+          </label>
+          <label>
+            Тэнцэх босго (%)
+            <input
+              aria-label="Тэнцэх босго"
+              type="number"
+              min={0}
+              max={100}
+              step="0.1"
+              className={bpInput}
+              value={state.passScore}
+              onChange={(e) => patch({ passScore: number(e.target.value) })}
+            />
+          </label>
+        </section>
+      )}
+      {tab === 1 && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Quiz үүсгэхэд асуултуудыг нэг удаа сонгож тогтооно.
+            </p>
+            <Button onClick={add}>+ Сан нэмэх</Button>
           </div>
-
-          {/* COLUMN 2: QUESTIONS LIST */}
-          <div className="flex flex-col overflow-hidden bg-muted-background/10">
-            <div className="px-seek-4 py-seek-3 border-b border-border/40 flex items-center justify-between bg-surface">
-              <div className="flex items-center gap-seek-3 text-xs font-bold text-foreground">
-                <Checkbox checked={isAllSelected} onChange={handleSelectAll} />
-                <span>Select All · {filtered.length} questions found</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Select className="h-8 text-[10px] w-28" options={[{ value: "newest", label: "Sort by: Newest" }]} />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-seek-4 space-y-seek-3">
-              {filtered.map((q) => {
-                const isChecked = selected.includes(q.id);
-                const isActive = activeQuestion?.id === q.id;
-                return (
-                  <div
-                    key={q.id}
-                    onClick={() => setActiveQuestionId(q.id)}
-                    className={`p-seek-4 rounded-seek-lg border cursor-pointer transition-all flex items-start gap-seek-4 bg-surface ${
-                      isActive ? "ring-2 ring-primary border-primary" : "border-border hover:shadow-seek-sm"
-                    }`}
+          {!state.sections.length && (
+            <p className={bpPanel}>
+              Асуултын сан байхгүй. Сан нэмээд тохируулна уу.
+            </p>
+          )}
+          {state.sections.map((s, i) => (
+            <section key={s.id} className={`${bpPanel} space-y-4`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-semibold">Сан {i + 1}</h2>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={i === 0}
+                    onClick={() => {
+                      const a = [...state.sections];
+                      [a[i - 1], a[i]] = [a[i], a[i - 1]];
+                      patch({ sections: a });
+                    }}
                   >
-                    <Checkbox
-                      checked={isChecked}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(q.id);
-                      }}
-                      className="mt-0.5"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <Text className="font-bold text-xs text-foreground line-clamp-1">{q.title}</Text>
-                      <div className="flex items-center gap-2 mt-seek-3 flex-wrap">
-                        <Badge variant="secondary" className="text-[9px] font-bold bg-muted-background border-none px-2 py-0.5 rounded">
-                          {q.topicName}
-                        </Badge>
-                        <Badge variant={q.difficulty ? difficultyVariant[q.difficulty] : "secondary"} className="text-[9px] font-bold px-2 py-0.5 rounded">
-                          {q.difficulty ? difficultyLabels[q.difficulty] : "Medium"}
-                        </Badge>
-                        <Badge variant="secondary" className="text-[9px] font-bold bg-muted-background border-none px-2 py-0.5 rounded">
-                          {questionTypeLabels[q.type]}
-                        </Badge>
-                        <Badge variant="primary" className="text-[9px] font-bold bg-primary/10 text-primary border-none px-2 py-0.5 rounded">
-                          {(q as any).points ?? q.defaultMaxScore ?? 0} pts
-                        </Badge>
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-semibold mt-seek-2">
-                        78% success rate
-                      </div>
-                    </div>
+                    ↑
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={i === state.sections.length - 1}
+                    onClick={() => {
+                      const a = [...state.sections];
+                      [a[i + 1], a[i]] = [a[i], a[i + 1]];
+                      patch({ sections: a });
+                    }}
+                  >
+                    ↓
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      patch({
+                        sections: [
+                          ...state.sections,
+                          {
+                            ...s,
+                            id: "new-" + crypto.randomUUID(),
+                            name: s.name + " — хуулбар",
+                            selectedQuestionIds: [...s.selectedQuestionIds],
+                          },
+                        ],
+                      })
+                    }
+                  >
+                    Сан хуулах
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (window.confirm("Энэ санг загвараас хасах уу?"))
+                        patch({
+                          sections: state.sections.filter((_, j) => j !== i),
+                        });
+                    }}
+                  >
+                    Сан устгах
+                  </Button>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>
+                  Сангийн нэр
+                  <input
+                    aria-label={`Сан ${i + 1} нэр`}
+                    className={bpInput}
+                    value={s.name}
+                    onChange={(e) => section(i, { name: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Горим
+                  <select
+                    aria-label={`Сан ${i + 1} горим`}
+                    className={bpInput}
+                    value={s.sectionMode || "FIXED"}
+                    onChange={(e) => {
+                      if (
+                        s.selectedQuestionIds.length &&
+                        e.target.value === "RULE_BASED" &&
+                        !window.confirm(
+                          "Дүрмийн горимд шилжихэд сонгосон асуултуудыг цэвэрлэх үү?",
+                        )
+                      )
+                        return;
+                      section(i, {
+                        sectionMode: e.target.value as any,
+                        selectedQuestionIds:
+                          e.target.value === "RULE_BASED"
+                            ? []
+                            : s.selectedQuestionIds,
+                        selectionRules: { schemaVersion: 1 },
+                      });
+                    }}
+                  >
+                    <option value="FIXED">Сонгосон сан</option>
+                    <option value="RULE_BASED">Дүрмийн сан</option>
+                  </select>
+                </label>
+                <label>
+                  Сонгох тоо
+                  <input
+                    aria-label={`Сан ${i + 1} сонгох тоо`}
+                    type="number"
+                    min={0}
+                    max={500}
+                    className={bpInput}
+                    value={s.randomPickCount}
+                    onChange={(e) =>
+                      section(i, { randomPickCount: number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label>
+                  Оноо / асуулт
+                  <input
+                    aria-label={`Сан ${i + 1} оноо`}
+                    type="number"
+                    min={0}
+                    step="0.25"
+                    className={bpInput}
+                    value={s.pointsPerQuestion}
+                    onChange={(e) =>
+                      section(i, { pointsPerQuestion: number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label className="sm:col-span-2">
+                  Сангийн тайлбар
+                  <textarea
+                    aria-label={`Сан ${i + 1} тайлбар`}
+                    className={bpInput}
+                    value={s.description}
+                    onChange={(e) =>
+                      section(i, { description: e.target.value })
+                    }
+                  />
+                </label>
+              </div>
+              {s.sectionMode === "RULE_BASED" ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Нэг бүлгийн сонголтуудын аль нэг, бүлгүүдийн бүх нөхцөлийг
+                    хангана. Сонгоогүй бүлэг нэмэлт хязгаар тавихгүй.
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {[
+                      [
+                        "topicIds",
+                        "Сэдэв",
+                        topics.map((t) => ({
+                          id: t.id,
+                          name: t.title || t.name,
+                        })),
+                      ],
+                      [
+                        "types",
+                        "Асуултын төрөл",
+                        Object.entries(questionTypeLabels).map(
+                          ([id, name]) => ({ id, name }),
+                        ),
+                      ],
+                      ["difficultyLevelIds", "Хүндрэлийн түвшин", actualLevels],
+                      ["audienceLevelIds", "Audience түвшин", actualAudiences],
+                    ].map(([key, label, values]: any) => (
+                      <fieldset key={key} className="rounded-lg border p-3">
+                        <legend className="px-1 text-sm font-semibold">
+                          {label}
+                        </legend>
+                        <div className="max-h-44 space-y-2 overflow-y-auto">
+                          {values.map((v: any) => (
+                            <label
+                              key={v.id}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={(
+                                  (s.selectionRules as any)?.[key] || []
+                                ).includes(v.id)}
+                                onChange={() => {
+                                  const old =
+                                    (s.selectionRules as any)?.[key] || [];
+                                  section(i, {
+                                    selectionRules: {
+                                      schemaVersion: 1,
+                                      ...s.selectionRules,
+                                      [key]: old.includes(v.id)
+                                        ? old.filter(
+                                            (id: string) => id !== v.id,
+                                          )
+                                        : [...old, v.id],
+                                    },
+                                  });
+                                }}
+                              />
+                              {v.name}
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    ))}
                   </div>
-                );
-              })}
-              {filtered.length === 0 && (
-                <div className="text-center py-seek-8 text-sm text-muted-foreground font-semibold">
-                  Шүүлтүүрт тохирох асуулт олдсонгүй.
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={s.selectionRules?.includeDescendants !== false}
+                      onChange={(e) =>
+                        section(i, {
+                          selectionRules: {
+                            schemaVersion: 1,
+                            ...s.selectionRules,
+                            includeDescendants: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                    Сэдвийн дэд сэдвүүдийг хамруулах
+                  </label>
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-3 text-sm">
+                    Сонгосон холбоос: {s.selectedQuestionIds.length}
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPicker(i);
+                      setQuery("");
+                      setPage(1);
+                    }}
+                  >
+                    Асуулт сонгох / хасах
+                  </Button>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* COLUMN 3: QUESTION PREVIEW */}
-          <div className="border-l border-border/40 p-seek-4 overflow-y-auto space-y-seek-4 bg-surface flex flex-col justify-between">
-            {activeQuestion ? (
-              <div className="space-y-seek-4">
-                <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Question Preview</Text>
-                <div>
-                  <Text className="font-bold text-xs leading-relaxed text-foreground">
-                    {activeQuestion.body || (activeQuestion as any).stem}
-                  </Text>
-                </div>
-
-                {/* Choices (Mock choices wrapper) */}
-                <div className="space-y-2 pt-seek-2">
-                  {[
-                    { key: "A", text: "Mitochondria" },
-                    { key: "B", text: "Golgi Apparatus" },
-                    { key: "C", text: "Ribosomes", correct: true },
-                    { key: "D", text: "Lysosome" },
-                  ].map((choice) => (
-                    <div
-                      key={choice.key}
-                      className={`p-seek-3 rounded-seek-md border text-xs font-semibold flex items-center gap-2 ${
-                        choice.correct
-                          ? "border-success bg-success-background text-success"
-                          : "border-border hover:bg-muted-background/5"
-                      }`}
-                    >
-                      <span className="font-bold text-muted-foreground">{choice.key}</span>
-                      <span>{choice.text} {choice.correct && "(Correct)"}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-border/40 pt-seek-3 space-y-2">
-                  <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Explanation</Text>
-                  <Text variant="muted" className="text-[10px] leading-relaxed">
-                    Ribosomes are macromolecular machines found within all living cells that perform biological protein synthesis.
-                  </Text>
-                </div>
-
-                <div className="border-t border-border/40 pt-seek-3 space-y-2 text-xs">
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-muted-foreground">Difficulty Level</span>
-                    <span className="text-foreground capitalize">{activeQuestion.difficulty ?? "Medium"}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-muted-foreground">Total Points</span>
-                    <span className="text-foreground">{(activeQuestion as any).points ?? activeQuestion.defaultMaxScore ?? 0} Points</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-seek-8 text-xs text-muted-foreground">
-                Асуулт сонгож урьдчилан харна уу.
-              </div>
-            )}
-          </div>
+            </section>
+          ))}
         </div>
-
-        {/* MODAL FOOTER */}
-        <div className="border-t border-border/40 px-seek-5 py-seek-4 flex items-center justify-between bg-surface">
-          <div className="text-xs font-bold text-foreground">
-            {selected.length} questions selected · <span className="text-primary">{totalPoints} Total Points</span>
-          </div>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-            <Button type="button" size="sm" onClick={() => onApply(selected)}>
-              Add Selected Questions ({selected.length})
+      )}
+      {tab === 2 && (
+        <section className={`${bpPanel} space-y-4`}>
+          {result ? (
+            <PoolPreview result={result} />
+          ) : (
+            <p>Одоогийн тохиргоог серверээр шалгана уу.</p>
+          )}
+          <BlueprintQuizLinks blueprint={state} onReselect={reselect} busy={busy}/>
+          <Button
+            disabled={busy || state.status === "archived"}
+            onClick={() => action("quiz")}
+          >
+            Хадгалаад Quiz үүсгэх
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Өмнөх Quiz болон эхэлсэн оролдлогууд өөрчлөгдөхгүй.
+          </p>
+        </section>
+      )}
+      {picker !== null && (
+        <BlueprintDialog
+          title="Нийтлэгдсэн асуултын сан"
+          onClose={() => setPicker(null)}
+        >
+          <label>
+            Хайх
+            <input
+              aria-label="Асуултаас хайх"
+              className={bpInput}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+            />
+          </label>
+          <p className="my-3 text-sm">
+            Сонгосон {state.sections[picker].selectedQuestionIds.length} · Нийт
+            боломжтой {bank.total}
+          </p>
+          {bankError && (
+            <p role="alert">
+              {bankError}
+              <Button onClick={() => setReload((n) => n + 1)}>
+                Дахин оролдох
+              </Button>
+            </p>
+          )}
+          {bankLoading ? (
+            <p>Ачаалж байна…</p>
+          ) : (
+            <div className="space-y-2">
+              {bank.items.map((q: any) => (
+                <label
+                  key={q.id}
+                  className="flex items-start gap-3 rounded-lg border p-3"
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={`Сонгох ${q.code}`}
+                    checked={state.sections[
+                      picker
+                    ].selectedQuestionIds.includes(q.id)}
+                    onChange={() => {
+                      const old = state.sections[picker].selectedQuestionIds;
+                      section(picker, {
+                        selectedQuestionIds: old.includes(q.id)
+                          ? old.filter((id) => id !== q.id)
+                          : [...old, q.id],
+                      });
+                    }}
+                  />
+                  <span className="min-w-0">
+                    <b className="block text-sm">
+                      {q.code} · {q.title}
+                    </b>
+                    <span className="mt-2 block text-xs">
+                      <QuestionTypeBadge type={q.type} />
+                      {
+                        actualLevels.find((l) => l.id === q.difficultyLevelId)
+                          ?.name
+                      }{" "}
+                      · Нийтлэгдсэн
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="my-4 flex justify-between">
+            <Button
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Өмнөх
+            </Button>
+            <span>
+              {page} / {Math.max(1, Math.ceil(bank.total / 20))}
+            </span>
+            <Button
+              variant="outline"
+              disabled={page * 20 >= bank.total}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Дараах
             </Button>
           </div>
-        </div>
-      </Card>
-    </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Энэ сангийн бүх сонгосон холбоосыг цэвэрлэх үү?",
+                )
+              )
+                section(picker, { selectedQuestionIds: [] });
+            }}
+          >
+            Бүх сонголт цэвэрлэх
+          </Button>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Зөвхөн таны контекстэд хамаарах, runtime дэмждэг хүчинтэй
+            нийтлэгдсэн хувилбарууд. Хуучин хүчингүй холбоосуудыг бэлэн эсэхийн
+            шалгалтаар харуулна.
+          </p>
+        </BlueprintDialog>
+      )}
+      {quizBlueprint&&<QuizCreateDialog blueprint={quizBlueprint} onClose={()=>setQuizBlueprint(null)}/>}
+    </main>
   );
 }

@@ -31,7 +31,7 @@ export function MatrixBuilder({
     onChange([
       ...options,
       {
-        id: `row_${Date.now()}_${nextIdx}`,
+        id: `row_${crypto.randomUUID()}`,
         label: `Мөр ${nextIdx}`,
         value: `Үнэлэх өгүүлбэр ${nextIdx}`,
         isCorrect: true,
@@ -52,7 +52,7 @@ export function MatrixBuilder({
 
   const addColumn = () => {
     const nextColIdx = columns.length + 1;
-    const nextColumns = [...columns, { id: `col_${Date.now()}`, label: `Багана ${nextColIdx}` }];
+    const nextColumns = [...columns, { id: `col_${crypto.randomUUID()}`, label: `Багана ${nextColIdx}` }];
     onScoringConfigChange({ ...scoringConfig, matrixColumns: nextColumns });
   };
 
@@ -60,6 +60,7 @@ export function MatrixBuilder({
     if (columns.length <= 2) return;
     const nextColumns = columns.filter((_, i) => i !== colIdx);
     onScoringConfigChange({ ...scoringConfig, matrixColumns: nextColumns });
+    onChange(options.map(row => row.matchValue === columns[colIdx].id ? {...row, matchValue: ""} : row));
   };
 
   const updateColumnLabel = (colIdx: number, label: string) => {
@@ -82,6 +83,7 @@ export function MatrixBuilder({
             <div key={col.id} className="flex items-center gap-1 bg-white border border-border rounded-seek-md px-2 py-1">
               <Input
                 value={col.label}
+                aria-label={`Багана ${cIdx+1} нэр`}
                 onChange={(e) => updateColumnLabel(cIdx, e.target.value)}
                 className="w-24 border-0 p-0 text-xs font-semibold focus-visible:ring-0"
               />
@@ -118,6 +120,7 @@ export function MatrixBuilder({
                 <td className="p-seek-3">
                   <Input
                     value={row.value}
+                    aria-label={`Мөр ${rIdx+1} өгүүлбэр`}
                     placeholder="Өгүүлбэр бичих..."
                     onChange={(e) => updateRow(rIdx, { value: e.target.value })}
                     className="text-xs"
@@ -128,6 +131,7 @@ export function MatrixBuilder({
                     <input
                       type="radio"
                       name={`matrix_row_${row.id}`}
+                      aria-label={`Мөр ${rIdx+1}: ${col.label}`}
                       checked={row.matchValue === col.id}
                       onChange={() => updateRow(rIdx, { matchValue: col.id })}
                       className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
@@ -138,6 +142,7 @@ export function MatrixBuilder({
                   <Input
                     type="number"
                     value={row.score}
+                    aria-label={`Мөр ${rIdx+1} оноо`}
                     onChange={(e) => updateRow(rIdx, { score: Number(e.target.value) })}
                     className="w-16 h-8 text-center text-xs mx-auto"
                   />
